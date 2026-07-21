@@ -23,7 +23,6 @@
 //!     mounts, and
 //!   - kills the sidecar when the window closes.
 
-use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
@@ -171,26 +170,9 @@ fn fallback_pnpm(port: u16) -> Option<(Command, String)> {
     Some((cmd, "pnpm-dev".into()))
 }
 
-/// Port the engine listens on. A fixed high port avoids the need for
-/// init-script / URL-param communication between Rust and the webview.
-/// If the fixed port is already in use we fall back to an OS-assigned one.
+/// Port the engine listens on — a fixed high port so the frontend always
+/// knows where to reach the engine without any runtime communication.
 const ENGINE_PORT: u16 = 34117;
-
-fn pick_free_port() -> u16 {
-    // Try the fixed port first so the frontend can rely on a known default.
-    if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", ENGINE_PORT)) {
-        let port = listener.local_addr().unwrap().port();
-        // Drop the listener immediately — the engine will bind it later.
-        // We only need to know the port.
-        return port;
-    }
-    // Fall back to OS-assigned if the fixed port is taken.
-    TcpListener::bind("127.0.0.1:0")
-        .expect("failed to bind a free port")
-        .local_addr()
-        .unwrap()
-        .port()
-}
 
 async fn wait_for_health(port: u16, timeout: Duration) -> bool {
     let url = format!("http://127.0.0.1:{}/health", port);
@@ -216,8 +198,8 @@ fn main() {
         .format_timestamp(None)
         .init();
 
-    let port = pick_free_port();
-    log::info!("reserved port {} for the core engine", port);
+	let port = ENGINE_PORT;
+	log::info!("reserved port {} for the core engine", port);
 
     let (mut cmd, mode) = match sidecar_command(port) {
         Some(v) => v,
