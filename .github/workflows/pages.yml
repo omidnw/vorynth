@@ -17,6 +17,9 @@ name: Pages
 on:
   push:
     branches: [master]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages.
