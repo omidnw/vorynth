@@ -37,17 +37,19 @@ await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
 // 1. Inline all pure-JS deps into a single bundle.
-await run(nccBin, [
-	"build",
-	entry,
-	"--target",
-	"es2022",
-	"--no-source-map-register",
-	"--external",
-	"better-sqlite3",
-	"-o",
-	outDir,
-]);
+	await run(nccBin, [
+		"build",
+		entry,
+		"--target",
+		"es2022",
+		"--no-source-map-register",
+		"--external",
+		"better-sqlite3",
+		"--tsconfig",
+		join(root, "tsconfig.ncc.json"),
+		"-o",
+		outDir,
+	]);
 console.log("• ncc produced dist-bundle/index.js");
 
 // Pick the largest emitted .js (the real bundle) in case ncc names it
