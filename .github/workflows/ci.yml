@@ -17,21 +17,20 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Approve native builds
+      - name: Rebuild native addon
         run: pnpm rebuild better-sqlite3
 
+      # ── Lint ────────────────────────────────────────────────────────────────
       - name: Typecheck
         run: pnpm typecheck
 
@@ -41,5 +40,6 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      # ── Build ───────────────────────────────────────────────────────────────
       - name: Build
         run: pnpm build

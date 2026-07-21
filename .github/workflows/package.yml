@@ -4,16 +4,12 @@ name: Package
 # Silicon), Linux (x86_64 + ARM64), and FreeBSD from the bundled core-engine
 # sidecar + Tauri shell.
 #
-# Pipeline per target:
-#   1. Install pnpm + Node 20 + Rust toolchain.
+# Pipeline per target (fail-fast at each stage):
+#   1. Install pnpm + Node 22 + Rust toolchain.
 #   2. Install workspace deps; rebuild better-sqlite3 for THIS platform.
-#   3. Run the shared checks (typecheck/lint/build) to fail fast.
-#   4. Bundle the core engine into dist/ (single self-contained ESM bundle +
-#      the platform's better-sqlite3.node binary copied in).
-#   5. Copy the bundle into apps/desktop/src-tauri/binaries/ with the
-#      per-target name Tauri expects (vorynth-core-<triple>).
-#   6. cargo tauri build → installer per target.
-#   7. Upload the artifacts.
+#   3. Lint: typecheck → lint (fast feedback — stops here on failure)
+#   4. Build: frontend → bundle sidecar
+#   5. Release: stage sidecar → cargo tauri build → upload artifacts
 #
 # NOTE on "no Node install required" (project-details.md §15): in dev mode
 # the Tauri shell falls back to `pnpm dev`. For the packaged app, the bundle
@@ -79,13 +75,11 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Setup Rust
@@ -112,15 +106,24 @@ jobs:
       - name: Rebuild native (better-sqlite3) for this platform
         run: pnpm rebuild better-sqlite3
 
-      - name: Verify (typecheck · lint · build)
-        run: |
-          pnpm typecheck
-          pnpm lint
-          pnpm --filter @vorynth/desktop build
+      # ── Lint ────────────────────────────────────────────────────────────────
+      # Stage 1: code quality. If this fails, nothing else runs.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # ── Build ───────────────────────────────────────────────────────────────
+      # Stage 2: compile. If this fails, no release is produced.
+      - name: Build frontend
+        run: pnpm --filter @vorynth/desktop build
 
       - name: Bundle core engine sidecar
         run: pnpm --filter @vorynth/core-engine bundle
 
+      # ── Release ──────────────────────────────────────────────────────────────
+      # Stage 3: produce native installers and upload.
       - name: Stage sidecar for Tauri
         shell: bash
         run: |
@@ -178,7 +181,7 @@ jobs:
           usesh: true
           copyback: true
           prepare: |
-            pkg install -y node npm python3 rust cargo pkgconf
+            pkg install -y node npm python3 rust pkgconf
             pkg install -y webkit2gtk-4.1 gtk3 librsvg2 libxcb
 
           run: |
@@ -186,10 +189,16 @@ jobs:
             npm install -g pnpm@10
             pnpm install --frozen-lockfile
             pnpm rebuild better-sqlite3
+
+            # Lint
             pnpm typecheck
             pnpm lint
+
+            # Build
             pnpm --filter @vorynth/desktop build
             pnpm --filter @vorynth/core-engine bundle
+
+            # Release
             mkdir -p apps/desktop/src-tauri/binaries
             cp -r apps/core-engine/dist-bundle \
               apps/desktop/src-tauri/binaries/vorynth-core-x86_64-unknown-freebsd
