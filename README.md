@@ -5,7 +5,7 @@
 [![CI](https://github.com/omidnw/vorynth/actions/workflows/ci.yml/badge.svg)](https://github.com/omidnw/vorynth/actions/workflows/ci.yml)
 [![Package](https://github.com/omidnw/vorynth/actions/workflows/package.yml/badge.svg)](https://github.com/omidnw/vorynth/actions/workflows/package.yml)
 ![Version](https://img.shields.io/badge/version-1.3.0-blue)
-[![License](<https://img.shields.io/badge/license-Open%20Source%20(TBD)-green>)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 **Vorynth** is a local-first personal intelligence engine that turns the flood
 of global information into a short, personalized intelligence brief. Spend
@@ -15,9 +15,29 @@ Collects from your trusted sources → filters the noise → AI understands the
 context → delivers a concise briefing. Everything runs on **your device** —
 your API keys, history, and insights stay under your control.
 
-[GitHub](https://github.com/omidnw/vorynth) ·
-[Releases](https://github.com/omidnw/vorynth/releases) ·
-[Documentation](https://omidnw.github.io/vorynth/)
+<p align="center">
+  <a href="https://github.com/omidnw/vorynth">GitHub</a> ·
+  <a href="https://github.com/omidnw/vorynth/releases">Releases</a> ·
+  <a href="https://omidnw.github.io/vorynth/">Website</a> ·
+  <a href="docs/GUIDE.md">Setup Guide</a>
+</p>
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/omidnw/vorynth.git
+cd vorynth
+pnpm install
+pnpm dev
+```
+
+Open **http://localhost:5173** — the app is running.
+
+> See [**docs/GUIDE.md**](docs/GUIDE.md) for prerequisites, detailed commands,
+> cross-compilation, platform-specific notes (FreeBSD, Harmony OS, …), and
+> troubleshooting.
 
 ---
 
@@ -74,115 +94,17 @@ localization, and report generation.
 
 ---
 
-## Getting started
-
-### Prerequisites
-
-- **Node.js** ≥ 20
-- **pnpm** ≥ 10 (`corepack enable && corepack prepare pnpm@10 --activate`)
-- **Rust toolchain** (for Tauri builds) — `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- **System deps** (Linux) — WebKit2GTK, etc.
-  [Tauri docs →](https://v2.tauri.app/start/prerequisites/)
-
-### Quick start
-
-```bash
-pnpm install
-pnpm dev               # runs desktop + core-engine in parallel
-```
-
-This starts:
-
-- **Core engine** at `http://localhost:4317` (health: `/health`)
-- **Desktop UI** at `http://localhost:5173` (auto-reloads on save)
-
-### Individual commands
-
-```bash
-pnpm dev:desktop       # frontend only (Vite)
-pnpm dev:core          # engine only (NestJS/Fastify)
-pnpm db:migrate        # apply Drizzle migrations
-pnpm db:seed           # seed the RSS sources
-pnpm typecheck         # tsc --noEmit across all packages
-pnpm lint              # ESLint across all packages
-pnpm format            # Prettier
-pnpm test              # Vitest across all packages
-```
-
----
-
-## Building
-
-### Desktop application (Tauri)
-
-Build a native installer for your current platform:
-
-```bash
-pnpm --filter @vorynth/desktop tauri build
-```
-
-Cross-compile for specific targets:
-
-```bash
-# macOS Apple Silicon
-pnpm --filter @vorynth/desktop tauri build --target aarch64-apple-darwin
-
-# macOS Intel
-pnpm --filter @vorynth/desktop tauri build --target x86_64-apple-darwin
-
-# Linux x86_64
-pnpm --filter @vorynth/desktop tauri build --target x86_64-unknown-linux-gnu
-
-# Linux ARM64
-pnpm --filter @vorynth/desktop tauri build --target aarch64-unknown-linux-gnu
-
-# Windows x86_64
-pnpm --filter @vorynth/desktop tauri build --target x86_64-pc-windows-msvc
-```
-
-### Core engine sidecar
-
-Bundle the engine into a single portable directory:
-
-```bash
-pnpm --filter @vorynth/core-engine bundle
-```
-
-Output goes to `apps/core-engine/dist-bundle/` — ready to be shipped as a
-Tauri sidecar or run standalone:
-
-```bash
-node apps/core-engine/dist-bundle/launcher.cjs --port 4399
-```
-
-### CI/CD builds
-
-Every push to `main` triggers automated builds via GitHub Actions:
-
-| Platform              | Artifact                      |
-| --------------------- | ----------------------------- |
-| macOS (Apple Silicon) | `.dmg` / `.app`               |
-| macOS (Intel)         | `.dmg` / `.app`               |
-| Linux x86_64          | `.deb` / `.rpm` / `.AppImage` |
-| Linux ARM64           | `.deb` / `.AppImage`          |
-| Windows x86_64        | `.msi` / `.exe`               |
-| FreeBSD x86_64        | `.tar.gz`                     |
-
-See `.github/workflows/package.yml` for details.
-
----
-
 ## Cross-platform support
 
-| Platform         | Support                 | Notes                                                                     |
-| ---------------- | ----------------------- | ------------------------------------------------------------------------- |
-| macOS 12+        | ✅ Native (ARM + Intel) | Full native experience                                                    |
-| Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                    |
-| Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                        |
-| Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                              |
-| FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                 |
-| Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                          |
-| Harmony OS       | 📱 Web app              | Use the GitHub Pages deployment as a PWA until native Tauri support lands |
+| Platform         | Support                 | Notes                                                                                       |
+| ---------------- | ----------------------- | ------------------------------------------------------------------------------------------- |
+| macOS 12+        | ✅ Native (ARM + Intel) | Full native experience                                                                      |
+| Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                                      |
+| Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                                          |
+| Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                |
+| FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                                   |
+| Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                            |
+| Harmony OS       | 🟡 Source only          | Run from source via `pnpm dev` — see [platform notes](docs/GUIDE.md#harmony-os-openharmony) |
 
 ---
 
@@ -206,8 +128,6 @@ See `.github/workflows/package.yml` for details.
 
 ## Screenshots
 
-<!-- TODO: Add screenshots once GitHub Pages is live -->
-
 | Today's Brief | Search        | Settings      |
 | ------------- | ------------- | ------------- |
 | _Coming soon_ | _Coming soon_ | _Coming soon_ |
@@ -216,8 +136,8 @@ See `.github/workflows/package.yml` for details.
 
 ## Project status
 
-Version **1.3.0** — active development. See [CHANGELOG](/apps/desktop/src/features/changelog/changelog-data.ts)
-or open the app and visit **Settings → Changelog**.
+Version **1.3.0** — active development. See the in-app **Settings → Changelog**
+or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 
 ### Roadmap
 
@@ -235,10 +155,12 @@ or open the app and visit **Settings → Changelog**.
 
 ## License
 
-Open Source (TBD). See [LICENSE](LICENSE) (once chosen).
+MIT — see [LICENSE](LICENSE). Copyright © 2026 Omid Reza Keshtkar.
 
 ---
 
 <p align="center">
   <sub>Built with ❤️ by <a href="https://github.com/omidnw">Omid Reza Keshtkar</a></sub>
+  <br>
+  <sub><a href="docs/GUIDE.md">📖 Setup Guide</a></sub>
 </p>

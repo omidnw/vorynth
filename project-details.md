@@ -9,7 +9,7 @@
 
 **Version:** 1.0  
 **Status:** Concept / Development Planning  
-**License:** Open Source (TBD)
+**License:** MIT
 
 ---
 
