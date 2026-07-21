@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/omidnw/vorynth/actions/workflows/ci.yml/badge.svg)](https://github.com/omidnw/vorynth/actions/workflows/ci.yml)
 [![Package](https://github.com/omidnw/vorynth/actions/workflows/package.yml/badge.svg)](https://github.com/omidnw/vorynth/actions/workflows/package.yml)
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 **Vorynth** is a local-first personal intelligence engine that turns the flood
@@ -140,7 +140,7 @@ localization, and report generation.
 
 ## Project status
 
-Version **1.3.0** — active development. See the in-app **Settings → Changelog**
+Version **1.4.0** — active development. See the in-app **Settings → Changelog**
 or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 
 ### Roadmap

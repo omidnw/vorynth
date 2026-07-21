@@ -33,6 +33,33 @@ use tauri::WebviewWindowBuilder;
 
 const SIDECAR_BASENAME: &str = "vorynth-core";
 
+/// Platform-appropriate app-data directory so the DB lives outside the .app
+/// bundle in a persistent, user-owned location.
+fn default_data_dir() -> PathBuf {
+	let home = std::env::var("HOME")
+		.or_else(|_| std::env::var("USERPROFILE"))
+		.unwrap_or_else(|_| ".".to_string());
+
+	if cfg!(target_os = "macos") {
+		PathBuf::from(home)
+			.join("Library")
+			.join("Application Support")
+			.join("com.vorynth.desktop")
+	} else if cfg!(target_os = "windows") {
+		PathBuf::from(home)
+			.join("AppData")
+			.join("Roaming")
+			.join("com.vorynth.desktop")
+	} else if cfg!(target_os = "linux") {
+		PathBuf::from(home)
+			.join(".local")
+			.join("share")
+			.join("com.vorynth.desktop")
+	} else {
+		PathBuf::from(home).join(".vorynth")
+	}
+}
+
 /// Decide how to launch the engine. Returns the configured Command + a human
 /// label for logging.
 fn sidecar_command(port: u16) -> Option<(Command, String)> {
@@ -61,8 +88,17 @@ fn sidecar_command(port: u16) -> Option<(Command, String)> {
 
     // 2. Bundled directory form (ncc bundle + launcher.cjs).
     //    Search sibling `binaries/` (Tauri's externalBin destination) and
-    //    `resources/`.
-    for sub in &["binaries", "resources"] {
+    //    `resources/` next to the executable.
+    //    On macOS, also search `../Resources/` and `../Resources/binaries/`
+    //    because Tauri bundles resources inside the .app bundle at
+    //    Contents/Resources/ (while the exe lives in Contents/MacOS/).
+    #[allow(unused_mut)]
+    let mut search_dirs = vec!["binaries", "resources"];
+    if cfg!(target_os = "macos") {
+        search_dirs.push("../Resources");
+        search_dirs.push("../Resources/binaries");
+    }
+    for sub in &search_dirs {
         if let Some(found) = find_sidecar_dir(&dir.join(sub)) {
             let launcher = found.join("launcher.cjs");
             if launcher.exists() {
@@ -135,7 +171,20 @@ fn fallback_pnpm(port: u16) -> Option<(Command, String)> {
     Some((cmd, "pnpm-dev".into()))
 }
 
+/// Port the engine listens on. A fixed high port avoids the need for
+/// init-script / URL-param communication between Rust and the webview.
+/// If the fixed port is already in use we fall back to an OS-assigned one.
+const ENGINE_PORT: u16 = 34117;
+
 fn pick_free_port() -> u16 {
+    // Try the fixed port first so the frontend can rely on a known default.
+    if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", ENGINE_PORT)) {
+        let port = listener.local_addr().unwrap().port();
+        // Drop the listener immediately — the engine will bind it later.
+        // We only need to know the port.
+        return port;
+    }
+    // Fall back to OS-assigned if the fixed port is taken.
     TcpListener::bind("127.0.0.1:0")
         .expect("failed to bind a free port")
         .local_addr()
@@ -180,6 +229,13 @@ fn main() {
     };
     cmd.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
+    // Point the engine at a persistent app-data directory so the SQLite DB
+    // lives outside the .app bundle (e.g. ~/Library/Application Support/…).
+    // Respect an explicit env var so dev workflows can override.
+    if std::env::var_os("VORYNTH_DATA_DIR").is_none() {
+        cmd.env("VORYNTH_DATA_DIR", default_data_dir());
+    }
+
     let child = cmd.spawn().ok();
     if child.is_some() {
         log::info!("core engine sidecar spawned ({}) on port {}", mode, port);
@@ -210,19 +266,34 @@ fn main() {
     run_tauri(port, child);
 }
 
-fn run_tauri(port: u16, mut child: Option<Child>) {
-    let init_js = format!("window.__VORYNTH_CORE_PORT__ = {};", port);
+	fn run_tauri(port: u16, mut child: Option<Child>) {
+	    let init_js = format!("window.__VORYNTH_CORE_PORT__ = {};", port);
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
-        .setup(move |app| {
-            let window = WebviewWindowBuilder::new(
-                app,
-                "main",
-                tauri::WebviewUrl::App("index.html".into()),
-            )
-            .initialization_script(&init_js)
-            .build()?;
+	    tauri::Builder::default()
+	        .plugin(tauri_plugin_shell::init())
+	        .setup(move |app| {
+	            // When the engine binds the fixed port (34117, the common case)
+	            // the frontend already knows it — no runtime communication needed.
+	            // When the port differs (fixed port was busy) we pass it via a
+	            // URL query param so the frontend can discover it.
+	            let page = if port == ENGINE_PORT {
+	                "index.html".to_string()
+	            } else {
+	                format!("index.html?__vp={}", port)
+	            };
+	            let window = WebviewWindowBuilder::new(
+	                app,
+	                "main",
+	                tauri::WebviewUrl::App(page.into()),
+	            )
+	            .title("Vorynth — Personal Intelligence Engine")
+	            .inner_size(1440.0, 900.0)
+	            .min_inner_size(1024.0, 700.0)
+	            .resizable(true)
+	            .fullscreen(false)
+	            .decorations(true)
+	            .initialization_script(&init_js)
+	            .build()?;
 
             // Kill the sidecar when the window is destroyed.
             let child_holder = std::sync::Arc::new(std::sync::Mutex::new(child.take()));

@@ -21,10 +21,6 @@ async function bootstrap() {
 
 	const port = await resolvePort(process.env, process.argv);
 	const host = process.env.HOST ?? "127.0.0.1";
-	const corsOrigin = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
-		.split(",")
-		.map((o) => o.trim())
-		.filter(Boolean);
 
 	const app = await NestFactory.create<NestFastifyApplication>(
 		AppModule,
@@ -46,10 +42,9 @@ async function bootstrap() {
 		}),
 	);
 	app.enableCors({
-		origin: corsOrigin,
+		origin: true, // local-only engine — any origin is safe
 		methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-		credentials: false,
 	});
 
 	await app.listen(port, host, () => {

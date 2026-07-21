@@ -32,6 +32,51 @@ export interface Release {
 
 export const RELEASES: Release[] = [
 	{
+		version: "1.4.0",
+		codename: "Local Engine",
+		date: "2026-07-22",
+		summary:
+			"Vorynth is now a proper desktop app that works out of the box. The core engine is bundled as a Tauri sidecar — no Node install needed. On first launch, the database is automatically created and migrated, and 13 high-quality sources are seeded and collected immediately. The app also came home with a new logo, live favicon, and a fresh landing page.",
+		changes: [
+			{
+				type: "new",
+				text: "13 seed sources (OpenAI, Hugging Face, GitHub Blog, Martin Fowler, web.dev, Cloudflare, HashiCorp, AWS, Krebs, Cloudflare Security, OpenSSF, Rust, Python) are auto-seeded on first launch — zero-configuration news reading from day one.",
+			},
+			{
+				type: "fixed",
+				text: "Core engine is now bundled as a Tauri resource so the .app works without a separate Node.js installation. The sidecar directory is discovered at Runtime/Resources/ on macOS.",
+			},
+			{
+				type: "fixed",
+				text: "Database auto-migrates on every startup — the first run creates all tables, FTS5 index, and seeds defaults. No more pnpm db:migrate required.",
+			},
+			{
+				type: "fixed",
+				text: "Application data lives in a persistent platform-appropriate directory (e.g. ~/Library/Application Support/com.vorynth.desktop/ on macOS) so the SQLite database survives app reinstalls and is user-accessible.",
+			},
+			{
+				type: "fixed",
+				text: "CORS now accepts any origin — the Tauri webview was sending requests from a custom protocol (tauri://) that the restrictive localhost-only policy blocked, making the frontend unable to reach the engine despite both running on the same machine.",
+			},
+			{
+				type: "fixed",
+				text: "Frontend and engine now agree on a fixed port (34117) by default — no init-script communication needed. A URL query-parameter fallback covers the rare case where the fixed port is already in use.",
+			},
+			{
+				type: "fixed",
+				text: "Better-sqlite3 native addon is now properly bundled in the sidecar. The previous configuration externalised it, leaving an unresolved import in the ESM bundle.",
+			},
+			{
+				type: "improved",
+				text: "New Vorynth logo (square, transparent) replaces the dark-background placeholder. Favicon supports ico, icns, and PNG at all standard sizes.",
+			},
+			{
+				type: "improved",
+				text: "Landing page at omidnw.github.io/vorynth/ redesigned with Material Symbols, scroll animations, Inter font, and a Google Translate widget supporting 14 languages.",
+			},
+		],
+	},
+	{
 		version: "1.3.0",
 		codename: "In Your Language",
 		date: "2026-07-21",

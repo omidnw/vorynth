@@ -42,15 +42,18 @@ await mkdir(outDir, { recursive: true });
 console.log("▶ building @vorynth/types");
 await run("pnpm", ["--filter", "@vorynth/types", "build"]);
 
-// 2. Inline all pure-JS deps into a single bundle.
+// 2. Inline all pure-JS deps into a single bundle. better-sqlite3's
+//    JavaScript wrapper is inlined; only the native .node binary is kept
+//    separate (copied in step 3 below). The --external flag is intentionally
+//    NOT used for better-sqlite3 — externalising it would leave a bare
+//    `import "better-sqlite3"` in the ESM output that Node cannot resolve
+//    when the bundle is deployed without a node_modules tree.
 await run(nccBin, [
 	"build",
 	entry,
 	"--target",
 	"es2022",
 	"--no-source-map-register",
-	"--external",
-	"better-sqlite3",
 	"-o",
 	outDir,
 ]);
@@ -113,8 +116,9 @@ const launcher = [
 await writeFile(join(outDir, "launcher.cjs"), launcher, "utf8");
 console.log("• wrote dist-bundle/launcher.cjs");
 
-// 5. A package.json without "type": "module" so the launcher's import() works
-//    while CommonJS files remain happy.
+// 5. A package.json with "type": "module" so the ESM bundle is loaded
+//    without a redundant reparse (launcher.cjs uses the .cjs extension and
+//    is therefore unaffected by this field).
 await writeFile(
 	join(outDir, "package.json"),
 	JSON.stringify(
@@ -122,6 +126,7 @@ await writeFile(
 			name: "vorynth-core-sidecar",
 			version: "1.0.0",
 			private: true,
+			type: "module",
 		},
 		null,
 		2,

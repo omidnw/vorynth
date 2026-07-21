@@ -3,15 +3,31 @@ import type { ApiError } from "@vorynth/types";
 /**
  * Engine base URL.
  *
- * In dev the engine runs on a fixed port (4317). In the packaged Tauri app the
- * Rust shell picks a free port when spawning the sidecar and exposes it to the
- * webview via `__VORYNTH_CORE_PORT__` (injected before the bundle loads).
+ * The Rust shell uses a fixed port (34117) unless it is already taken, then
+ * it falls back to an OS-assigned port. The init-script and URL-param paths
+ * below cover that fallback; in the common case 34117 "just works" on both
+ * sides without any runtime communication.
  */
+const FIXED_PORT = 34117;
+
 function readPort(): number {
+	// 1. URL query param `__vp` (set by Rust when the fixed port is busy).
+	const params = new URLSearchParams(
+		typeof window !== "undefined" ? window.location.search : "",
+	);
+	const fromUrl = params.get("__vp");
+	if (fromUrl) {
+		const n = Number(fromUrl);
+		if (Number.isFinite(n) && n > 0) return n;
+	}
+
+	// 2. Tauri init-script injection (legacy — kept for safety).
 	const injected = (globalThis as unknown as { __VORYNTH_CORE_PORT__?: number })
 		.__VORYNTH_CORE_PORT__;
 	if (typeof injected === "number" && injected > 0) return injected;
-	return Number(import.meta.env.VITE_CORE_PORT ?? 4317);
+
+	// 3. Fixed port (the common path — no runtime overhead).
+	return FIXED_PORT;
 }
 
 export const CORE_HOST = import.meta.env.VITE_CORE_HOST ?? "127.0.0.1";

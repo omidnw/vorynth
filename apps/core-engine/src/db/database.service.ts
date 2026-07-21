@@ -12,6 +12,7 @@ import {
 import * as schema from "./schema.js";
 import { resolveDbPath } from "./paths.js";
 import { normalizeText } from "../search/text-normalizer.js";
+import { runMigrations } from "./ddl.js";
 
 /**
  * Wraps the single SQLite connection used by the entire engine.
@@ -51,6 +52,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
 	onModuleInit() {
 		this.logger.log(`SQLite opened at ${this.filePath}`);
+		runMigrations(this.raw);
+		this.logger.log("Migrations applied");
 	}
 
 	onModuleDestroy() {

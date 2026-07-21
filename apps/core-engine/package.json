@@ -1,6 +1,6 @@
 {
 	"name": "@vorynth/core-engine",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"private": true,
 	"description": "Vorynth Core Engine — NestJS intelligence runtime (bundled as a Tauri sidecar).",
 	"type": "module",

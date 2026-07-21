@@ -60,6 +60,11 @@ jobs:
       - name: Rebuild native
         run: pnpm rebuild better-sqlite3
 
+      # @vorynth/types needs its dist/ emitted before dependent packages
+      # can resolve it via exports.
+      - name: Build shared types
+        run: pnpm --filter @vorynth/types build
+
       - name: Build frontend
         run: pnpm --filter @vorynth/desktop build
         env:
