@@ -28,6 +28,10 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Required for the tauri-action to create GitHub releases
+permissions:
+  contents: write
+
 jobs:
   package:
     strategy:
@@ -187,7 +191,7 @@ jobs:
           copyback: true
           prepare: |
             pkg install -y node npm python3 rust pkgconf
-            pkg install -y webkit2gtk-4.1 gtk3 librsvg2 libxcb
+            pkg install -y webkit2-gtk4 gtk3 librsvg2 libxcb
 
           run: |
             # pnpm is not available on FreeBSD pkg, use npm to install it
