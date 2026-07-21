@@ -1,0 +1,108 @@
+name: Pages
+
+# Deploys the Vorynth landing page and built frontend to GitHub Pages.
+#
+# The site serves as the project homepage at:
+#   https://omidnw.github.io/vorynth/
+#
+# Content:
+#   - docs/index.html   → project landing page (hero, features, architecture)
+#   - (future) built Vite frontend as a live PWA demo
+#
+# Requirements:
+#   1. GitHub Pages must be enabled in the repo settings → "Deploy from a branch"
+#      or "GitHub Actions" as the source. The latter is recommended.
+#   2. The Pages workflow requires the `pages` and `id-token` permissions below.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. However, do NOT cancel in-progress runs as
+# we want to allow these production deployments to complete.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native
+        run: pnpm rebuild better-sqlite3
+
+      - name: Build frontend
+        run: pnpm --filter @vorynth/desktop build
+        env:
+          # Use the Pages base path so asset URLs are correct
+          VITE_BASE_URL: /vorynth/
+
+      - name: Prepare Pages artifact
+        shell: bash
+        run: |
+          # Create the deployment directory
+          mkdir -p _site
+
+          # Copy the landing page
+          cp docs/index.html _site/
+
+          # Copy the built frontend assets under /app/ so the landing page
+          # can link to them, or for a future "live demo" sub-page.
+          cp -r apps/desktop/dist _site/app/ 2>/dev/null || true
+
+          # Copy the README as a quick-reference page
+          cp README.md _site/README.md 2>/dev/null || true
+
+          echo "Pages artifact contents:"
+          ls -la _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

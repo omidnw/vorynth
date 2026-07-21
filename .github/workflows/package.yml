@@ -1,7 +1,8 @@
 name: Package
 
 # Produces signed-ish desktop installers for Windows, macOS (Intel + Apple
-# Silicon), and Linux from the bundled core-engine sidecar + Tauri shell.
+# Silicon), Linux (x86_64 + ARM64), and FreeBSD from the bundled core-engine
+# sidecar + Tauri shell.
 #
 # Pipeline per target:
 #   1. Install pnpm + Node 20 + Rust toolchain.
@@ -20,6 +21,10 @@ name: Package
 # workflow is split per-OS (we ship a Node-bundled executable per target).
 # A pure Node-SEA that inlines Node itself is a follow-up once we add
 # signing; for now the installers bundle Node via Tauri's resource mechanism.
+#
+# BSD Family note: Linux x86_64 binaries run on FreeBSD via the Linux ABI
+# compatibility layer (linuxulator). Native FreeBSD builds are also provided
+# using the FreeBSD VM runner for users who prefer native binaries.
 
 on:
   push:
@@ -33,22 +38,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ── macOS ────────────────────────────────────────────────────────
           - os: macos-14
             target: aarch64-apple-darwin
             label: macOS (Apple Silicon)
             artifact: vorynth-macos-arm64
+            use-cross: false
           - os: macos-13
             target: x86_64-apple-darwin
             label: macOS (Intel)
             artifact: vorynth-macos-x64
+            use-cross: false
+
+          # ── Linux ─────────────────────────────────────────────────────────
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            label: Linux
+            label: Linux x86_64
             artifact: vorynth-linux-x64
+            use-cross: false
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: Linux ARM64
+            artifact: vorynth-linux-arm64
+            use-cross: false
+
+          # ── Windows ──────────────────────────────────────────────────────
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             label: Windows
             artifact: vorynth-windows-x64
+            use-cross: false
 
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
@@ -74,6 +93,14 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install Linux system deps
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            patchelf libssl-dev libgtk-3-dev libayatana-appindicator3-dev
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
@@ -98,9 +125,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p apps/desktop/src-tauri/binaries
-          # The bundle is produced in apps/core-engine/dist-bundle/.
-          # Tauri's Rust shell looks for a `vorynth-core-<triple>/` directory
-          # under binaries/ and runs its launcher.cjs via the system node.
           cp -r apps/core-engine/dist-bundle \
             apps/desktop/src-tauri/binaries/vorynth-core-${{ matrix.target }}
           ls -la apps/desktop/src-tauri/binaries/
@@ -130,5 +154,53 @@ jobs:
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.tar.gz
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.tar.xz
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ── FreeBSD (native) ─────────────────────────────────────────────────────
+  # Built inside a FreeBSD VM on an Ubuntu runner. Tauri on FreeBSD uses the
+  # native FreeBSD WebKit port. This is experimental — if the build fails, the
+  # Linux x86_64 binary is the recommended fallback (works via Linux ABI).
+  freebsd:
+    name: FreeBSD x86_64
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build in FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          copyback: true
+          prepare: |
+            pkg install -y node npm python3 rust cargo pkgconf
+            pkg install -y webkit2gtk-4.1 gtk3 librsvg2 libxcb
+
+          run: |
+            # pnpm is not available on FreeBSD pkg, use npm to install it
+            npm install -g pnpm@10
+            pnpm install --frozen-lockfile
+            pnpm rebuild better-sqlite3
+            pnpm typecheck
+            pnpm lint
+            pnpm --filter @vorynth/desktop build
+            pnpm --filter @vorynth/core-engine bundle
+            mkdir -p apps/desktop/src-tauri/binaries
+            cp -r apps/core-engine/dist-bundle \
+              apps/desktop/src-tauri/binaries/vorynth-core-x86_64-unknown-freebsd
+            cd apps/desktop/src-tauri
+            cargo tauri build --target x86_64-unknown-freebsd
+
+      - name: Upload FreeBSD artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vorynth-freebsd-x64
+          path: |
+            apps/desktop/src-tauri/target/x86_64-unknown-freebsd/release/bundle/**/*
           if-no-files-found: warn
           retention-days: 14

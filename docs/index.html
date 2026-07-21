@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Vorynth — A local-first personal intelligence engine. Turn information overload into clear insight." />
+  <meta name="theme-color" content="#0f1a17" />
+  <title>Vorynth — Personal Intelligence Engine</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <style>
+    :root {
+      --bg: #0f1a17;
+      --bg-card: #15221e;
+      --bg-hover: #1a2e2a;
+      --fg: #e2e8e6;
+      --fg-muted: #96a8a2;
+      --accent: #5bbf9e;
+      --accent-hover: #6dceaf;
+      --border: #1e332e;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Hero ────────────────────────────────────────────── */
+    .hero {
+      padding: 100px 0 60px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero .tagline {
+      font-size: 1.25rem;
+      color: var(--fg-muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .hero-badges img { height: 24px; }
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0f1a17;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      background: var(--bg-hover);
+      border-color: var(--fg-muted);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+
+    /* ── Sections ────────────────────────────────────────── */
+    section { padding: 60px 0; }
+    section h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    section h2 .emoji { margin-right: 8px; }
+
+    /* ── Features ────────────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .feature-card .icon { font-size: 1.5rem; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 1rem; margin-bottom: 8px; }
+    .feature-card p { font-size: 0.875rem; color: var(--fg-muted); line-height: 1.5; }
+
+    /* ── Architecture ─────────────────────────────────────── */
+    .arch-diagram {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--fg-muted);
+    }
+    .arch-diagram .highlight { color: var(--accent); }
+
+    /* ── Platform grid ───────────────────────────────────── */
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .platform-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 16px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .platform-card:hover { border-color: var(--accent); }
+    .platform-card .icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .platform-card .name { font-size: 0.85rem; font-weight: 600; }
+    .platform-card .status { font-size: 0.75rem; color: var(--fg-muted); margin-top: 4px; }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      color: var(--fg-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--fg-muted); }
+    footer a:hover { color: var(--accent); }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hero { padding: 60px 0 40px; }
+      .hero h1 { font-size: 2.2rem; }
+      .hero .tagline { font-size: 1rem; }
+      .features-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ─── Hero ──────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="container">
+      <h1>Vorynth</h1>
+      <p class="tagline">
+        A local-first personal intelligence engine that turns information
+        overload into clear insight. Spend <strong>minutes</strong>
+        understanding what matters instead of hours searching for it.
+      </p>
+      <div class="hero-badges">
+        <a href="https://github.com/omidnw/vorynth/actions/workflows/ci.yml">
+          <img src="https://github.com/omidnw/vorynth/actions/workflows/ci.yml/badge.svg" alt="CI" />
+        </a>
+        <a href="https://github.com/omidnw/vorynth/actions/workflows/package.yml">
+          <img src="https://github.com/omidnw/vorynth/actions/workflows/package.yml/badge.svg" alt="Package" />
+        </a>
+        <img src="https://img.shields.io/badge/version-1.3.0-blue" alt="Version" />
+        <img src="https://img.shields.io/badge/license-Open%20Source%20(TBD)-green" alt="License" />
+      </div>
+      <div class="hero-buttons">
+        <a href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary">
+          ⬇ Download
+        </a>
+        <a href="https://github.com/omidnw/vorynth" class="btn btn-outline">
+          View on GitHub →
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Features ──────────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <h2><span class="emoji">✦</span> Features</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="icon">📡</div>
+          <h3>Multi-Source Collection</h3>
+          <p>RSS feeds with per-source fetch windows and rate limiting. 13 seed sources covering AI, engineering, security & more.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🧠</div>
+          <h3>LangGraph Intelligence</h3>
+          <p>AI workflow: collect → normalize → dedup → rank → classify → analyze → brief. All local, all private.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🤖</div>
+          <h3>4 LLM Providers</h3>
+          <p>OpenAI, Anthropic Claude, Google Gemini, Groq — switch per query or per generate. Bring your own key.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔍</div>
+          <h3>FTS5 Search + AI RAG</h3>
+          <p>Blazing-fast full-text search with Persian/Arabic support. Ask questions in natural language with cited answers.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🌐</div>
+          <h3>i18n + RTL</h3>
+          <p>English & Persian UI with RTL auto-detection for AI output. More languages via standard ICU message format.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔒</div>
+          <h3>Privacy First</h3>
+          <p>No cloud account. No telemetry. Your API keys, history, and insights stay under your control — local-first.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">💾</div>
+          <h3>Backup & Restore</h3>
+          <p>Full database snapshots with manifest. One-click export, restore, and delete from the settings panel.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🌙</div>
+          <h3>Dark Mode + Themes</h3>
+          <p>System-aware theme with multiple accent colors. Beautiful design that adapts to your preference.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Architecture ──────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <h2><span class="emoji">🏗</span> Architecture</h2>
+      <div class="arch-diagram">Vorynth/
+├── apps/
+│   ├── <span class="highlight">desktop/</span>          Tauri v2 + React 18 + Vite + Tailwind
+│   │   ├── src/              UI pages & components
+│   │   └── src-tauri/        Rust shell + sidecar launcher
+│   └── <span class="highlight">core-engine/</span>      NestJS + Fastify — intelligence runtime
+│       ├── collector/        RSS polling & rate limiting
+│       ├── normalizer/       Dedup, classification, scoring
+│       ├── intelligence/     LangGraph.js workflow
+│       ├── search/           FTS5 + AI RAG search
+│       ├── backup/           Snapshot management
+│       ├── llm/              Provider abstraction
+│       └── data/             SQLite + Drizzle ORM
+└── packages/
+    └── <span class="highlight">types/</span>            Shared TypeScript interfaces</div>
+    </div>
+  </section>
+
+  <!-- ─── Platform Support ──────────────────────────────── -->
+  <section>
+    <div class="container">
+      <h2><span class="emoji">🖥</span> Platform Support</h2>
+      <div class="platform-grid">
+        <div class="platform-card">
+          <div class="icon">🍎</div>
+          <div class="name">macOS</div>
+          <div class="status">ARM + Intel</div>
+        </div>
+        <div class="platform-card">
+          <div class="icon">🪟</div>
+          <div class="name">Windows</div>
+          <div class="status">x86_64</div>
+        </div>
+        <div class="platform-card">
+          <div class="icon">🐧</div>
+          <div class="name">Linux</div>
+          <div class="status">x86_64 + ARM64</div>
+        </div>
+        <div class="platform-card">
+          <div class="icon">🆓</div>
+          <div class="name">FreeBSD</div>
+          <div class="status">x86_64</div>
+        </div>
+        <div class="platform-card">
+          <div class="icon">📱</div>
+          <div class="name">Web / PWA</div>
+          <div class="status">Incl. Harmony OS</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <p>
+        <a href="https://github.com/omidnw/vorynth">GitHub</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/omidnw/vorynth/releases">Releases</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/omidnw/vorynth/issues">Issues</a>
+      </p>
+      <p style="margin-top: 12px;">
+        Built with ❤️ by <a href="https://github.com/omidnw">Omid Reza Keshtkar</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
