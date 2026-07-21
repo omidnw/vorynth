@@ -36,11 +36,13 @@ console.log("▶ bundling core engine sidecar → dist-bundle/");
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
-// 1. Inline all pure-JS deps into a single bundle.
-// ncc reads tsconfig from NCC_TS_CONFIG env var (--tsconfig flag is not
-// supported in v0.38.x). Our custom tsconfig removes rootDir restriction
-// so workspace imports (e.g. @vorynth/types) don't trigger TS6059.
-process.env.NCC_TS_CONFIG = join(root, "tsconfig.ncc.json");
+// 1. Build the workspace types package so its dist/ exists. ncc needs to
+//    resolve @vorynth/types to compiled JS — pointing it at .ts source makes
+//    ncc try to compile the workspace package and trip TS6059 (rootDir).
+console.log("▶ building @vorynth/types");
+await run("pnpm", ["--filter", "@vorynth/types", "build"]);
+
+// 2. Inline all pure-JS deps into a single bundle.
 await run(nccBin, [
 	"build",
 	entry,
@@ -132,7 +134,7 @@ console.log("  run with:  node dist-bundle/launcher.cjs --port 4399");
 
 function run(cmd, args) {
 	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, [cmd, ...args], { stdio: "inherit" });
+		const child = spawn(cmd, args, { stdio: "inherit", shell: process.platform === "win32" });
 		child.on("close", (code) =>
 			code === 0 ? resolve(undefined) : reject(new Error(`${cmd} exited ${code}`)),
 		);
