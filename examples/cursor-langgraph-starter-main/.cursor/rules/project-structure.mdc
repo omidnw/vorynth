@@ -1,0 +1,52 @@
+---
+description: Project structure and organization guidelines
+globs: 
+alwaysApply: true
+---
+
+# Project Structure
+
+This is a LangGraph.js starter project optimized for Cursor development.
+
+## Directory Layout
+
+```
+src/
+├── state/           # State annotation definitions
+│   └── index.ts     # AgentState and related types
+├── nodes/           # Node implementations
+│   ├── agent.ts     # LLM calling node
+│   └── tools.ts     # Tool execution node
+├── edges/           # Conditional routing logic
+│   └── router.ts    # Edge routing functions
+├── tools/           # Tool definitions
+│   └── index.ts     # Custom tools for the agent
+├── workflows/       # Graph composition
+│   └── agent.ts     # Main agent workflow
+└── index.ts         # Entry point
+```
+
+## Key Files
+
+- **State** (`src/state/`): Define your graph's state schema using LangGraph Annotations
+- **Nodes** (`src/nodes/`): Pure functions that transform state
+- **Edges** (`src/edges/`): Routing logic for conditional transitions
+- **Tools** (`src/tools/`): LangChain tools the agent can use
+- **Workflows** (`src/workflows/`): Compose nodes and edges into graphs
+
+## Adding New Features
+
+### To add a new tool:
+1. Create tool in `src/tools/`
+2. Export from `src/tools/index.ts`
+3. Add to tools array in `src/nodes/agent.ts`
+
+### To add a new node:
+1. Create node function in `src/nodes/`
+2. Add node to workflow in `src/workflows/agent.ts`
+3. Connect with edges
+
+### To add a subgraph:
+1. Create new workflow file in `src/workflows/`
+2. Import compiled subgraph into parent workflow
+3. Add as node: `workflow.addNode("subgraph", compiledSubgraph)`

@@ -1,0 +1,43 @@
+{
+	"name": "@vorynth/desktop",
+	"version": "1.3.0",
+	"private": true,
+	"type": "module",
+	"description": "Vorynth desktop frontend — React + TypeScript + Tauri.",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc -b && vite build",
+		"preview": "vite preview",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint src",
+		"lint:fix": "eslint src --fix",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@tanstack/react-query": "^5.80.0",
+		"@tanstack/react-query-devtools": "^5.80.0",
+		"@vorynth/types": "workspace:*",
+		"clsx": "^2.1.1",
+		"i18next": "^26.3.6",
+		"iso-639-1": "^3.1.6",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"react-i18next": "^17.0.10",
+		"react-router-dom": "^6.30.0",
+		"zustand": "^5.0.5"
+	},
+	"devDependencies": {
+		"@tailwindcss/container-queries": "^0.1.1",
+		"@types/react": "^18.3.12",
+		"@types/react-dom": "^18.3.1",
+		"@vitejs/plugin-react": "^4.3.4",
+		"autoprefixer": "^10.4.20",
+		"eslint": "^9.39.1",
+		"postcss": "^8.5.0",
+		"tailwindcss": "^3.4.17",
+		"typescript": "^5.9.3",
+		"vite": "^6.0.7",
+		"vite-tsconfig-paths": "^5.1.4",
+		"vitest": "^4.0.13"
+	}
+}

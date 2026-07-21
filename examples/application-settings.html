@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en" class="light">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist.min.css"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<script id="tailwind-config">
+			try {
+				tailwind.config = {
+					darkMode: "class",
+					theme: {
+						extend: {
+							colors: {
+								"on-tertiary-container": "#8d9292",
+								"outline-variant": "#c2c8c5",
+								"on-surface": "#191c1d",
+								"surface-variant": "#e1e3e3",
+								"surface-container-low": "#f2f4f4",
+								"on-secondary-container": "#536662",
+								"on-tertiary-fixed-variant": "#424847",
+								"on-error": "#ffffff",
+								"primary-fixed": "#d0e7e1",
+								"on-background": "#191c1d",
+								"on-primary-fixed": "#0a1f1b",
+								"surface-container": "#eceeee",
+								error: "#ba1a1a",
+								"on-primary": "#ffffff",
+								"on-tertiary": "#ffffff",
+								"surface-tint": "#4e635e",
+								"secondary-container": "#cfe4df",
+								"secondary-fixed-dim": "#b6cbc6",
+								background: "#f8fafa",
+								"on-primary-container": "#809691",
+								"inverse-surface": "#2e3131",
+								"secondary-fixed": "#d2e7e2",
+								"primary-container": "#1a2e2a",
+								primary: "#051916",
+								"inverse-on-surface": "#eff1f1",
+								"primary-fixed-dim": "#b5cbc5",
+								"on-secondary": "#ffffff",
+								"inverse-primary": "#b5cbc5",
+								"surface-container-lowest": "#ffffff",
+								"surface-container-high": "#e6e8e9",
+								"on-primary-fixed-variant": "#364b46",
+								"on-secondary-fixed": "#0c1f1c",
+								"surface-container-highest": "#e1e3e3",
+								"tertiary-fixed": "#dee3e2",
+								"on-tertiary-fixed": "#171d1c",
+								"surface-dim": "#d8dada",
+								surface: "#f8fafa",
+								secondary: "#4f625e",
+								"error-container": "#ffdad6",
+								outline: "#727876",
+								"tertiary-container": "#262b2b",
+								"on-surface-variant": "#424846",
+								"tertiary-fixed-dim": "#c2c7c7",
+								"on-error-container": "#93000a",
+								"on-secondary-fixed-variant": "#384a47",
+								"surface-bright": "#f8fafa",
+								tertiary: "#111716",
+							},
+							borderRadius: {
+								DEFAULT: "0.125rem",
+								lg: "0.25rem",
+								xl: "0.5rem",
+								full: "0.75rem",
+							},
+							spacing: {
+								"margin-desktop": "48px",
+								"sidebar-width": "260px",
+								"margin-mobile": "20px",
+								unit: "4px",
+								gutter: "24px",
+								"max-content-width": "800px",
+							},
+							fontFamily: {
+								"headline-lg-mobile": ["Newsreader"],
+								"body-lg": ["Geist"],
+								"label-sm": ["Geist"],
+								"headline-md": ["Newsreader"],
+								"headline-lg": ["Newsreader"],
+								"label-md": ["Geist"],
+								"display-lg": ["Newsreader"],
+								"body-md": ["Geist"],
+								"mono-technical": ["Geist"],
+							},
+							fontSize: {
+								"headline-lg-mobile": [
+									"28px",
+									{ lineHeight: "36px", fontWeight: "500" },
+								],
+								"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+								"label-sm": [
+									"12px",
+									{
+										lineHeight: "16px",
+										letterSpacing: "0.05em",
+										fontWeight: "500",
+									},
+								],
+								"headline-md": [
+									"24px",
+									{ lineHeight: "32px", fontWeight: "500" },
+								],
+								"headline-lg": [
+									"32px",
+									{
+										lineHeight: "40px",
+										letterSpacing: "-0.01em",
+										fontWeight: "500",
+									},
+								],
+								"label-md": [
+									"14px",
+									{
+										lineHeight: "20px",
+										letterSpacing: "0.02em",
+										fontWeight: "600",
+									},
+								],
+								"display-lg": [
+									"48px",
+									{
+										lineHeight: "56px",
+										letterSpacing: "-0.02em",
+										fontWeight: "500",
+									},
+								],
+								"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+								"mono-technical": [
+									"13px",
+									{ lineHeight: "20px", fontWeight: "400" },
+								],
+							},
+						},
+					},
+				};
+			} catch (_e) {}
+		</script>
+		<meta charset="utf-8" />
+	</head>
+	<body class="font-body-md text-body-md bg-background overflow-hidden">
+		<!-- SideNavBar Anchor -->
+		<aside
+			class="w-[260px] h-screen fixed left-0 top-0 bg-surface-container dark:bg-surface-container-high border-r border-outline-variant dark:border-outline flex flex-col py-8 z-50"
+		>
+			<div class="px-6 mb-12">
+				<h1
+					class="font-headline-md text-headline-md font-medium text-primary dark:text-primary-fixed"
+				>
+					Vorynth
+				</h1>
+				<p
+					class="font-label-sm text-label-sm uppercase tracking-widest text-on-tertiary-container mt-1"
+				>
+					Local Engine Active
+				</p>
+			</div>
+			<nav class="flex-1 space-y-2">
+				<!-- Today's Brief -->
+				<a
+					href="#"
+					class="flex items-center space-x-3 text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out"
+				>
+					<span class="material-symbols-outlined" data-icon="today">today</span>
+					<span class="font-body-md text-body-md">Today's Brief</span>
+				</a>
+				<!-- Insights -->
+				<a
+					href="#"
+					class="flex items-center space-x-3 text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out"
+				>
+					<span class="material-symbols-outlined" data-icon="psychology"
+						>psychology</span
+					>
+					<span class="font-body-md text-body-md">Insights</span>
+				</a>
+				<!-- Sources -->
+				<a
+					href="#"
+					class="flex items-center space-x-3 text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out"
+				>
+					<span class="material-symbols-outlined" data-icon="database"
+						>database</span
+					>
+					<span class="font-body-md text-body-md">Sources</span>
+				</a>
+				<!-- Settings (Active) -->
+				<a
+					href="#"
+					class="flex items-center space-x-3 border-l-2 border-primary dark:border-primary-fixed text-primary dark:text-primary-fixed pl-4 py-2 font-medium hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out"
+				>
+					<span class="material-symbols-outlined" data-icon="settings"
+						>settings</span
+					>
+					<span class="font-body-md text-body-md">Settings</span>
+				</a>
+			</nav>
+			<div class="px-6 mt-auto">
+				<button
+					class="w-full py-3 bg-primary-container text-surface-container-lowest font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+				>
+					<span class="material-symbols-outlined" data-icon="auto_awesome"
+						>auto_awesome</span
+					>
+					Generate Brief
+				</button>
+			</div>
+		</aside>
+		<!-- TopAppBar Anchor -->
+		<header
+			class="fixed top-0 right-0 left-[260px] h-16 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline flex items-center justify-between px-margin-desktop z-40"
+		>
+			<div class="flex items-center gap-4">
+				<h2
+					class="font-headline-md text-headline-md font-medium text-primary dark:text-primary-fixed"
+				>
+					Settings
+				</h2>
+			</div>
+			<div class="flex items-center gap-6">
+				<div class="flex items-center gap-4 text-on-surface-variant">
+					<span
+						class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors"
+						data-icon="sync"
+						>sync</span
+					>
+					<span
+						class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors"
+						data-icon="shield"
+						>shield</span
+					>
+					<span
+						class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors"
+						data-icon="memory"
+						>memory</span
+					>
+				</div>
+				<div
+					class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center"
+				>
+					<img
+						class="w-full h-full rounded-full object-cover"
+						data-alt="A clean, minimalist profile avatar for a technical professional, featuring a stylized geometric icon of a fox in muted forest green and charcoal grey tones. The lighting is soft and flat, emphasizing the vector-style precision of the design against a light grey background."
+						src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4nK_rVgPYygR33Pf1OTckVMJiGZi--9zRuT0fmxt3EmHAP93AhZIN9Ud9L31T2wUVKwH-pRK_3dPNN5CvVDxZCPjYG-78Es0l9vMg1-5iCYnmGLxmySjmingnClXQsgyYCJmnU5nw3hNjJY1oo8I6cvYB4qRLS8sXGu-IxX5wnQwlowb2VESi5C3ucKHfT5zZuJVCK1xNLbSG5PHPUY_X16Ci8cJ1a_wdWONps8lVD5ZhXB-qRxR4"
+					/>
+				</div>
+			</div>
+		</header>
+		<!-- Main Content Canvas -->
+		<main
+			class="ml-[260px] mt-16 h-[calc(100vh-64px)] overflow-y-auto hide-scrollbar bg-surface flex justify-center py-12"
+		>
+			<div class="max-w-[800px] w-full px-6 flex flex-col gap-12">
+				<!-- Local Ownership Hero Banner -->
+				<section
+					class="bg-surface-container-low p-8 rounded-xl border border-outline-variant relative overflow-hidden group"
+				>
+					<div class="relative z-10 max-w-[500px]">
+						<h3 class="font-headline-lg text-headline-lg text-primary mb-2">
+							Absolute Data Ownership.
+						</h3>
+						<p class="font-body-md text-body-md text-on-surface-variant">
+							Your keys, your memory, your privacy. Vorynth operates
+							local-first. We never see your API keys or your intellectual
+							property.
+						</p>
+						<div class="mt-6 flex gap-4">
+							<span
+								class="inline-flex items-center gap-2 px-3 py-1 bg-primary text-on-primary font-label-sm text-label-sm rounded-full"
+							>
+								<span
+									class="material-symbols-outlined text-[14px]"
+									data-icon="verified_user"
+									>verified_user</span
+								>
+								E2E Encrypted
+							</span>
+							<span
+								class="inline-flex items-center gap-2 px-3 py-1 border border-outline text-secondary font-label-sm text-label-sm rounded-full"
+							>
+								<span
+									class="material-symbols-outlined text-[14px]"
+									data-icon="lock"
+									>lock</span
+								>
+								Local Storage
+							</span>
+						</div>
+					</div>
+					<!-- Visual placeholder for 'Privacy/Tech' aesthetic -->
+					<div
+						class="absolute top-0 right-0 h-full w-1/3 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity"
+					>
+						<div
+							class="w-full h-full bg-gradient-to-l from-primary-fixed to-transparent flex items-center justify-center"
+						>
+							<span
+								class="material-symbols-outlined text-[120px] text-primary"
+								data-icon="security"
+								style="font-variation-settings: &quot;wght&quot; 100"
+								>security</span
+							>
+						</div>
+					</div>
+				</section>
+				<!-- Settings Categories -->
+				<div class="space-y-16">
+					<!-- 1. AI Providers & Keys -->
+					<section>
+						<div
+							class="flex items-baseline gap-2 border-b border-outline-variant pb-4 mb-8"
+						>
+							<h4 class="font-headline-md text-headline-md text-primary">
+								AI Providers &amp; Keys
+							</h4>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container ml-auto"
+								>02 CONNECTED</span
+							>
+						</div>
+						<div class="grid gap-6">
+							<div class="flex flex-col gap-2">
+								<label
+									class="font-label-md text-label-md text-on-surface-variant"
+									>OpenAI API Key</label
+								>
+								<div class="flex gap-4">
+									<input
+										class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:border-secondary transition-colors font-mono-technical"
+										placeholder="sk-••••••••••••••••••••••••"
+										type="password"
+									/>
+									<button
+										class="px-6 py-2 border border-primary text-primary font-label-md text-label-md rounded hover:bg-surface-variant transition-colors"
+									>
+										Verify
+									</button>
+								</div>
+							</div>
+							<div class="flex flex-col gap-2">
+								<label
+									class="font-label-md text-label-md text-on-surface-variant"
+									>Anthropic API Key</label
+								>
+								<div class="flex gap-4">
+									<input
+										class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:border-secondary transition-colors font-mono-technical"
+										placeholder="sk-ant-••••••••••••••••••••••"
+										type="password"
+									/>
+									<button
+										class="px-6 py-2 border border-primary text-primary font-label-md text-label-md rounded hover:bg-surface-variant transition-colors"
+									>
+										Verify
+									</button>
+								</div>
+							</div>
+						</div>
+					</section>
+					<!-- 2. Interest Topics (Bento Style Selection) -->
+					<section>
+						<div
+							class="flex items-baseline gap-2 border-b border-outline-variant pb-4 mb-8"
+						>
+							<h4 class="font-headline-md text-headline-md text-primary">
+								Interest Topics
+							</h4>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container ml-auto"
+								>SIGNAL FILTERS</span
+							>
+						</div>
+						<div class="flex flex-wrap gap-3">
+							<button
+								class="px-4 py-2 bg-primary text-on-primary rounded-full font-label-md text-label-md flex items-center gap-2"
+							>
+								Artificial Intelligence
+								<span
+									class="material-symbols-outlined text-[16px]"
+									data-icon="close"
+									>close</span
+								>
+							</button>
+							<button
+								class="px-4 py-2 bg-primary text-on-primary rounded-full font-label-md text-label-md flex items-center gap-2"
+							>
+								Neuroscience
+								<span
+									class="material-symbols-outlined text-[16px]"
+									data-icon="close"
+									>close</span
+								>
+							</button>
+							<button
+								class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors"
+							>
+								Quantum Computing +
+							</button>
+							<button
+								class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors"
+							>
+								Macroeconomics +
+							</button>
+							<button
+								class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors"
+							>
+								Philosophy of Mind +
+							</button>
+						</div>
+					</section>
+					<!-- 3. Language -->
+					<section>
+						<div
+							class="flex items-baseline gap-2 border-b border-outline-variant pb-4 mb-8"
+						>
+							<h4 class="font-headline-md text-headline-md text-primary">
+								Language
+							</h4>
+						</div>
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+							<div class="flex flex-col gap-2">
+								<label
+									class="font-label-md text-label-md text-on-surface-variant"
+									>Application Interface</label
+								>
+								<select
+									class="bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:border-secondary"
+								>
+									<option>English (US)</option>
+									<option>Deutsch</option>
+									<option>Français</option>
+									<option>日本語</option>
+								</select>
+							</div>
+							<div class="flex flex-col gap-2">
+								<label
+									class="font-label-md text-label-md text-on-surface-variant"
+									>Output Synthesis</label
+								>
+								<select
+									class="bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:border-secondary"
+								>
+									<option>Default (English)</option>
+									<option>Mirror System Language</option>
+									<option>Multilingual Neutral</option>
+								</select>
+							</div>
+						</div>
+					</section>
+					<!-- 4. Backup & Restore -->
+					<section>
+						<div
+							class="flex items-baseline gap-2 border-b border-outline-variant pb-4 mb-8"
+						>
+							<h4 class="font-headline-md text-headline-md text-primary">
+								Backup &amp; Restore
+							</h4>
+						</div>
+						<div class="flex flex-col gap-6">
+							<div
+								class="flex items-center justify-between p-4 border border-outline-variant rounded-lg"
+							>
+								<div>
+									<h5 class="font-label-md text-label-md text-primary">
+										Last Local Backup
+									</h5>
+									<p
+										class="text-on-surface-variant font-mono-technical text-[13px]"
+									>
+										Today, 04:12 AM — 128 MB
+									</p>
+								</div>
+								<button
+									class="px-6 py-2 bg-primary-container text-on-primary rounded hover:opacity-90 transition-opacity"
+								>
+									Export Now
+								</button>
+							</div>
+							<div
+								class="flex items-center justify-between p-4 border border-outline-variant rounded-lg"
+							>
+								<div>
+									<h5 class="font-label-md text-label-md text-primary">
+										Import Knowledge Graph
+									</h5>
+									<p
+										class="text-on-surface-variant font-mono-technical text-[13px]"
+									>
+										Supports .JSON, .MD, .SQLITE
+									</p>
+								</div>
+								<button
+									class="px-6 py-2 border border-outline text-on-surface-variant rounded hover:bg-surface-variant transition-colors"
+								>
+									Select File
+								</button>
+							</div>
+						</div>
+					</section>
+					<!-- 5. Privacy (Toggles) -->
+					<section>
+						<div
+							class="flex items-baseline gap-2 border-b border-outline-variant pb-4 mb-8"
+						>
+							<h4 class="font-headline-md text-headline-md text-primary">
+								Privacy
+							</h4>
+						</div>
+						<div class="space-y-6">
+							<div class="flex items-center justify-between">
+								<div>
+									<h5 class="font-label-md text-label-md text-primary">
+										Anonymous Usage Stats
+									</h5>
+									<p class="text-on-surface-variant font-body-md text-body-md">
+										Help us improve the engine with crash reports.
+									</p>
+								</div>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input class="sr-only peer custom-toggle" type="checkbox" />
+									<div
+										class="w-11 h-6 bg-surface-container-highest rounded-full transition-colors toggle-bg peer-focus:ring-2 peer-focus:ring-primary/20"
+									></div>
+									<div
+										class="absolute left-1 top-1 w-4 h-4 bg-on-tertiary-container rounded-full transition-transform toggle-dot"
+									></div>
+								</label>
+							</div>
+							<div class="flex items-center justify-between">
+								<div>
+									<h5 class="font-label-md text-label-md text-primary">
+										Cloud Sync
+									</h5>
+									<p class="text-on-surface-variant font-body-md text-body-md">
+										Sync preferences across devices (Encrypted).
+									</p>
+								</div>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input
+										checked=""
+										class="sr-only peer custom-toggle"
+										type="checkbox"
+									/>
+									<div
+										class="w-11 h-6 bg-surface-container-highest rounded-full transition-colors toggle-bg peer-focus:ring-2 peer-focus:ring-primary/20"
+									></div>
+									<div
+										class="absolute left-1 top-1 w-4 h-4 bg-on-tertiary-container rounded-full transition-transform toggle-dot translate-x-full !bg-surface-container-lowest"
+									></div>
+								</label>
+							</div>
+							<div class="flex items-center justify-between">
+								<div>
+									<h5 class="font-label-md text-label-md text-primary">
+										Local Vector DB Storage
+									</h5>
+									<p class="text-on-surface-variant font-body-md text-body-md">
+										Store semantic embeddings on disk for offline recall.
+									</p>
+								</div>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input
+										checked=""
+										class="sr-only peer custom-toggle"
+										type="checkbox"
+									/>
+									<div
+										class="w-11 h-6 bg-surface-container-highest rounded-full transition-colors toggle-bg peer-focus:ring-2 peer-focus:ring-primary/20"
+									></div>
+									<div
+										class="absolute left-1 top-1 w-4 h-4 bg-on-tertiary-container rounded-full transition-transform toggle-dot translate-x-full !bg-surface-container-lowest"
+									></div>
+								</label>
+							</div>
+						</div>
+					</section>
+					<!-- Dangerous Section -->
+					<section class="pt-8 border-t border-outline-variant">
+						<div
+							class="bg-error-container/20 p-6 rounded-lg border border-error/20 flex items-center justify-between"
+						>
+							<div>
+								<h5 class="font-label-md text-label-md text-error">
+									Wipe Local Database
+								</h5>
+								<p class="text-on-error-container font-body-md text-body-md">
+									Irreversible action. Permanently delete all local indices.
+								</p>
+							</div>
+							<button
+								class="px-6 py-2 bg-error text-on-error font-label-md text-label-md rounded hover:opacity-90 transition-opacity"
+							>
+								Purge All
+							</button>
+						</div>
+					</section>
+				</div>
+				<!-- Footer Spacing -->
+				<div class="h-32"></div>
+			</div>
+		</main>
+		<!-- Success Toast Notification (Hidden by default) -->
+		<div
+			class="fixed bottom-8 right-8 bg-primary text-on-primary px-6 py-4 rounded-lg shadow-xl translate-y-24 opacity-0 transition-all duration-300 flex items-center gap-3 z-[100]"
+			id="toast"
+		>
+			<span
+				class="material-symbols-outlined text-on-primary"
+				data-icon="check_circle"
+				>check_circle</span
+			>
+			<span class="font-label-md text-label-md"
+				>Settings updated successfully.</span
+			>
+		</div>
+		<script>
+			// Micro-interaction for inputs and toasts
+			const inputs = document.querySelectorAll("input, select");
+			const toast = document.getElementById("toast");
+
+			inputs.forEach((input) => {
+				input.addEventListener("change", () => {
+					showToast();
+				});
+			});
+
+			function showToast() {
+				toast.classList.remove("translate-y-24", "opacity-0");
+				toast.classList.add("translate-y-0", "opacity-100");
+				setTimeout(() => {
+					toast.classList.add("translate-y-24", "opacity-0");
+					toast.classList.remove("translate-y-0", "opacity-100");
+				}, 3000);
+			}
+
+			// Tonal Segmentation on scroll
+			const main = document.querySelector("main");
+			const header = document.querySelector("header");
+			main.addEventListener("scroll", () => {
+				if (main.scrollTop > 10) {
+					header.classList.add("shadow-sm");
+					header.classList.add("bg-surface-container-lowest");
+				} else {
+					header.classList.remove("shadow-sm");
+					header.classList.remove("bg-surface-container-lowest");
+				}
+			});
+		</script>
+	</body>
+</html>

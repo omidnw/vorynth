@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en" class="light">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&amp;family=Geist:wght@100..900&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<script id="tailwind-config">
+			try {
+				tailwind.config = {
+					darkMode: "class",
+					theme: {
+						extend: {
+							colors: {
+								"on-tertiary-container": "#8d9292",
+								"outline-variant": "#c2c8c5",
+								"on-surface": "#191c1d",
+								"surface-variant": "#e1e3e3",
+								"surface-container-low": "#f2f4f4",
+								"on-secondary-container": "#536662",
+								"on-tertiary-fixed-variant": "#424847",
+								"on-error": "#ffffff",
+								"primary-fixed": "#d0e7e1",
+								"on-background": "#191c1d",
+								"on-primary-fixed": "#0a1f1b",
+								"surface-container": "#eceeee",
+								error: "#ba1a1a",
+								"on-primary": "#ffffff",
+								"on-tertiary": "#ffffff",
+								"surface-tint": "#4e635e",
+								"secondary-container": "#cfe4df",
+								"secondary-fixed-dim": "#b6cbc6",
+								background: "#f8fafa",
+								"on-primary-container": "#809691",
+								"inverse-surface": "#2e3131",
+								"secondary-fixed": "#d2e7e2",
+								"primary-container": "#1a2e2a",
+								primary: "#051916",
+								"inverse-on-surface": "#eff1f1",
+								"primary-fixed-dim": "#b5cbc5",
+								"on-secondary": "#ffffff",
+								"inverse-primary": "#b5cbc5",
+								"surface-container-lowest": "#ffffff",
+								"surface-container-high": "#e6e8e9",
+								"on-primary-fixed-variant": "#364b46",
+								"on-secondary-fixed": "#0c1f1c",
+								"surface-container-highest": "#e1e3e3",
+								"tertiary-fixed": "#dee3e2",
+								"on-tertiary-fixed": "#171d1c",
+								"surface-dim": "#d8dada",
+								surface: "#f8fafa",
+								secondary: "#4f625e",
+								"error-container": "#ffdad6",
+								outline: "#727876",
+								"tertiary-container": "#262b2b",
+								"on-surface-variant": "#424846",
+								"tertiary-fixed-dim": "#c2c7c7",
+								"on-error-container": "#93000a",
+								"on-secondary-fixed-variant": "#384a47",
+								"surface-bright": "#f8fafa",
+								tertiary: "#111716",
+							},
+							borderRadius: {
+								DEFAULT: "0.125rem",
+								lg: "0.25rem",
+								xl: "0.5rem",
+								full: "0.75rem",
+							},
+							spacing: {
+								"margin-desktop": "48px",
+								"sidebar-width": "260px",
+								"margin-mobile": "20px",
+								unit: "4px",
+								gutter: "24px",
+								"max-content-width": "800px",
+							},
+							fontFamily: {
+								"headline-lg-mobile": ["Newsreader"],
+								"body-lg": ["Geist"],
+								"label-sm": ["Geist"],
+								"headline-md": ["Newsreader"],
+								"headline-lg": ["Newsreader"],
+								"label-md": ["Geist"],
+								"display-lg": ["Newsreader"],
+								"body-md": ["Geist"],
+								"mono-technical": ["Geist"],
+							},
+							fontSize: {
+								"headline-lg-mobile": [
+									"28px",
+									{ lineHeight: "36px", fontWeight: "500" },
+								],
+								"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+								"label-sm": [
+									"12px",
+									{
+										lineHeight: "16px",
+										letterSpacing: "0.05em",
+										fontWeight: "500",
+									},
+								],
+								"headline-md": [
+									"24px",
+									{ lineHeight: "32px", fontWeight: "500" },
+								],
+								"headline-lg": [
+									"32px",
+									{
+										lineHeight: "40px",
+										letterSpacing: "-0.01em",
+										fontWeight: "500",
+									},
+								],
+								"label-md": [
+									"14px",
+									{
+										lineHeight: "20px",
+										letterSpacing: "0.02em",
+										fontWeight: "600",
+									},
+								],
+								"display-lg": [
+									"48px",
+									{
+										lineHeight: "56px",
+										letterSpacing: "-0.02em",
+										fontWeight: "500",
+									},
+								],
+								"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+								"mono-technical": [
+									"13px",
+									{ lineHeight: "20px", fontWeight: "400" },
+								],
+							},
+						},
+					},
+				};
+			} catch (_e) {}
+		</script>
+		<meta charset="utf-8" />
+	</head>
+	<body
+		class="font-body-md text-body-md overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed"
+	>
+		<!-- Top Bar Navigation (Focused Mode) -->
+		<header
+			class="fixed top-0 left-0 right-0 h-16 z-50 bg-surface/80 backdrop-blur-md flex items-center justify-between px-8 border-b border-outline-variant"
+		>
+			<div class="flex items-center gap-4">
+				<button
+					class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors duration-200"
+					onclick="window.history.back()"
+				>
+					<span class="material-symbols-outlined">arrow_back</span>
+					<span class="font-label-md text-label-md">BACK</span>
+				</button>
+				<div class="h-4 w-px bg-outline-variant mx-2"></div>
+				<span
+					class="font-headline-md text-headline-md font-medium text-primary tracking-tight"
+					>Vorynth</span
+				>
+			</div>
+			<div class="flex items-center gap-6">
+				<div
+					class="flex items-center gap-1.5 px-3 py-1 rounded-full border border-outline-variant"
+				>
+					<span
+						class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"
+					></span>
+					<span
+						class="font-mono-technical text-mono-technical text-on-surface-variant"
+						>SECURE_NODE:ACTIVE</span
+					>
+				</div>
+				<div class="flex items-center gap-3">
+					<button
+						class="p-2 text-on-surface-variant hover:text-primary transition-colors"
+						title="Sync"
+					>
+						<span class="material-symbols-outlined">sync</span>
+					</button>
+					<button
+						class="p-2 text-on-surface-variant hover:text-primary transition-colors"
+						title="Shield Status"
+					>
+						<span class="material-symbols-outlined">shield</span>
+					</button>
+				</div>
+			</div>
+		</header>
+		<main class="pt-32 pb-32">
+			<article class="focused-container px-6 lg:px-0">
+				<!-- Metadata Header -->
+				<header class="mb-12">
+					<div class="flex flex-wrap items-center gap-3 mb-6">
+						<span
+							class="bg-primary text-on-primary px-2.5 py-0.5 font-label-sm text-label-sm uppercase tracking-widest"
+							>Signal High</span
+						>
+						<span
+							class="border border-outline-variant px-2.5 py-0.5 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest"
+							>Geopolitics</span
+						>
+						<span
+							class="border border-outline-variant px-2.5 py-0.5 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest"
+							>Quantum Computing</span
+						>
+						<time
+							class="ml-auto font-mono-technical text-mono-technical text-on-tertiary-container"
+							>24 OCT 2023 · 08:42 UTC</time
+						>
+					</div>
+					<h1
+						class="font-display-lg text-display-lg mb-6 leading-tight text-primary"
+					>
+						The Silence of the Chips: Subsurface Shifts in Semiconductor
+						Logistics
+					</h1>
+					<p
+						class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed italic mb-8 border-l-2 border-primary-fixed pl-6"
+					>
+						A technical deep-dive into the localized intelligence regarding the
+						redirection of critical silicon supply chains away from traditional
+						maritime routes towards terrestrial arctic corridors.
+					</p>
+				</header>
+				<!-- Hero Image / Visual -->
+				<div
+					class="w-full h-[450px] mb-12 overflow-hidden rounded-lg relative group"
+				>
+					<div
+						class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent z-10"
+					></div>
+					<img
+						class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+						data-alt="A cinematic, high-fidelity aerial photograph of a high-tech logistics hub in the Arctic circle. The facility is a minimalist structure of glass and dark steel, glowing softly with cool blue lights against the stark white snow and the deep indigo twilight of the polar night. The composition is clean and symmetric, emphasizing a sense of isolated technical precision and global strategic importance. The visual style is professional, sharp, and focused, using a palette of whites, deep greys, and obsidian blacks."
+						src="https://lh3.googleusercontent.com/aida-public/AB6AXuADv1uegVhAn2LX6oIPMPghWIOJcgSeKSR_wfVFVV7dtcQnUZk-xF0N8Q-k99f4Ap8zG-4CiSWMp_usJNYdJgXfeSHOaz_zmU6qqvs3qoNeQgtYzW-GgSM6qD3f0ATvjzAMflA1PcZ6Wb_944CeY0hZ1H6Cj8RxO15x8Y37o-9HuHRf-qYDdxPc8JadDa-7bvBOA6WhwFV1l0ODSQyFlM6zIGuWYx0H8pMtfUaci6JDX16Gn5yDtT8z"
+					/>
+					<div class="absolute bottom-6 left-6 z-20">
+						<span class="font-mono-technical text-mono-technical text-white/80"
+							>LAT: 78.2232° N | LONG: 15.6267° E</span
+						>
+					</div>
+				</div>
+				<!-- Content Body -->
+				<div class="grid grid-cols-1 gap-12">
+					<section class="prose max-w-none">
+						<h2 class="font-headline-lg text-headline-lg mb-6 text-primary">
+							Technical Context
+						</h2>
+						<div
+							class="space-y-6 font-body-lg text-body-lg text-on-surface leading-relaxed"
+						>
+							<p>
+								Initial telemetry from local Vorynth sensors indicates a 14%
+								deviation in standard logistics traffic. Unlike previous supply
+								chain disruptions caused by climate volatility, the current
+								pattern suggests intentional structural decoupling. The focus of
+								this intelligence item lies in the "Northbound Corridor"
+								initiative, a clandestine effort to bypass the Malacca Strait
+								entirely.
+							</p>
+							<p>
+								Technical analysis of the routing packets reveals a new layer of
+								encryption being applied to terrestrial freight manifests. This
+								is not merely a logistical shift; it is a signal of a massive
+								infrastructure pivot. The local engine has identified three
+								primary hubs currently undergoing expansion that were previously
+								listed as "secondary storage."
+							</p>
+						</div>
+					</section>
+					<!-- Importance Score Bento Component -->
+					<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+						<div
+							class="md:col-span-1 border border-outline-variant p-8 flex flex-col items-center justify-center text-center bg-surface-container-low"
+						>
+							<span
+								class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2"
+								>Importance Score</span
+							>
+							<div
+								class="text-[64px] font-headline-lg leading-none text-primary"
+							>
+								8.9
+							</div>
+							<span
+								class="font-mono-technical text-mono-technical text-primary-container mt-2"
+								>HIGH_VOLATILITY</span
+							>
+						</div>
+						<div
+							class="md:col-span-2 border border-outline-variant p-8 bg-surface-container-low"
+						>
+							<h3
+								class="font-label-md text-label-md uppercase tracking-widest text-primary mb-4 flex items-center gap-2"
+							>
+								<span class="material-symbols-outlined text-base"
+									>verified</span
+								>
+								Provenance Matrix
+							</h3>
+							<div class="space-y-4">
+								<div
+									class="flex justify-between items-center border-b border-outline-variant pb-2"
+								>
+									<span class="font-body-md text-on-surface-variant"
+										>Sensor Integrity</span
+									>
+									<span class="font-mono-technical text-primary">98.2%</span>
+								</div>
+								<div
+									class="flex justify-between items-center border-b border-outline-variant pb-2"
+								>
+									<span class="font-body-md text-on-surface-variant"
+										>Cross-Verification Nodes</span
+									>
+									<span class="font-mono-technical text-primary"
+										>12 External</span
+									>
+								</div>
+								<div class="flex justify-between items-center pb-2">
+									<span class="font-body-md text-on-surface-variant"
+										>Local Engine Confidence</span
+									>
+									<span class="font-mono-technical text-primary">Optimal</span>
+								</div>
+							</div>
+						</div>
+					</section>
+					<!-- Actionable Steps -->
+					<section class="bg-primary-container p-10 rounded-lg text-on-primary">
+						<h2
+							class="font-headline-md text-headline-md mb-8 flex items-center gap-3"
+						>
+							<span class="material-symbols-outlined text-primary-fixed"
+								>bolt</span
+							>
+							Actionable Next Steps
+						</h2>
+						<ul class="space-y-6">
+							<li class="flex gap-4">
+								<span
+									class="font-mono-technical text-primary-fixed border border-primary-fixed/30 w-8 h-8 flex items-center justify-center shrink-0"
+									>01</span
+								>
+								<div>
+									<p class="font-body-md mb-1 font-semibold">
+										Initiate Portfolio Stress Test
+									</p>
+									<p class="text-on-primary-container text-sm leading-relaxed">
+										Evaluate exposure to Baltic-based semiconductor fabrication
+										units. Assume a 30-day terrestrial lead time delay.
+									</p>
+								</div>
+							</li>
+							<li class="flex gap-4">
+								<span
+									class="font-mono-technical text-primary-fixed border border-primary-fixed/30 w-8 h-8 flex items-center justify-center shrink-0"
+									>02</span
+								>
+								<div>
+									<p class="font-body-md mb-1 font-semibold">
+										Monitor 'Project Aurora' Tenders
+									</p>
+									<p class="text-on-primary-container text-sm leading-relaxed">
+										Infrastructure contracts for the Kola Peninsula are expected
+										to be released next Friday. Priority tracking is enabled.
+									</p>
+								</div>
+							</li>
+							<li class="flex gap-4">
+								<span
+									class="font-mono-technical text-primary-fixed border border-primary-fixed/30 w-8 h-8 flex items-center justify-center shrink-0"
+									>03</span
+								>
+								<div>
+									<p class="font-body-md mb-1 font-semibold">
+										Synchronize Regional Brief
+									</p>
+									<p class="text-on-primary-container text-sm leading-relaxed">
+										Push this analysis to the Executive Strategy layer for
+										immediate cross-departmental awareness.
+									</p>
+								</div>
+							</li>
+						</ul>
+					</section>
+					<!-- Related Clustered Articles -->
+					<section>
+						<h3
+							class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant mb-6"
+						>
+							Related Context Cluster
+						</h3>
+						<div
+							class="grid grid-cols-1 md:grid-cols-2 gap-px bg-outline-variant border border-outline-variant"
+						>
+							<div
+								class="bg-surface p-6 hover:bg-surface-container-low transition-colors group cursor-pointer"
+							>
+								<span
+									class="font-label-sm text-label-sm text-secondary block mb-2"
+									>ARTICLE · 12H AGO</span
+								>
+								<h4
+									class="font-headline-md text-headline-md text-primary mb-3 leading-snug group-hover:underline underline-offset-4 decoration-1"
+								>
+									Arctic Sovereignty: The New Legal Battleground for Deep-Sea
+									Cables
+								</h4>
+								<p class="font-body-md text-on-surface-variant line-clamp-2">
+									The legal frameworks governing the continental shelf are being
+									challenged as new fiber-optic paths are laid.
+								</p>
+							</div>
+							<div
+								class="bg-surface p-6 hover:bg-surface-container-low transition-colors group cursor-pointer"
+							>
+								<span
+									class="font-label-sm text-label-sm text-secondary block mb-2"
+									>BRIEFING · 2D AGO</span
+								>
+								<h4
+									class="font-headline-md text-headline-md text-primary mb-3 leading-snug group-hover:underline underline-offset-4 decoration-1"
+								>
+									ASML Domestic Resiliency Report
+								</h4>
+								<p class="font-body-md text-on-surface-variant line-clamp-2">
+									A localized intelligence summary of lithography machine
+									maintenance during restricted transport conditions.
+								</p>
+							</div>
+						</div>
+					</section>
+				</div>
+			</article>
+		</main>
+		<!-- Floating Actions Bar (Focused Layout Footer) -->
+		<footer
+			class="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 bg-primary-container text-on-primary shadow-2xl rounded-full px-6 py-3 flex items-center gap-2 border border-primary/20"
+		>
+			<button
+				class="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-full transition-colors group"
+			>
+				<span class="material-symbols-outlined text-[20px]">check_circle</span>
+				<span class="font-label-md text-label-md">MARK READ</span>
+			</button>
+			<div class="h-6 w-px bg-white/10 mx-2"></div>
+			<button
+				class="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-full transition-colors group"
+			>
+				<span class="material-symbols-outlined text-[20px]">bookmark</span>
+				<span class="font-label-md text-label-md">SAVE</span>
+			</button>
+			<button
+				class="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-full transition-colors group"
+			>
+				<span class="material-symbols-outlined text-[20px]">ios_share</span>
+				<span class="font-label-md text-label-md">SHARE</span>
+			</button>
+			<div class="h-6 w-px bg-white/10 mx-2"></div>
+			<button
+				class="flex items-center gap-2 px-4 py-2 hover:bg-error/20 text-error-container rounded-full transition-colors group"
+			>
+				<span class="material-symbols-outlined text-[20px]">delete</span>
+				<span class="font-label-md text-label-md">DISMISS</span>
+			</button>
+		</footer>
+		<!-- Background Atmospheric Effect -->
+		<div class="fixed inset-0 -z-50 opacity-[0.03] pointer-events-none"></div>
+		<script>
+			// Micro-interactions for smooth reading experience
+			document.addEventListener("DOMContentLoaded", () => {
+				const article = document.querySelector("article");
+				article.style.opacity = "0";
+				article.style.transform = "translateY(20px)";
+
+				setTimeout(() => {
+					article.style.transition = "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
+					article.style.opacity = "1";
+					article.style.transform = "translateY(0)";
+				}, 100);
+
+				// Progress bar
+				const progressBar = document.createElement("div");
+				progressBar.style.position = "fixed";
+				progressBar.style.top = "64px";
+				progressBar.style.left = "0";
+				progressBar.style.height = "2px";
+				progressBar.style.backgroundColor = "#051916";
+				progressBar.style.zIndex = "100";
+				progressBar.style.width = "0%";
+				document.body.appendChild(progressBar);
+
+				window.addEventListener("scroll", () => {
+					const winScroll =
+						document.body.scrollTop || document.documentElement.scrollTop;
+					const height =
+						document.documentElement.scrollHeight -
+						document.documentElement.clientHeight;
+					const scrolled = (winScroll / height) * 100;
+					progressBar.style.width = scrolled + "%";
+				});
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,8 @@
+{
+	"$schema": "https://langchain-ai.github.io/langgraph/langgraph.schema.json",
+	"node_version": "20",
+	"graphs": {
+		"intelligence": "./src/modules/intelligence/workflows/intelligence.workflow.ts:graph"
+	},
+	"env": ".env"
+}

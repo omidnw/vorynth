@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-bundle/
+build/
+out/
+*.tsbuildinfo
+
+# Tauri / Rust
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!env.example
+!.env.example
+
+# Local-first data (runtime artifacts, never committed)
+*.sqlite
+*.sqlite3
+*.db
+.vorynth-backup
+data/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Varynth local backups
+*.bak

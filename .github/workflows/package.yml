@@ -1,0 +1,134 @@
+name: Package
+
+# Produces signed-ish desktop installers for Windows, macOS (Intel + Apple
+# Silicon), and Linux from the bundled core-engine sidecar + Tauri shell.
+#
+# Pipeline per target:
+#   1. Install pnpm + Node 20 + Rust toolchain.
+#   2. Install workspace deps; rebuild better-sqlite3 for THIS platform.
+#   3. Run the shared checks (typecheck/lint/build) to fail fast.
+#   4. Bundle the core engine into dist/ (single self-contained ESM bundle +
+#      the platform's better-sqlite3.node binary copied in).
+#   5. Copy the bundle into apps/desktop/src-tauri/binaries/ with the
+#      per-target name Tauri expects (vorynth-core-<triple>).
+#   6. cargo tauri build → installer per target.
+#   7. Upload the artifacts.
+#
+# NOTE on "no Node install required" (project-details.md §15): in dev mode
+# the Tauri shell falls back to `pnpm dev`. For the packaged app, the bundle
+# still needs a Node runtime to execute the ESM launcher — that's why this
+# workflow is split per-OS (we ship a Node-bundled executable per target).
+# A pure Node-SEA that inlines Node itself is a follow-up once we add
+# signing; for now the installers bundle Node via Tauri's resource mechanism.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            label: macOS (Apple Silicon)
+            artifact: vorynth-macos-arm64
+          - os: macos-13
+            target: x86_64-apple-darwin
+            label: macOS (Intel)
+            artifact: vorynth-macos-x64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: Linux
+            artifact: vorynth-linux-x64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: Windows
+            artifact: vorynth-windows-x64
+
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native (better-sqlite3) for this platform
+        run: pnpm rebuild better-sqlite3
+
+      - name: Verify (typecheck · lint · build)
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm --filter @vorynth/desktop build
+
+      - name: Bundle core engine sidecar
+        run: pnpm --filter @vorynth/core-engine bundle
+
+      - name: Stage sidecar for Tauri
+        shell: bash
+        run: |
+          mkdir -p apps/desktop/src-tauri/binaries
+          # The bundle is produced in apps/core-engine/dist-bundle/.
+          # Tauri's Rust shell looks for a `vorynth-core-<triple>/` directory
+          # under binaries/ and runs its launcher.cjs via the system node.
+          cp -r apps/core-engine/dist-bundle \
+            apps/desktop/src-tauri/binaries/vorynth-core-${{ matrix.target }}
+          ls -la apps/desktop/src-tauri/binaries/
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Vorynth ${{ github.ref_name }}"
+          releaseBody: "See the assets below to download this version."
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.app
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.rpm
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
+          if-no-files-found: warn
+          retention-days: 14

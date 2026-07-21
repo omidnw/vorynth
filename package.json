@@ -1,0 +1,43 @@
+{
+	"name": "vorynth",
+	"version": "1.3.0",
+	"private": true,
+	"description": "Vorynth — a local-first personal intelligence engine.",
+	"license": "Open Source (TBD)",
+	"packageManager": "pnpm@10.29.3",
+	"engines": {
+		"node": ">=20.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"scripts": {
+		"dev": "concurrently -n core,desktop -c '#4F625E,#1A2E2A' -t HH:mm:ss 'pnpm --filter @vorynth/core-engine dev' 'pnpm --filter @vorynth/desktop dev'",
+		"build": "pnpm -r run build",
+		"dev:desktop": "pnpm --filter @vorynth/desktop dev",
+		"dev:core": "pnpm --filter @vorynth/core-engine dev",
+		"typecheck": "pnpm -r run typecheck",
+		"lint": "pnpm -r run lint",
+		"lint:fix": "pnpm -r run lint:fix",
+		"format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+		"format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+		"test": "pnpm -r run test",
+		"db:migrate": "pnpm --filter @vorynth/core-engine db:migrate",
+		"db:seed": "pnpm --filter @vorynth/core-engine db:seed",
+		"clean": "pnpm -r exec rm -rf dist node_modules .turbo"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"concurrently": "^10.0.3",
+		"eslint": "^9.39.5",
+		"globals": "^17.7.0",
+		"prettier": "^3.6.2",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.64.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"better-sqlite3",
+			"esbuild",
+			"@nestjs/cli"
+		]
+	}
+}

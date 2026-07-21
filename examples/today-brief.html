@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en" class="light">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link href="https://fonts.cdnfonts.com/css/geist" rel="stylesheet" />
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<script id="tailwind-config">
+			try {
+				tailwind.config = {
+					darkMode: "class",
+					theme: {
+						extend: {
+							colors: {
+								"on-tertiary-container": "#8d9292",
+								"outline-variant": "#c2c8c5",
+								"on-surface": "#191c1d",
+								"surface-variant": "#e1e3e3",
+								"surface-container-low": "#f2f4f4",
+								"on-secondary-container": "#536662",
+								"on-tertiary-fixed-variant": "#424847",
+								"on-error": "#ffffff",
+								"primary-fixed": "#d0e7e1",
+								"on-background": "#191c1d",
+								"on-primary-fixed": "#0a1f1b",
+								"surface-container": "#eceeee",
+								error: "#ba1a1a",
+								"on-primary": "#ffffff",
+								"on-tertiary": "#ffffff",
+								"surface-tint": "#4e635e",
+								"secondary-container": "#cfe4df",
+								"secondary-fixed-dim": "#b6cbc6",
+								background: "#f8fafa",
+								"on-primary-container": "#809691",
+								"inverse-surface": "#2e3131",
+								"secondary-fixed": "#d2e7e2",
+								"primary-container": "#1a2e2a",
+								primary: "#051916",
+								"inverse-on-surface": "#eff1f1",
+								"primary-fixed-dim": "#b5cbc5",
+								"on-secondary": "#ffffff",
+								"inverse-primary": "#b5cbc5",
+								"surface-container-lowest": "#ffffff",
+								"surface-container-high": "#e6e8e9",
+								"on-primary-fixed-variant": "#364b46",
+								"on-secondary-fixed": "#0c1f1c",
+								"surface-container-highest": "#e1e3e3",
+								"tertiary-fixed": "#dee3e2",
+								"on-tertiary-fixed": "#171d1c",
+								"surface-dim": "#d8dada",
+								surface: "#f8fafa",
+								secondary: "#4f625e",
+								"error-container": "#ffdad6",
+								outline: "#727876",
+								"tertiary-container": "#262b2b",
+								"on-surface-variant": "#424846",
+								"tertiary-fixed-dim": "#c2c7c7",
+								"on-error-container": "#93000a",
+								"on-secondary-fixed-variant": "#384a47",
+								"surface-bright": "#f8fafa",
+								tertiary: "#111716",
+							},
+							borderRadius: {
+								DEFAULT: "0.125rem",
+								lg: "0.25rem",
+								xl: "0.5rem",
+								full: "0.75rem",
+							},
+							spacing: {
+								"margin-desktop": "48px",
+								"sidebar-width": "260px",
+								"margin-mobile": "20px",
+								unit: "4px",
+								gutter: "24px",
+								"max-content-width": "800px",
+							},
+							fontFamily: {
+								"headline-lg-mobile": ["Newsreader"],
+								"body-lg": ["Geist"],
+								"label-sm": ["Geist"],
+								"headline-md": ["Newsreader"],
+								"headline-lg": ["Newsreader"],
+								"label-md": ["Geist"],
+								"display-lg": ["Newsreader"],
+								"body-md": ["Geist"],
+								"mono-technical": ["Geist"],
+							},
+							fontSize: {
+								"headline-lg-mobile": [
+									"28px",
+									{ lineHeight: "36px", fontWeight: "500" },
+								],
+								"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+								"label-sm": [
+									"12px",
+									{
+										lineHeight: "16px",
+										letterSpacing: "0.05em",
+										fontWeight: "500",
+									},
+								],
+								"headline-md": [
+									"24px",
+									{ lineHeight: "32px", fontWeight: "500" },
+								],
+								"headline-lg": [
+									"32px",
+									{
+										lineHeight: "40px",
+										letterSpacing: "-0.01em",
+										fontWeight: "500",
+									},
+								],
+								"label-md": [
+									"14px",
+									{
+										lineHeight: "20px",
+										letterSpacing: "0.02em",
+										fontWeight: "600",
+									},
+								],
+								"display-lg": [
+									"48px",
+									{
+										lineHeight: "56px",
+										letterSpacing: "-0.02em",
+										fontWeight: "500",
+									},
+								],
+								"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+								"mono-technical": [
+									"13px",
+									{ lineHeight: "20px", fontWeight: "400" },
+								],
+							},
+						},
+					},
+				};
+			} catch (_e) {}
+		</script>
+		<meta charset="utf-8" />
+	</head>
+	<body class="font-body-md bg-background text-on-surface">
+		<!-- SIDEBAR NAVIGATION (JSON MAPPING) -->
+		<aside
+			class="w-[260px] h-screen fixed left-0 top-0 flex flex-col h-full py-8 bg-surface-container dark:bg-surface-container-high border-r border-outline-variant dark:border-outline z-50"
+		>
+			<div class="px-6 mb-10">
+				<h1
+					class="font-headline-md text-headline-md font-medium text-primary dark:text-primary-fixed mb-1"
+				>
+					Vorynth
+				</h1>
+				<p
+					class="font-label-sm text-label-sm uppercase tracking-widest text-on-tertiary-container"
+				>
+					Local Engine Active
+				</p>
+			</div>
+			<nav class="flex-1 space-y-2 px-2">
+				<!-- Active: Today's Brief -->
+				<a
+					href="#"
+					class="flex items-center gap-4 transition-colors hover:bg-surface-variant dark:hover:bg-tertiary-container duration-200 ease-in-out border-l-2 border-primary dark:border-primary-fixed text-primary dark:text-primary-fixed pl-4 py-2 font-medium"
+				>
+					<span class="material-symbols-outlined text-[20px]" data-icon="today"
+						>today</span
+					>
+					<span class="font-body-md text-body-md">Today's Brief</span>
+				</a>
+				<!-- Inactive -->
+				<a
+					href="#"
+					class="flex items-center gap-4 transition-colors hover:bg-surface-variant dark:hover:bg-tertiary-container duration-200 ease-in-out text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2"
+				>
+					<span
+						class="material-symbols-outlined text-[20px]"
+						data-icon="psychology"
+						>psychology</span
+					>
+					<span class="font-body-md text-body-md">Insights</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center gap-4 transition-colors hover:bg-surface-variant dark:hover:bg-tertiary-container duration-200 ease-in-out text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2"
+				>
+					<span
+						class="material-symbols-outlined text-[20px]"
+						data-icon="database"
+						>database</span
+					>
+					<span class="font-body-md text-body-md">Sources</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center gap-4 transition-colors hover:bg-surface-variant dark:hover:bg-tertiary-container duration-200 ease-in-out text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2"
+				>
+					<span
+						class="material-symbols-outlined text-[20px]"
+						data-icon="settings"
+						>settings</span
+					>
+					<span class="font-body-md text-body-md">Settings</span>
+				</a>
+			</nav>
+			<div class="px-6 mt-auto">
+				<button
+					class="w-full bg-primary-container text-on-primary py-3 px-4 rounded-DEFAULT font-label-md text-label-md flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+				>
+					<span
+						class="material-symbols-outlined"
+						data-icon="bolt"
+						style="font-variation-settings: &quot;FILL&quot; 1"
+						>bolt</span
+					>
+					Generate Brief
+				</button>
+				<div class="mt-8 flex items-center gap-3">
+					<div class="w-8 h-8 rounded-full bg-outline-variant overflow-hidden">
+						<img
+							class="w-full h-full object-cover"
+							data-alt="A minimalist professional headshot of a user with sharp lighting, neutral colors, and a clean white background. High-fidelity photography style for a premium technical application interface."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfwFWi0wEiegev2usLs8q6n3GNF1QIWDaQVOwJw7F7u3eMgVSyERRVgE3wVVPQJU-k20mQInB48oiHQpabjVueVo40qEEK33iv7KGG8FcWJmF52KoLo6fOFjy02hs9dloKSsL_PpbdoihOkcNeXE95wYxy1fuHW37GvmOUm-IHweU1dF7O9nVgegCtRGI8FA5tnDFQS-U6DKKcV7o6R3bR8qUA1S8Yn30bCGqAUjCzmggjNLbL7AgI"
+						/>
+					</div>
+					<div class="flex flex-col">
+						<span class="font-label-md text-label-md text-on-surface"
+							>Alex Chen</span
+						>
+						<span class="font-label-sm text-label-sm text-on-surface-variant"
+							>Tier 1 Access</span
+						>
+					</div>
+				</div>
+			</div>
+		</aside>
+		<!-- TOP APP BAR -->
+		<header
+			class="fixed top-0 right-0 left-[260px] h-16 flex items-center justify-between px-margin-desktop bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline z-40"
+		>
+			<div class="flex items-center gap-4">
+				<span class="font-label-sm text-label-sm text-on-surface-variant"
+					>Wednesday, 24 May 2024</span
+				>
+			</div>
+			<div class="flex items-center gap-6">
+				<div class="relative group">
+					<span
+						class="material-symbols-outlined text-on-surface-variant group-hover:text-primary cursor-pointer transition-colors"
+						data-icon="search"
+						>search</span
+					>
+				</div>
+				<div
+					class="flex items-center gap-4 border-l border-outline-variant pl-6"
+				>
+					<span
+						class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-opacity"
+						data-icon="sync"
+						>sync</span
+					>
+					<span
+						class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-opacity"
+						data-icon="shield"
+						>shield</span
+					>
+					<span
+						class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-opacity"
+						data-icon="memory"
+						>memory</span
+					>
+				</div>
+			</div>
+		</header>
+		<!-- MAIN CONTENT CANVAS -->
+		<main class="ml-[260px] pt-16 min-h-screen flex flex-col items-center">
+			<!-- Header Section -->
+			<section class="w-full max-w-max-content-width py-12 px-gutter">
+				<div class="mb-10">
+					<h2 class="font-headline-lg text-headline-lg text-primary mb-2">
+						Today's Intelligence Brief
+					</h2>
+					<div
+						class="flex items-center gap-4 text-on-tertiary-container font-label-md text-label-md"
+					>
+						<span class="flex items-center gap-1"
+							><span
+								class="material-symbols-outlined text-[18px]"
+								data-icon="timer"
+								>timer</span
+							>
+							10-minute briefing</span
+						>
+						<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+						<span>50 stories from 500+ sources</span>
+						<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+						<span class="text-secondary font-medium">Updated 4m ago</span>
+					</div>
+				</div>
+				<!-- Filters Bar -->
+				<div
+					class="flex items-center gap-8 border-b border-outline-variant pb-6 mb-12 overflow-x-auto no-scrollbar"
+				>
+					<div class="flex items-center gap-4">
+						<span
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+							>Domains</span
+						>
+						<button
+							class="font-label-md text-label-md px-3 py-1 bg-secondary-container text-on-secondary-container rounded-DEFAULT"
+						>
+							All
+						</button>
+						<button
+							class="font-label-md text-label-md px-3 py-1 text-on-surface-variant hover:text-primary transition-colors"
+						>
+							Geopolitics
+						</button>
+						<button
+							class="font-label-md text-label-md px-3 py-1 text-on-surface-variant hover:text-primary transition-colors"
+						>
+							AI &amp; Robotics
+						</button>
+						<button
+							class="font-label-md text-label-md px-3 py-1 text-on-surface-variant hover:text-primary transition-colors"
+						>
+							Economics
+						</button>
+					</div>
+					<div class="h-4 w-[1px] bg-outline-variant"></div>
+					<div class="flex items-center gap-4">
+						<span
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+							>Importance</span
+						>
+						<button
+							class="material-symbols-outlined text-on-surface-variant hover:text-primary"
+							data-icon="filter_list"
+						>
+							filter_list
+						</button>
+					</div>
+				</div>
+				<!-- INTELLIGENCE LIST -->
+				<div class="space-y-20">
+					<!-- -->
+					<article class="brief-item group cursor-pointer">
+						<div class="flex items-start gap-10">
+							<div class="flex flex-col items-center pt-1">
+								<span
+									class="font-headline-md text-headline-md text-outline-variant opacity-50 group-hover:opacity-100 transition-opacity"
+									>01</span
+								>
+								<div
+									class="w-[1px] h-full mt-4 bg-outline-variant group-hover:bg-primary transition-colors"
+								></div>
+							</div>
+							<div class="flex-1 pb-16">
+								<div class="flex items-center gap-3 mb-3">
+									<span
+										class="font-label-sm text-label-sm bg-primary text-on-primary px-2 py-0.5 rounded-DEFAULT"
+										>SIGNAL</span
+									>
+									<span
+										class="font-label-sm text-label-sm text-on-tertiary-container border border-outline-variant px-2 py-0.5 rounded-DEFAULT"
+										>GEOPOLITICS</span
+									>
+								</div>
+								<h3
+									class="font-headline-lg text-headline-lg text-primary mb-4 leading-tight"
+								>
+									Post-Globalism Pivot: Semiconductor Alliances Shift to
+									Sub-Atlantic Corridors
+								</h3>
+								<div class="w-12 h-[2px] bg-primary mb-6 item-underline"></div>
+								<p
+									class="font-body-lg text-body-lg text-on-surface mb-8 leading-relaxed"
+								>
+									A significant realignment of the technology supply chain is
+									underway as G7 members begin formalizing the "Atlantic Bridge"
+									protocol. This framework shifts focus from centralized
+									fabrication in Asia to decentralized micro-hubs across
+									northern Europe and North America, prioritizing security over
+									pure throughput.
+								</p>
+								<div
+									class="grid grid-cols-1 md:grid-cols-2 gap-8 font-body-md text-body-md"
+								>
+									<div class="space-y-4">
+										<div class="space-y-1">
+											<h4
+												class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide"
+											>
+												Why it matters
+											</h4>
+											<p class="text-on-surface">
+												End of the cost-efficient "just-in-time" era; beginning
+												of "just-in-case" nationalized security stacks.
+											</p>
+										</div>
+										<div class="space-y-1">
+											<h4
+												class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide"
+											>
+												Impact
+											</h4>
+											<p class="text-on-surface">
+												Expected 15% increase in base unit costs for Tier-1
+												compute hardware within 24 months.
+											</p>
+										</div>
+									</div>
+									<div
+										class="bg-surface-container-low p-6 rounded-DEFAULT border-l-2 border-primary"
+									>
+										<h4
+											class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-2 flex items-center gap-2"
+										>
+											<span
+												class="material-symbols-outlined text-[16px]"
+												data-icon="lightbulb"
+												style="font-variation-settings: &quot;FILL&quot; 1"
+												>lightbulb</span
+											>
+											Recommended Action
+										</h4>
+										<p class="text-on-surface italic">
+											Audit hardware procurement cycles. Shift long-term capital
+											allocation toward vendors with onshore fabrication
+											verified under the Bridge protocol.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</article>
+					<!-- Rank 02 -->
+					<article class="brief-item group cursor-pointer">
+						<div class="flex items-start gap-10">
+							<div class="flex flex-col items-center pt-1">
+								<span
+									class="font-headline-md text-headline-md text-outline-variant opacity-50 group-hover:opacity-100 transition-opacity"
+									>02</span
+								>
+								<div
+									class="w-[1px] h-full mt-4 bg-outline-variant group-hover:bg-primary transition-colors"
+								></div>
+							</div>
+							<div class="flex-1 pb-16">
+								<div class="flex items-center gap-3 mb-3">
+									<span
+										class="font-label-sm text-label-sm bg-secondary text-on-primary px-2 py-0.5 rounded-DEFAULT"
+										>TREND</span
+									>
+									<span
+										class="font-label-sm text-label-sm text-on-tertiary-container border border-outline-variant px-2 py-0.5 rounded-DEFAULT"
+										>AI &amp; ROBOTICS</span
+									>
+								</div>
+								<h3
+									class="font-headline-lg text-headline-lg text-primary mb-4 leading-tight"
+								>
+									The "Small Model" Renaissance: Local Intelligence Surpasses
+									Cloud Latency Benefits
+								</h3>
+								<div class="w-12 h-[2px] bg-primary mb-6 item-underline"></div>
+								<p
+									class="font-body-lg text-body-lg text-on-surface mb-8 leading-relaxed"
+								>
+									Latest benchmarks for 7B parameter models indicate a
+									"complexity plateau" where local processing now matches cloud
+									performance for 85% of standard knowledge-work tasks. Private,
+									locally-hosted LLMs are becoming the standard for
+									enterprise-grade intellectual property protection.
+								</p>
+								<div
+									class="grid grid-cols-1 md:grid-cols-2 gap-8 font-body-md text-body-md"
+								>
+									<div class="space-y-4">
+										<div class="space-y-1">
+											<h4
+												class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide"
+											>
+												Why it matters
+											</h4>
+											<p class="text-on-surface">
+												Data sovereignty is no longer a trade-off for
+												performance. Decentralized intelligence reduces platform
+												risk.
+											</p>
+										</div>
+										<div class="space-y-1">
+											<h4
+												class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide"
+											>
+												Impact
+											</h4>
+											<p class="text-on-surface">
+												Cloud egress costs dropping as edge-inference dominates
+												the professional toolset.
+											</p>
+										</div>
+									</div>
+									<div
+										class="bg-surface-container-low p-6 rounded-DEFAULT border-l-2 border-primary"
+									>
+										<h4
+											class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-2 flex items-center gap-2"
+										>
+											<span
+												class="material-symbols-outlined text-[16px]"
+												data-icon="lightbulb"
+												style="font-variation-settings: &quot;FILL&quot; 1"
+												>lightbulb</span
+											>
+											Recommended Action
+										</h4>
+										<p class="text-on-surface italic">
+											Evaluate migration of internal knowledge bases to
+											local-first vector databases to eliminate third-party
+											exposure.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</article>
+					<!-- Rank 03 -->
+					<article class="brief-item group cursor-pointer">
+						<div class="flex items-start gap-10">
+							<div class="flex flex-col items-center pt-1">
+								<span
+									class="font-headline-md text-headline-md text-outline-variant opacity-50 group-hover:opacity-100 transition-opacity"
+									>03</span
+								>
+								<div
+									class="w-[1px] h-full mt-4 bg-outline-variant group-hover:bg-primary transition-colors"
+								></div>
+							</div>
+							<div class="flex-1 pb-16">
+								<div class="flex items-center gap-3 mb-3">
+									<span
+										class="font-label-sm text-label-sm bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded-DEFAULT"
+										>LOW NOISE</span
+									>
+									<span
+										class="font-label-sm text-label-sm text-on-tertiary-container border border-outline-variant px-2 py-0.5 rounded-DEFAULT"
+										>ECONOMICS</span
+									>
+								</div>
+								<h3
+									class="font-headline-lg text-headline-lg text-primary mb-4 leading-tight"
+								>
+									Quantum-Resistant Financial Protocols Entering Beta
+								</h3>
+								<div class="w-12 h-[2px] bg-primary mb-6 item-underline"></div>
+								<p
+									class="font-body-lg text-body-lg text-on-surface mb-8 leading-relaxed"
+								>
+									Three major central banks have quietly initiated testing of
+									PQC (Post-Quantum Cryptography) for cross-border settlements.
+									This move anticipates a "Q-Day" event within the next 48
+									months, where current RSA/ECC encryption may become obsolete.
+								</p>
+								<div
+									class="grid grid-cols-1 md:grid-cols-2 gap-8 font-body-md text-body-md"
+								>
+									<div class="space-y-4">
+										<div class="space-y-1">
+											<h4
+												class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide"
+											>
+												Why it matters
+											</h4>
+											<p class="text-on-surface">
+												The security of the global ledger is transitioning from
+												mathematical difficulty to quantum entanglement
+												properties.
+											</p>
+										</div>
+										<div class="space-y-1">
+											<h4
+												class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide"
+											>
+												Impact
+											</h4>
+											<p class="text-on-surface">
+												Forced upgrades for all legacy banking API layers
+												starting Q4.
+											</p>
+										</div>
+									</div>
+									<div
+										class="bg-surface-container-low p-6 rounded-DEFAULT border-l-2 border-primary"
+									>
+										<h4
+											class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-2 flex items-center gap-2"
+										>
+											<span
+												class="material-symbols-outlined text-[16px]"
+												data-icon="lightbulb"
+												style="font-variation-settings: &quot;FILL&quot; 1"
+												>lightbulb</span
+											>
+											Recommended Action
+										</h4>
+										<p class="text-on-surface italic">
+											Review internal cybersecurity roadmaps. Prioritize vendors
+											offering Kyber or Dilithium signature schemes.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</article>
+				</div>
+				<!-- Footer Pagination/More -->
+				<div class="mt-20 border-t border-outline-variant pt-12 text-center">
+					<button
+						class="font-label-md text-label-md text-primary border border-primary px-8 py-3 rounded-DEFAULT hover:bg-primary-container hover:text-on-primary transition-colors inline-flex items-center gap-3"
+					>
+						Analyze 47 more stories
+						<span
+							class="material-symbols-outlined text-[18px]"
+							data-icon="expand_more"
+							>expand_more</span
+						>
+					</button>
+				</div>
+			</section>
+		</main>
+		<!-- Contextual Information (Floating Right Column on Large Screens) -->
+		<aside
+			class="hidden xl:flex fixed top-16 right-0 bottom-0 w-[300px] border-l border-outline-variant p-8 flex-col gap-10 bg-surface"
+		>
+			<section>
+				<h5
+					class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-4"
+				>
+					Brief Composition
+				</h5>
+				<div class="space-y-4">
+					<div
+						class="flex items-center justify-between font-label-md text-label-md"
+					>
+						<span>High Importance</span>
+						<span class="text-primary font-bold">12%</span>
+					</div>
+					<div
+						class="w-full h-1 bg-surface-container rounded-full overflow-hidden"
+					>
+						<div class="bg-primary h-full w-[12%]"></div>
+					</div>
+					<div
+						class="flex items-center justify-between font-label-md text-label-md pt-2"
+					>
+						<span>Strategic Signals</span>
+						<span class="text-primary font-bold">45%</span>
+					</div>
+					<div
+						class="w-full h-1 bg-surface-container rounded-full overflow-hidden"
+					>
+						<div class="bg-secondary h-full w-[45%]"></div>
+					</div>
+					<div
+						class="flex items-center justify-between font-label-md text-label-md pt-2"
+					>
+						<span>Tactical Updates</span>
+						<span class="text-primary font-bold">43%</span>
+					</div>
+					<div
+						class="w-full h-1 bg-surface-container rounded-full overflow-hidden"
+					>
+						<div class="bg-outline-variant h-full w-[43%]"></div>
+					</div>
+				</div>
+			</section>
+			<section class="mt-4">
+				<h5
+					class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-4"
+				>
+					Local Engine Stats
+				</h5>
+				<div
+					class="bg-surface-container-low p-4 rounded-DEFAULT space-y-3 font-mono-technical text-mono-technical"
+				>
+					<div class="flex justify-between">
+						<span class="text-on-surface-variant">TOKEN RATE</span>
+						<span class="text-secondary">485 t/s</span>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-on-surface-variant">TEMP</span>
+						<span class="text-secondary">42°C</span>
+					</div>
+					<div class="flex justify-between">
+						<span class="text-on-surface-variant">VRAM LOAD</span>
+						<span class="text-secondary">7.2 / 24 GB</span>
+					</div>
+					<div
+						class="pt-2 border-t border-outline-variant mt-2 flex items-center gap-2 text-primary"
+					>
+						<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+						<span class="font-label-sm text-label-sm uppercase"
+							>Optimizing vector space...</span
+						>
+					</div>
+				</div>
+			</section>
+			<div class="mt-auto">
+				<div
+					class="relative w-full aspect-square bg-surface-variant rounded-DEFAULT overflow-hidden group"
+				>
+					<img
+						class="w-full h-full object-cover"
+						data-alt="An abstract visualization of data nodes connecting in a minimalist, architectural lattice. Soft shadows, light teal and grey color palette, emphasizing technical precision and clarity. A high-end 3D render with a shallow depth of field."
+						src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6oFmMFxPYQauQ6zPdkrzCUxHCrAKm7AHBtYS0w4WMzEVd-abYAvza_PNFN6wI9Bwjy2unvIX6p1zmLWIy9Inpi9TGez6m27NVHFSt7DHNKMc_Q4cfs-_pVDow0A9QhhMcEfPuYH_obljkfiAg19nBZyAt0kGkuTkgUUCVDNqs2b1e0Em7zr_Ybu8cwzWdFq4rtm3i9H-yeohywzsQGi2lGL_lH3Vg3_oXkYmd8S3DBVuZ2_kQWMQ-"
+					/>
+					<div
+						class="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors"
+					></div>
+					<div class="absolute bottom-4 left-4 right-4">
+						<span
+							class="font-label-sm text-label-sm text-on-primary bg-primary px-2 py-1"
+							>GENERATE ANALYSIS</span
+						>
+					</div>
+				</div>
+			</div>
+		</aside>
+		<script>
+			// Micro-interactions for the briefing items
+			document.querySelectorAll(".brief-item").forEach((item) => {
+				item.addEventListener("mouseenter", () => {
+					// Potential interaction effect
+				});
+			});
+
+			// Search bar activation mockup
+			const searchBtn = document.querySelector('[data-icon="search"]');
+			searchBtn.addEventListener("click", () => {
+				console.log("Search focus triggered");
+			});
+		</script>
+	</body>
+</html>

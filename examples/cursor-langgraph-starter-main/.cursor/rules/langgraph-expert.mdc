@@ -1,0 +1,175 @@
+---
+description: Expert guidelines for generating and modifying LangGraph.js workflows. Apply when working with graph state, nodes, edges, or workflow files.
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# LangGraph.js Development Rules
+
+You are an expert in LangGraph.js v1.0+. Follow these rules strictly when generating or modifying code.
+
+## 1. State Management
+
+### Use Annotations for State Definition
+- ALWAYS use `Annotation.Root` to define graph state schemas
+- Use `MessagesAnnotation` from `@langchain/langgraph` for chat-based agents
+- For custom state, extend or compose annotations
+
+```typescript
+import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
+
+// Extend MessagesAnnotation for chat agents
+const AgentState = Annotation.Root({
+  ...MessagesAnnotation.spec,
+  nextStep: Annotation<string>,
+  context: Annotation<string[]>({
+    reducer: (current, update) => [...current, ...update],
+    default: () => [],
+  }),
+});
+```
+
+### Reducer Functions
+- Use reducers for fields that accumulate values (like messages)
+- The `MessagesAnnotation` already includes the correct reducer for messages
+- Custom reducers receive `(currentValue, updateValue)` and return the new value
+
+## 2. Node Architecture
+
+### Node Function Signature
+- Nodes are async functions that receive state and optionally config
+- Nodes MUST return a partial state object (only the fields being updated)
+- NEVER return the entire state object
+
+```typescript
+const myNode = async (
+  state: typeof AgentState.State,
+  config?: RunnableConfig
+): Promise<Partial<typeof AgentState.State>> => {
+  return { nextStep: "processed" };
+};
+```
+
+### Node Best Practices
+- Keep nodes focused on a single responsibility
+- Name nodes with verb-noun format: `callModel`, `executeTools`, `routeQuery`
+- Handle errors gracefully within nodes
+- Use `config` parameter to access runtime configuration and callbacks
+
+## 3. Edge Logic
+
+### Conditional Edges
+- Conditional edge functions receive state and return a string (node name or END)
+- ALWAYS handle all possible branches explicitly
+- Use `END` from `@langchain/langgraph` to terminate the graph
+
+```typescript
+import { END } from "@langchain/langgraph";
+
+const shouldContinue = (state: typeof AgentState.State): string => {
+  const lastMessage = state.messages[state.messages.length - 1];
+  if (lastMessage.tool_calls?.length) {
+    return "tools";
+  }
+  return END;
+};
+```
+
+### Edge Types
+- `addEdge(source, target)`: Static edge, always follows this path
+- `addConditionalEdges(source, routingFn, pathMap)`: Dynamic routing based on state
+
+## 4. Graph Construction
+
+### Building the Graph
+- Use `StateGraph` initialized with your annotation
+- Always use `START` constant for entry point edges
+- Always call `.compile()` to get the runnable graph
+
+```typescript
+import { StateGraph, START, END } from "@langchain/langgraph";
+
+const workflow = new StateGraph(AgentState)
+  .addNode("agent", callModel)
+  .addNode("tools", toolNode)
+  .addEdge(START, "agent")
+  .addConditionalEdges("agent", shouldContinue, {
+    tools: "tools",
+    [END]: END,
+  })
+  .addEdge("tools", "agent");
+
+const graph = workflow.compile();
+```
+
+### Compilation Options
+- Use `checkpointer` for state persistence and human-in-the-loop
+- Use `interruptBefore` or `interruptAfter` for breakpoints
+
+```typescript
+import { MemorySaver } from "@langchain/langgraph";
+
+const checkpointer = new MemorySaver();
+const graph = workflow.compile({
+  checkpointer,
+  interruptBefore: ["tools"],
+});
+```
+
+## 5. Tool Integration
+
+### Using ToolNode
+- Prefer `ToolNode` from `@langchain/langgraph/prebuilt` for tool execution
+- Bind tools to the model using `.bindTools()`
+
+```typescript
+import { ToolNode } from "@langchain/langgraph/prebuilt";
+
+const tools = [searchTool, calculatorTool];
+const toolNode = new ToolNode(tools);
+const modelWithTools = model.bindTools(tools);
+```
+
+## 6. Invocation Patterns
+
+### Running the Graph
+- Use `.invoke()` for single-shot execution
+- Use `.stream()` for streaming responses
+- Always provide a `thread_id` in config when using checkpointer
+
+```typescript
+const result = await graph.invoke(
+  { messages: [{ role: "user", content: "Hello" }] },
+  { configurable: { thread_id: "user-123" } }
+);
+
+for await (const chunk of graph.stream(input, config)) {
+  console.log(chunk);
+}
+```
+
+## 7. Common Patterns
+
+### ReAct Agent Pattern
+The standard pattern for tool-calling agents:
+1. `agent` node: Call LLM with tools bound
+2. `tools` node: Execute tool calls
+3. Conditional edge: Check if tools were called, loop or end
+
+### Human-in-the-Loop
+- Use `interruptBefore` to pause before a node
+- Resume with `graph.invoke(null, config)` to continue from checkpoint
+
+### Subgraphs
+- Compile subgraphs separately
+- Add as nodes to parent graph: `.addNode("subgraph", compiledSubgraph)`
+
+## 8. File Organization
+
+Follow this project structure:
+- `src/state/` - State annotation definitions
+- `src/nodes/` - Node function implementations  
+- `src/edges/` - Conditional routing functions
+- `src/tools/` - Tool definitions
+- `src/workflows/` - Graph composition and compilation
+- `src/index.ts` - Entry point and exports

@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en" class="light">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Geist:wght@100..900&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<script id="tailwind-config">
+			try {
+				tailwind.config = {
+					darkMode: "class",
+					theme: {
+						extend: {
+							colors: {
+								"on-tertiary-container": "#8d9292",
+								"outline-variant": "#c2c8c5",
+								"on-surface": "#191c1d",
+								"surface-variant": "#e1e3e3",
+								"surface-container-low": "#f2f4f4",
+								"on-secondary-container": "#536662",
+								"on-tertiary-fixed-variant": "#424847",
+								"on-error": "#ffffff",
+								"primary-fixed": "#d0e7e1",
+								"on-background": "#191c1d",
+								"on-primary-fixed": "#0a1f1b",
+								"surface-container": "#eceeee",
+								error: "#ba1a1a",
+								"on-primary": "#ffffff",
+								"on-tertiary": "#ffffff",
+								"surface-tint": "#4e635e",
+								"secondary-container": "#cfe4df",
+								"secondary-fixed-dim": "#b6cbc6",
+								background: "#f8fafa",
+								"on-primary-container": "#809691",
+								"inverse-surface": "#2e3131",
+								"secondary-fixed": "#d2e7e2",
+								"primary-container": "#1a2e2a",
+								primary: "#051916",
+								"inverse-on-surface": "#eff1f1",
+								"primary-fixed-dim": "#b5cbc5",
+								"on-secondary": "#ffffff",
+								"inverse-primary": "#b5cbc5",
+								"surface-container-lowest": "#ffffff",
+								"surface-container-high": "#e6e8e9",
+								"on-primary-fixed-variant": "#364b46",
+								"on-secondary-fixed": "#0c1f1c",
+								"surface-container-highest": "#e1e3e3",
+								"tertiary-fixed": "#dee3e2",
+								"on-tertiary-fixed": "#171d1c",
+								"surface-dim": "#d8dada",
+								surface: "#f8fafa",
+								secondary: "#4f625e",
+								"error-container": "#ffdad6",
+								outline: "#727876",
+								"tertiary-container": "#262b2b",
+								"on-surface-variant": "#424846",
+								"tertiary-fixed-dim": "#c2c7c7",
+								"on-error-container": "#93000a",
+								"on-secondary-fixed-variant": "#384a47",
+								"surface-bright": "#f8fafa",
+								tertiary: "#111716",
+							},
+							borderRadius: {
+								DEFAULT: "0.125rem",
+								lg: "0.25rem",
+								xl: "0.5rem",
+								full: "0.75rem",
+							},
+							spacing: {
+								"margin-desktop": "48px",
+								"sidebar-width": "260px",
+								"margin-mobile": "20px",
+								unit: "4px",
+								gutter: "24px",
+								"max-content-width": "800px",
+							},
+							fontFamily: {
+								"headline-lg-mobile": ["Newsreader"],
+								"body-lg": ["Geist"],
+								"label-sm": ["Geist"],
+								"headline-md": ["Newsreader"],
+								"headline-lg": ["Newsreader"],
+								"label-md": ["Geist"],
+								"display-lg": ["Newsreader"],
+								"body-md": ["Geist"],
+								"mono-technical": ["Geist"],
+							},
+							fontSize: {
+								"headline-lg-mobile": [
+									"28px",
+									{ lineHeight: "36px", fontWeight: "500" },
+								],
+								"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+								"label-sm": [
+									"12px",
+									{
+										lineHeight: "16px",
+										letterSpacing: "0.05em",
+										fontWeight: "500",
+									},
+								],
+								"headline-md": [
+									"24px",
+									{ lineHeight: "32px", fontWeight: "500" },
+								],
+								"headline-lg": [
+									"32px",
+									{
+										lineHeight: "40px",
+										letterSpacing: "-0.01em",
+										fontWeight: "500",
+									},
+								],
+								"label-md": [
+									"14px",
+									{
+										lineHeight: "20px",
+										letterSpacing: "0.02em",
+										fontWeight: "600",
+									},
+								],
+								"display-lg": [
+									"48px",
+									{
+										lineHeight: "56px",
+										letterSpacing: "-0.02em",
+										fontWeight: "500",
+									},
+								],
+								"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+								"mono-technical": [
+									"13px",
+									{ lineHeight: "20px", fontWeight: "400" },
+								],
+							},
+						},
+					},
+				};
+			} catch (_e) {}
+		</script>
+	</head>
+	<body class="bg-surface text-on-surface">
+		<div class="ambient-glow"></div>
+		<!-- Main Container -->
+		<main
+			class="h-screen w-full flex flex-col items-center justify-center px-6"
+		>
+			<!-- Brand Header (Static) -->
+			<header class="mb-12 text-center animate-in fade-in duration-700">
+				<h1
+					class="font-headline-lg text-headline-lg text-primary tracking-tight mb-1"
+				>
+					Vorynth
+				</h1>
+				<p class="font-body-md text-body-md text-on-surface-variant italic">
+					Less reading. More understanding.
+				</p>
+			</header>
+			<!-- Onboarding Shell -->
+			<div class="w-full max-w-[540px] min-h-[460px] flex flex-col relative">
+				<!-- Step 1: Welcome -->
+				<section id="step-1" class="onboarding-step active flex-col space-y-8">
+					<div class="text-center space-y-3">
+						<h2 class="font-headline-md text-headline-md text-primary">
+							Establish Clarity
+						</h2>
+						<p class="font-body-md text-body-md text-on-surface-variant">
+							Vorynth is your local-first engine for distilling vast technical
+							knowledge into actionable insights. No noise, just signals.
+						</p>
+					</div>
+					<div class="grid grid-cols-1 gap-4 pt-4">
+						<div
+							class="border border-outline-variant p-6 flex items-start gap-4 hover:bg-surface-container-low transition-colors duration-200"
+						>
+							<span class="material-symbols-outlined text-primary mt-1"
+								>shield</span
+							>
+							<div>
+								<p class="font-label-md text-label-md text-primary">
+									Privacy Absolute
+								</p>
+								<p
+									class="font-mono-technical text-mono-technical text-on-tertiary-container mt-1 leading-relaxed"
+								>
+									Your tokens, API keys, and generated intelligence stay in your
+									local vault. We never see your data.
+								</p>
+							</div>
+						</div>
+					</div>
+					<div class="flex justify-center pt-8">
+						<button
+							onclick="nextStep(2)"
+							class="px-8 py-3 bg-primary text-on-primary font-label-md text-label-md tracking-wider transition-all hover:bg-opacity-90 active:scale-95"
+						>
+							BEGIN SETUP
+						</button>
+					</div>
+				</section>
+				<!-- Step 2: AI Provider -->
+				<section id="step-2" class="onboarding-step flex-col space-y-6">
+					<div class="space-y-2">
+						<h2 class="font-headline-md text-headline-md text-primary">
+							Engine Configuration
+						</h2>
+						<p class="font-body-md text-body-md text-on-surface-variant">
+							Connect your preferred intelligence provider.
+						</p>
+					</div>
+					<div class="space-y-3">
+						<label
+							class="font-label-sm text-label-sm text-on-tertiary-container uppercase"
+							>Select Provider</label
+						>
+						<div class="grid grid-cols-2 gap-3">
+							<button
+								class="provider-btn border border-primary p-4 flex flex-col items-center gap-2 hover:bg-surface-container-low transition-all"
+							>
+								<span class="material-symbols-outlined text-primary"
+									>neurology</span
+								>
+								<span class="font-label-md text-label-md">Anthropic</span>
+							</button>
+							<button
+								class="provider-btn border border-outline-variant p-4 flex flex-col items-center gap-2 hover:bg-surface-container-low transition-all"
+							>
+								<span
+									class="material-symbols-outlined text-on-tertiary-container"
+									>cyclone</span
+								>
+								<span class="font-label-md text-label-md">OpenAI</span>
+							</button>
+							<button
+								class="provider-btn border border-outline-variant p-4 flex flex-col items-center gap-2 hover:bg-surface-container-low transition-all"
+							>
+								<span
+									class="material-symbols-outlined text-on-tertiary-container"
+									>api</span
+								>
+								<span class="font-label-md text-label-md">Gemini</span>
+							</button>
+							<button
+								class="provider-btn border border-outline-variant p-4 flex flex-col items-center gap-2 hover:bg-surface-container-low transition-all"
+							>
+								<span
+									class="material-symbols-outlined text-on-tertiary-container"
+									>terminal</span
+								>
+								<span class="font-label-md text-label-md">Ollama</span>
+							</button>
+						</div>
+					</div>
+					<div class="space-y-2">
+						<label
+							class="font-label-sm text-label-sm text-on-tertiary-container uppercase"
+							>API Key</label
+						>
+						<input
+							type="password"
+							placeholder="sk-..."
+							class="w-full bg-transparent border border-outline-variant px-4 py-3 font-mono-technical text-mono-technical focus:border-secondary outline-none transition-all"
+						/>
+						<p
+							class="font-mono-technical text-[11px] text-on-tertiary-container flex items-center gap-2"
+						>
+							<span class="material-symbols-outlined text-[14px]">lock</span>
+							Encrypted locally via AES-256
+						</p>
+					</div>
+					<div class="flex justify-between items-center pt-6">
+						<button
+							onclick="nextStep(1)"
+							class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2"
+						>
+							<span class="material-symbols-outlined text-[18px]"
+								>arrow_back</span
+							>
+							Back
+						</button>
+						<button
+							onclick="nextStep(3)"
+							class="px-8 py-3 bg-primary text-on-primary font-label-md text-label-md tracking-wider transition-all hover:bg-opacity-90"
+						>
+							VERIFY CONNECTION
+						</button>
+					</div>
+				</section>
+				<!-- Step 3: Domain Selection -->
+				<section id="step-3" class="onboarding-step flex-col space-y-6">
+					<div class="space-y-2">
+						<h2 class="font-headline-md text-headline-md text-primary">
+							Context Domains
+						</h2>
+						<p class="font-body-md text-body-md text-on-surface-variant">
+							Select your primary fields of interest to tune the signal
+							extraction.
+						</p>
+					</div>
+					<div class="grid grid-cols-2 gap-2">
+						<div class="domain-chip">
+							<input
+								type="checkbox"
+								id="ai-research"
+								class="hidden"
+								checked=""
+							/>
+							<label
+								for="ai-research"
+								class="flex items-center justify-between border border-outline-variant px-4 py-3 cursor-pointer transition-all hover:border-primary"
+							>
+								<span class="font-label-md text-label-md">AI Research</span>
+								<span class="material-symbols-outlined text-[18px]"
+									>psychology</span
+								>
+							</label>
+						</div>
+						<div class="domain-chip">
+							<input type="checkbox" id="swe" class="hidden" />
+							<label
+								for="swe"
+								class="flex items-center justify-between border border-outline-variant px-4 py-3 cursor-pointer transition-all hover:border-primary"
+							>
+								<span class="font-label-md text-label-md">Software Eng</span>
+								<span class="material-symbols-outlined text-[18px]">code</span>
+							</label>
+						</div>
+						<div class="domain-chip">
+							<input type="checkbox" id="devops" class="hidden" checked="" />
+							<label
+								for="devops"
+								class="flex items-center justify-between border border-outline-variant px-4 py-3 cursor-pointer transition-all hover:border-primary"
+							>
+								<span class="font-label-md text-label-md">DevOps</span>
+								<span class="material-symbols-outlined text-[18px]"
+									>terminal</span
+								>
+							</label>
+						</div>
+						<div class="domain-chip">
+							<input type="checkbox" id="product" class="hidden" />
+							<label
+								for="product"
+								class="flex items-center justify-between border border-outline-variant px-4 py-3 cursor-pointer transition-all hover:border-primary"
+							>
+								<span class="font-label-md text-label-md">Product Design</span>
+								<span class="material-symbols-outlined text-[18px]"
+									>architecture</span
+								>
+							</label>
+						</div>
+						<div class="domain-chip">
+							<input type="checkbox" id="crypto" class="hidden" />
+							<label
+								for="crypto"
+								class="flex items-center justify-between border border-outline-variant px-4 py-3 cursor-pointer transition-all hover:border-primary"
+							>
+								<span class="font-label-md text-label-md">Cryptography</span>
+								<span class="material-symbols-outlined text-[18px]"
+									>enhanced_encryption</span
+								>
+							</label>
+						</div>
+						<div class="domain-chip">
+							<input type="checkbox" id="neuro" class="hidden" />
+							<label
+								for="neuro"
+								class="flex items-center justify-between border border-outline-variant px-4 py-3 cursor-pointer transition-all hover:border-primary"
+							>
+								<span class="font-label-md text-label-md">Neuroscience</span>
+								<span class="material-symbols-outlined text-[18px]"
+									>mindfulness</span
+								>
+							</label>
+						</div>
+					</div>
+					<div class="pt-8 flex flex-col gap-4">
+						<button
+							onclick="finishSetup()"
+							class="w-full py-4 bg-primary text-on-primary font-label-md text-label-md tracking-[0.2em] transition-all hover:bg-opacity-95 shadow-sm active:scale-[0.98]"
+						>
+							INITIALIZE ENGINE
+						</button>
+						<p
+							class="text-center font-mono-technical text-[10px] text-on-tertiary-container uppercase tracking-widest"
+						>
+							System Readiness: Optimal
+						</p>
+					</div>
+				</section>
+			</div>
+			<!-- Progress Indicator -->
+			<footer class="fixed bottom-12 w-full max-w-[540px] px-6">
+				<div
+					class="flex justify-between items-center h-1 bg-surface-variant/30 rounded-full relative overflow-hidden"
+				>
+					<div
+						id="progress-bar"
+						class="absolute left-0 top-0 h-full bg-primary transition-all duration-700 ease-out"
+						style="width: 33.33%"
+					></div>
+				</div>
+				<div class="flex justify-between mt-4">
+					<span
+						class="font-mono-technical text-[11px] text-on-tertiary-container"
+						>STP_01: INTRO</span
+					>
+					<span
+						class="font-mono-technical text-[11px] text-on-tertiary-container"
+						>STP_02: CONN</span
+					>
+					<span
+						class="font-mono-technical text-[11px] text-on-tertiary-container"
+						>STP_03: DOMN</span
+					>
+				</div>
+			</footer>
+		</main>
+		<!-- Overlay for Finish transition -->
+		<div
+			id="finish-overlay"
+			class="fixed inset-0 bg-primary z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000"
+		>
+			<div class="text-center space-y-6">
+				<h2
+					class="font-display-lg text-display-lg text-on-primary animate-pulse tracking-tighter"
+				>
+					Vorynth
+				</h2>
+				<p
+					class="font-mono-technical text-primary-fixed uppercase tracking-[0.3em] opacity-80"
+				>
+					Syncing Intelligence Vault...
+				</p>
+			</div>
+		</div>
+		<script>
+			function nextStep(stepNumber) {
+				const steps = document.querySelectorAll(".onboarding-step");
+				const progressBar = document.getElementById("progress-bar");
+
+				// Fade out current
+				steps.forEach((s) => {
+					if (s.classList.contains("active")) {
+						s.classList.remove("active");
+						s.classList.add("step-hidden");
+					}
+				});
+
+				// Show target
+				setTimeout(() => {
+					steps.forEach((s) => s.classList.add("hidden"));
+					const activeStep = document.getElementById(`step-${stepNumber}`);
+					activeStep.classList.remove("hidden");
+					activeStep.classList.remove("step-hidden");
+					activeStep.classList.add("active");
+				}, 300);
+
+				// Update Progress
+				const progress = (stepNumber / 3) * 100;
+				progressBar.style.width = `${progress}%`;
+			}
+
+			function finishSetup() {
+				const overlay = document.getElementById("finish-overlay");
+				overlay.classList.remove("pointer-events-none");
+				overlay.classList.add("opacity-100");
+
+				// Interaction logic simulation
+				setTimeout(() => {
+					console.log("Onboarding Complete - Redirecting to Workspace");
+					// Window.location = '/dashboard'
+				}, 2500);
+			}
+
+			// Provider Button Toggle
+			document.querySelectorAll(".provider-btn").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					document.querySelectorAll(".provider-btn").forEach((b) => {
+						b.classList.remove("border-primary", "bg-surface-container-low");
+						b.classList.add("border-outline-variant");
+						b.querySelector(".material-symbols-outlined").classList.remove(
+							"text-primary",
+						);
+						b.querySelector(".material-symbols-outlined").classList.add(
+							"text-on-tertiary-container",
+						);
+					});
+					btn.classList.add("border-primary", "bg-surface-container-low");
+					btn.classList.remove("border-outline-variant");
+					btn
+						.querySelector(".material-symbols-outlined")
+						.classList.add("text-primary");
+					btn
+						.querySelector(".material-symbols-outlined")
+						.classList.remove("text-on-tertiary-container");
+				});
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en" class="light">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist.min.css"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<script id="tailwind-config">
+			try {
+				tailwind.config = {
+					darkMode: "class",
+					theme: {
+						extend: {
+							colors: {
+								"on-tertiary-container": "#8d9292",
+								"outline-variant": "#c2c8c5",
+								"on-surface": "#191c1d",
+								"surface-variant": "#e1e3e3",
+								"surface-container-low": "#f2f4f4",
+								"on-secondary-container": "#536662",
+								"on-tertiary-fixed-variant": "#424847",
+								"on-error": "#ffffff",
+								"primary-fixed": "#d0e7e1",
+								"on-background": "#191c1d",
+								"on-primary-fixed": "#0a1f1b",
+								"surface-container": "#eceeee",
+								error: "#ba1a1a",
+								"on-primary": "#ffffff",
+								"on-tertiary": "#ffffff",
+								"surface-tint": "#4e635e",
+								"secondary-container": "#cfe4df",
+								"secondary-fixed-dim": "#b6cbc6",
+								background: "#f8fafa",
+								"on-primary-container": "#809691",
+								"inverse-surface": "#2e3131",
+								"secondary-fixed": "#d2e7e2",
+								"primary-container": "#1a2e2a",
+								primary: "#051916",
+								"inverse-on-surface": "#eff1f1",
+								"primary-fixed-dim": "#b5cbc5",
+								"on-secondary": "#ffffff",
+								"inverse-primary": "#b5cbc5",
+								"surface-container-lowest": "#ffffff",
+								"surface-container-high": "#e6e8e9",
+								"on-primary-fixed-variant": "#364b46",
+								"on-secondary-fixed": "#0c1f1c",
+								"surface-container-highest": "#e1e3e3",
+								"tertiary-fixed": "#dee3e2",
+								"on-tertiary-fixed": "#171d1c",
+								"surface-dim": "#d8dada",
+								surface: "#f8fafa",
+								secondary: "#4f625e",
+								"error-container": "#ffdad6",
+								outline: "#727876",
+								"tertiary-container": "#262b2b",
+								"on-surface-variant": "#424846",
+								"tertiary-fixed-dim": "#c2c7c7",
+								"on-error-container": "#93000a",
+								"on-secondary-fixed-variant": "#384a47",
+								"surface-bright": "#f8fafa",
+								tertiary: "#111716",
+							},
+							borderRadius: {
+								DEFAULT: "0.125rem",
+								lg: "0.25rem",
+								xl: "0.5rem",
+								full: "0.75rem",
+							},
+							spacing: {
+								"margin-desktop": "48px",
+								"sidebar-width": "260px",
+								"margin-mobile": "20px",
+								unit: "4px",
+								gutter: "24px",
+								"max-content-width": "800px",
+							},
+							fontFamily: {
+								"headline-lg-mobile": ["Newsreader"],
+								"body-lg": ["Geist"],
+								"label-sm": ["Geist"],
+								"headline-md": ["Newsreader"],
+								"headline-lg": ["Newsreader"],
+								"label-md": ["Geist"],
+								"display-lg": ["Newsreader"],
+								"body-md": ["Geist"],
+								"mono-technical": ["Geist"],
+							},
+							fontSize: {
+								"headline-lg-mobile": [
+									"28px",
+									{ lineHeight: "36px", fontWeight: "500" },
+								],
+								"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+								"label-sm": [
+									"12px",
+									{
+										lineHeight: "16px",
+										letterSpacing: "0.05em",
+										fontWeight: "500",
+									},
+								],
+								"headline-md": [
+									"24px",
+									{ lineHeight: "32px", fontWeight: "500" },
+								],
+								"headline-lg": [
+									"32px",
+									{
+										lineHeight: "40px",
+										letterSpacing: "-0.01em",
+										fontWeight: "500",
+									},
+								],
+								"label-md": [
+									"14px",
+									{
+										lineHeight: "20px",
+										letterSpacing: "0.02em",
+										fontWeight: "600",
+									},
+								],
+								"display-lg": [
+									"48px",
+									{
+										lineHeight: "56px",
+										letterSpacing: "-0.02em",
+										fontWeight: "500",
+									},
+								],
+								"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+								"mono-technical": [
+									"13px",
+									{ lineHeight: "20px", fontWeight: "400" },
+								],
+							},
+						},
+					},
+				};
+			} catch (_e) {}
+		</script>
+	</head>
+	<body class="bg-background text-on-background">
+		<!-- SideNavBar -->
+		<aside
+			class="w-[260px] h-screen fixed left-0 top-0 bg-surface-container dark:bg-surface-container-high border-r border-outline-variant dark:border-outline flex flex-col h-full py-8"
+		>
+			<div class="px-6 mb-12">
+				<h1
+					class="font-headline-md text-headline-md font-medium text-primary dark:text-primary-fixed"
+				>
+					Vorynth
+				</h1>
+				<p class="font-body-md text-body-md text-on-surface-variant opacity-70">
+					Local Engine Active
+				</p>
+			</div>
+			<nav class="flex-1 space-y-1">
+				<a
+					href="#"
+					class="flex items-center text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out font-body-md text-body-md group"
+				>
+					<span class="material-symbols-outlined mr-3">today</span>
+					<span>Today's Brief</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out font-body-md text-body-md group"
+				>
+					<span class="material-symbols-outlined mr-3">psychology</span>
+					<span>Insights</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center border-l-2 border-primary dark:border-primary-fixed text-primary dark:text-primary-fixed pl-4 py-2 font-medium font-body-md text-body-md"
+				>
+					<span class="material-symbols-outlined mr-3">database</span>
+					<span>Sources</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200 ease-in-out font-body-md text-body-md group"
+				>
+					<span class="material-symbols-outlined mr-3">settings</span>
+					<span>Settings</span>
+				</a>
+			</nav>
+			<div class="px-4 mt-auto">
+				<button
+					class="w-full bg-primary-container text-on-primary font-label-md text-label-md py-3 rounded hover:opacity-90 transition-opacity"
+				>
+					Generate Brief
+				</button>
+			</div>
+		</aside>
+		<!-- TopAppBar -->
+		<header
+			class="fixed top-0 right-0 left-[260px] h-16 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline flex items-center justify-between px-margin-desktop w-auto z-10"
+		>
+			<div class="flex items-center">
+				<span
+					class="font-headline-md text-headline-md font-medium text-primary dark:text-primary-fixed"
+					>Sources</span
+				>
+			</div>
+			<div class="flex items-center space-x-6">
+				<div class="relative group">
+					<input
+						type="text"
+						placeholder="Filter sources..."
+						class="bg-transparent border-b border-outline-variant focus:border-secondary outline-none px-2 py-1 font-body-md text-body-md w-48 transition-all duration-200"
+					/>
+				</div>
+				<div class="flex items-center space-x-4 text-on-surface-variant">
+					<button
+						class="hover:text-primary transition-opacity duration-200"
+						title="Sync"
+					>
+						<span class="material-symbols-outlined">sync</span>
+					</button>
+					<button
+						class="hover:text-primary transition-opacity duration-200"
+						title="Security"
+					>
+						<span class="material-symbols-outlined">shield</span>
+					</button>
+					<button
+						class="hover:text-primary transition-opacity duration-200"
+						title="Memory"
+					>
+						<span class="material-symbols-outlined">memory</span>
+					</button>
+				</div>
+			</div>
+		</header>
+		<!-- Main Content Canvas -->
+		<main class="ml-[260px] pt-16 min-h-screen">
+			<div class="max-w-[800px] mx-auto py-16 px-gutter">
+				<!-- Header Section -->
+				<section class="mb-12">
+					<div class="flex justify-between items-end mb-4">
+						<div>
+							<h2 class="font-headline-lg text-headline-lg text-primary mb-2">
+								Knowledge Domains
+							</h2>
+							<p
+								class="font-body-lg text-body-lg text-on-surface-variant max-w-xl"
+							>
+								Vorynth prioritizes
+								<span class="text-primary font-medium italic"
+									>quality over quantity</span
+								>. Manage your trusted feeds and local connections to maintain
+								intellectual clarity.
+							</p>
+						</div>
+						<div class="flex space-x-3">
+							<button
+								class="px-6 py-2 border border-primary text-primary font-label-md text-label-md hover:bg-surface-variant transition-colors"
+							>
+								Connect Plugin
+							</button>
+							<button
+								class="px-6 py-2 bg-primary-container text-white font-label-md text-label-md hover:opacity-95 transition-opacity"
+							>
+								Add Custom Source
+							</button>
+						</div>
+					</div>
+					<div class="h-[1px] bg-outline-variant w-full"></div>
+				</section>
+				<!-- Active Sources List (Table Pattern) -->
+				<section class="mb-16">
+					<div class="flex items-center justify-between mb-6">
+						<h3
+							class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest"
+						>
+							Active Feeds (6)
+						</h3>
+						<div class="flex items-center space-x-2">
+							<span class="w-2 h-2 rounded-full bg-[#34D399]"></span>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container"
+								>All Systems Optimal</span
+							>
+						</div>
+					</div>
+					<div class="space-y-0">
+						<!-- Source Row 1 -->
+						<div
+							class="group flex items-center justify-between py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors px-2"
+						>
+							<div class="flex items-center space-x-4">
+								<div
+									class="w-10 h-10 flex items-center justify-center bg-surface-container text-primary border border-outline-variant"
+								>
+									<span class="material-symbols-outlined">terminal</span>
+								</div>
+								<div>
+									<h4
+										class="font-body-md text-body-md font-medium text-primary"
+									>
+										GitHub: Repository Activity
+									</h4>
+									<div class="flex items-center space-x-3 mt-1">
+										<span
+											class="font-label-sm text-label-sm px-2 py-0.5 border border-outline-variant rounded"
+											>Development</span
+										>
+										<span
+											class="font-mono-technical text-mono-technical text-on-tertiary-container"
+											>Syncing 42 repos</span
+										>
+									</div>
+								</div>
+							</div>
+							<div class="flex items-center space-x-12">
+								<div class="text-right">
+									<p
+										class="font-mono-technical text-mono-technical text-primary"
+									>
+										8m ago
+									</p>
+									<p
+										class="font-label-sm text-label-sm text-on-tertiary-container"
+									>
+										Last Sync
+									</p>
+								</div>
+								<div class="flex items-center space-x-4">
+									<span
+										class="w-2 h-2 rounded-full bg-[#34D399]"
+										title="Healthy"
+									></span>
+									<label class="relative inline-block w-8 h-4 cursor-pointer">
+										<input
+											type="checkbox"
+											checked=""
+											class="sr-only source-toggle"
+										/>
+										<span
+											class="absolute inset-0 bg-surface-variant rounded-full transition-colors toggle-slider"
+										></span>
+									</label>
+								</div>
+							</div>
+						</div>
+						<!-- Source Row 2 -->
+						<div
+							class="group flex items-center justify-between py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors px-2"
+						>
+							<div class="flex items-center space-x-4">
+								<div
+									class="w-10 h-10 flex items-center justify-center bg-surface-container text-primary border border-outline-variant"
+								>
+									<span class="material-symbols-outlined">rss_feed</span>
+								</div>
+								<div>
+									<h4
+										class="font-body-md text-body-md font-medium text-primary"
+									>
+										Security Advisories (NIST/CVE)
+									</h4>
+									<div class="flex items-center space-x-3 mt-1">
+										<span
+											class="font-label-sm text-label-sm px-2 py-0.5 border border-outline-variant rounded"
+											>Infra</span
+										>
+										<span
+											class="font-mono-technical text-mono-technical text-on-tertiary-container"
+											>Direct API Stream</span
+										>
+									</div>
+								</div>
+							</div>
+							<div class="flex items-center space-x-12">
+								<div class="text-right">
+									<p
+										class="font-mono-technical text-mono-technical text-primary"
+									>
+										2h ago
+									</p>
+									<p
+										class="font-label-sm text-label-sm text-on-tertiary-container"
+									>
+										Last Sync
+									</p>
+								</div>
+								<div class="flex items-center space-x-4">
+									<span
+										class="w-2 h-2 rounded-full bg-[#34D399]"
+										title="Healthy"
+									></span>
+									<label class="relative inline-block w-8 h-4 cursor-pointer">
+										<input
+											type="checkbox"
+											checked=""
+											class="sr-only source-toggle"
+										/>
+										<span
+											class="absolute inset-0 bg-surface-variant rounded-full transition-colors toggle-slider"
+										></span>
+									</label>
+								</div>
+							</div>
+						</div>
+						<!-- Source Row 3 -->
+						<div
+							class="group flex items-center justify-between py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors px-2"
+						>
+							<div class="flex items-center space-x-4">
+								<div
+									class="w-10 h-10 flex items-center justify-center bg-surface-container text-primary border border-outline-variant"
+								>
+									<span class="material-symbols-outlined">newspaper</span>
+								</div>
+								<div>
+									<h4
+										class="font-body-md text-body-md font-medium text-primary"
+									>
+										ArXiv: AI &amp; Machine Learning
+									</h4>
+									<div class="flex items-center space-x-3 mt-1">
+										<span
+											class="font-label-sm text-label-sm px-2 py-0.5 border border-outline-variant rounded"
+											>Research</span
+										>
+										<span
+											class="font-mono-technical text-mono-technical text-on-tertiary-container"
+											>Filtered: LLM, Diffusion</span
+										>
+									</div>
+								</div>
+							</div>
+							<div class="flex items-center space-x-12">
+								<div class="text-right">
+									<p
+										class="font-mono-technical text-mono-technical text-primary"
+									>
+										1d ago
+									</p>
+									<p
+										class="font-label-sm text-label-sm text-on-tertiary-container"
+									>
+										Last Sync
+									</p>
+								</div>
+								<div class="flex items-center space-x-4">
+									<span
+										class="w-2 h-2 rounded-full bg-[#FBBF24]"
+										title="Degraded Connection"
+									></span>
+									<label class="relative inline-block w-8 h-4 cursor-pointer">
+										<input
+											type="checkbox"
+											checked=""
+											class="sr-only source-toggle"
+										/>
+										<span
+											class="absolute inset-0 bg-surface-variant rounded-full transition-colors toggle-slider"
+										></span>
+									</label>
+								</div>
+							</div>
+						</div>
+						<!-- Source Row 4 -->
+						<div
+							class="group flex items-center justify-between py-5 border-b border-outline-variant hover:bg-surface-container-low transition-colors px-2"
+						>
+							<div class="flex items-center space-x-4">
+								<div
+									class="w-10 h-10 flex items-center justify-center bg-surface-container text-primary border border-outline-variant"
+								>
+									<span class="material-symbols-outlined">public</span>
+								</div>
+								<div>
+									<h4
+										class="font-body-md text-body-md font-medium text-primary"
+									>
+										Official Android Developers Blog
+									</h4>
+									<div class="flex items-center space-x-3 mt-1">
+										<span
+											class="font-label-sm text-label-sm px-2 py-0.5 border border-outline-variant rounded"
+											>Tech</span
+										>
+										<span
+											class="font-mono-technical text-mono-technical text-on-tertiary-container"
+											>Full Article Ingestion</span
+										>
+									</div>
+								</div>
+							</div>
+							<div class="flex items-center space-x-12">
+								<div class="text-right">
+									<p
+										class="font-mono-technical text-mono-technical text-primary"
+									>
+										5h ago
+									</p>
+									<p
+										class="font-label-sm text-label-sm text-on-tertiary-container"
+									>
+										Last Sync
+									</p>
+								</div>
+								<div class="flex items-center space-x-4">
+									<span
+										class="w-2 h-2 rounded-full bg-[#34D399]"
+										title="Healthy"
+									></span>
+									<label class="relative inline-block w-8 h-4 cursor-pointer">
+										<input type="checkbox" class="sr-only source-toggle" />
+										<span
+											class="absolute inset-0 bg-surface-variant rounded-full transition-colors toggle-slider"
+										></span>
+									</label>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+				<!-- Insights Section / Bento Style -->
+				<section class="grid grid-cols-2 gap-6">
+					<div
+						class="p-8 bg-surface-container border border-outline-variant rounded-lg"
+					>
+						<div class="flex items-center space-x-3 mb-6">
+							<span class="material-symbols-outlined text-primary"
+								>auto_graph</span
+							>
+							<h5 class="font-label-md text-label-md uppercase tracking-wide">
+								Sync Efficiency
+							</h5>
+						</div>
+						<div class="space-y-4">
+							<div class="flex justify-between items-end">
+								<span class="font-display-lg text-display-lg text-primary"
+									>94.2%</span
+								>
+								<span class="font-label-sm text-label-sm text-[#34D399] pb-2"
+									>+1.2% this week</span
+								>
+							</div>
+							<p class="font-body-md text-body-md text-on-surface-variant">
+								Signal-to-noise ratio is optimal. Engine has discarded 1,402
+								redundant articles in the last 24 hours.
+							</p>
+						</div>
+					</div>
+					<div
+						class="p-8 bg-surface-container border border-outline-variant rounded-lg relative overflow-hidden"
+					>
+						<div class="relative z-10">
+							<div class="flex items-center space-x-3 mb-6">
+								<span class="material-symbols-outlined text-primary">lock</span>
+								<h5 class="font-label-md text-label-md uppercase tracking-wide">
+									Privacy Shield
+								</h5>
+							</div>
+							<p class="font-body-md text-body-md text-on-surface-variant mb-6">
+								Local ingestion mode is active. No source data or metadata has
+								left your local hardware.
+							</p>
+							<a
+								href="#"
+								class="font-label-md text-label-md text-primary flex items-center hover:underline"
+							>
+								Audit Data Logs
+								<span class="material-symbols-outlined text-sm ml-1"
+									>arrow_forward</span
+								>
+							</a>
+						</div>
+						<div class="absolute -right-10 -bottom-10 opacity-5">
+							<span class="material-symbols-outlined text-[160px]">shield</span>
+						</div>
+					</div>
+				</section>
+				<!-- Bottom Note-->
+				<footer class="mt-20 text-center">
+					<p
+						class="font-mono-technical text-mono-technical text-on-tertiary-container"
+					>
+						Vorynth Version 1.0.4-L (Alpha) • Sources Last Audit: March 24, 2024
+					</p>
+				</footer>
+			</div>
+		</main>
+		<!-- Global Interactions -->
+		<script>
+			// Micro-interaction for hover states on list items
+			document.querySelectorAll(".group").forEach((item) => {
+				item.addEventListener("mouseenter", () => {
+					// Subtle lift or secondary effect logic here
+				});
+			});
+
+			// Theme Switcher (Simulated)
+			const toggleTheme = () => {
+				document.documentElement.classList.toggle("dark");
+			};
+
+			// Console log for demo
+			console.log("Vorynth Sources Engine Initialized...");
+		</script>
+	</body>
+</html>

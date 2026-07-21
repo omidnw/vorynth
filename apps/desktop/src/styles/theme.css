@@ -1,0 +1,143 @@
+/**
+ * Vorynth theme tokens.
+ *
+ * Light values: examples/colors/vorynth-light.md (Precision Minimalism, Forest & Slate).
+ * Dark values:  examples/colors/vorynth-dark.md  (Obsidian Intelligence).
+ *
+ * Hex → "r g b" so Tailwind can layer `<alpha-value>` on top via
+ * `rgb(var(--color-x) / <alpha-value>)`.
+ *
+ * Toggling `<html class="dark">` flips the whole palette; no component edits.
+ */
+
+:root,
+.light {
+	/* Surfaces */
+	--color-surface: 248 250 250; /* #F8FAFA */
+	--color-surface-dim: 216 218 218; /* #D8DADA */
+	--color-surface-bright: 248 250 250; /* #F8FAFA */
+	--color-surface-container-lowest: 255 255 255; /* #FFFFFF */
+	--color-surface-container-low: 242 244 244; /* #F2F4F4 */
+	--color-surface-container: 236 238 238; /* #ECEEEE */
+	--color-surface-container-high: 230 232 233; /* #E6E8E9 */
+	--color-surface-container-highest: 225 227 227; /* #E1E3E3 */
+	--color-surface-variant: 225 227 227; /* #E1E3E3 */
+	--color-surface-tint: 78 99 94; /* #4E635E */
+	--color-background: 248 250 250; /* #F8FAFA */
+
+	/* Content */
+	--color-on-surface: 25 28 29; /* #191C1D */
+	--color-on-surface-variant: 66 72 70; /* #424846 */
+	--color-on-background: 25 28 29; /* #191C1D */
+
+	/* Primary — near-black Forest Green, the anchor */
+	--color-primary: 5 25 22; /* #051916 */
+	--color-on-primary: 255 255 255;
+	--color-primary-container: 26 46 42; /* #1A2E2A */
+	--color-on-primary-container: 128 150 145; /* #809691 */
+	--color-primary-fixed: 208 231 225; /* #D0E7E1 */
+	--color-primary-fixed-dim: 181 203 197; /* #B5CBC5 */
+	--color-on-primary-fixed: 10 31 27; /* #0A1F1B */
+	--color-on-primary-fixed-variant: 54 75 70; /* #364B46 */
+
+	/* Secondary — muted Sage Slate */
+	--color-secondary: 79 98 94; /* #4F625E */
+	--color-on-secondary: 255 255 255;
+	--color-secondary-container: 207 228 223; /* #CFE4DF */
+	--color-on-secondary-container: 83 102 98; /* #536662 */
+	--color-secondary-fixed: 210 231 226; /* #D2E7E2 */
+	--color-secondary-fixed-dim: 182 203 198; /* #B6CBC6 */
+	--color-on-secondary-fixed: 12 31 28; /* #0C1F1C */
+	--color-on-secondary-fixed-variant: 56 74 71; /* #384A47 */
+
+	/* Tertiary */
+	--color-tertiary: 17 23 22; /* #111716 */
+	--color-on-tertiary: 255 255 255;
+	--color-tertiary-container: 38 43 43; /* #262B2B */
+	--color-on-tertiary-container: 141 146 146; /* #8D9292 */
+	--color-tertiary-fixed: 222 227 226; /* #DEE3E2 */
+	--color-tertiary-fixed-dim: 194 199 199; /* #C2C7C7 */
+	--color-on-tertiary-fixed: 23 29 28; /* #171D1C */
+	--color-on-tertiary-fixed-variant: 66 72 71; /* #424847 */
+
+	/* Outline */
+	--color-outline: 114 120 118; /* #727876 */
+	--color-outline-variant: 194 200 197; /* #C2C8C5 */
+
+	/* Inverse */
+	--color-inverse-surface: 46 49 49; /* #2E3131 */
+	--color-inverse-on-surface: 239 241 241; /* #EFF1F1 */
+	--color-inverse-primary: 181 203 197; /* #B5CBC5 */
+
+	/* Error */
+	--color-error: 186 26 26; /* #BA1A1A */
+	--color-on-error: 255 255 255;
+	--color-error-container: 255 218 214; /* #FFDAD6 */
+	--color-on-error-container: 147 0 10; /* #93000A */
+
+	/* Accent — unused in light, kept for parity */
+	--color-gold: 197 162 103; /* #C5A267 */
+}
+
+.dark {
+	/* Obsidian Intelligence — organic, mineral, not "gamer" dark */
+	--color-surface: 14 21 19; /* #0E1513 */
+	--color-surface-dim: 14 21 19; /* #0E1513 */
+	--color-surface-bright: 51 59 56; /* #333B38 */
+	--color-surface-container-lowest: 9 16 14; /* #09100E */
+	--color-surface-container-low: 22 29 27; /* #161D1B */
+	--color-surface-container: 26 33 31; /* #1A211F */
+	--color-surface-container-high: 36 43 41; /* #242B29 */
+	--color-surface-container-highest: 47 54 52; /* #2F3634 */
+	--color-surface-variant: 47 54 52; /* #2F3634 */
+	--color-surface-tint: 181 203 197; /* #B5CBC5 */
+	--color-background: 14 21 19; /* #0E1513 */
+
+	--color-on-surface: 221 228 224; /* #DDE4E0 */
+	--color-on-surface-variant: 194 200 197; /* #C2C8C5 */
+	--color-on-background: 221 228 224; /* #DDE4E0 */
+
+	/* Primary — Deep Forest with biological warmth */
+	--color-primary: 181 203 197; /* #B5CBC5 */
+	--color-on-primary: 32 52 48; /* #203430 */
+	--color-primary-container: 26 46 42; /* #1A2E2A */
+	--color-on-primary-container: 128 150 145; /* #809691 */
+	--color-primary-fixed: 208 231 225; /* #D0E7E1 */
+	--color-primary-fixed-dim: 181 203 197; /* #B5CBC5 */
+	--color-on-primary-fixed: 10 31 27; /* #0A1F1B */
+	--color-on-primary-fixed-variant: 54 75 70; /* #364B46 */
+
+	/* Secondary — Muted Sage */
+	--color-secondary: 186 203 190; /* #BACBBE */
+	--color-on-secondary: 37 52 42; /* #25342A */
+	--color-secondary-container: 59 74 64; /* #3B4A40 */
+	--color-on-secondary-container: 169 185 172; /* #A9B9AC */
+	--color-secondary-fixed: 214 231 217; /* #D6E7D9 */
+	--color-secondary-fixed-dim: 186 203 190; /* #BACBBE */
+	--color-on-secondary-fixed: 17 30 22; /* #111E16 */
+	--color-on-secondary-fixed-variant: 59 74 64; /* #3B4A40 */
+
+	/* Tertiary — Gold (reserved for high-importance signals) */
+	--color-tertiary: 230 193 131; /* #E6C183 */
+	--color-on-tertiary: 66 44 0; /* #422C00 */
+	--color-tertiary-container: 58 39 0; /* #3A2700 */
+	--color-on-tertiary-container: 174 141 84; /* #AE8D54 */
+	--color-tertiary-fixed: 255 222 170; /* #FFDEAA */
+	--color-tertiary-fixed-dim: 230 193 131; /* #E6C183 */
+	--color-on-tertiary-fixed: 39 25 0; /* #271900 */
+	--color-on-tertiary-fixed-variant: 92 66 16; /* #5C4210 */
+
+	--color-outline: 140 146 144; /* #8C9290 */
+	--color-outline-variant: 66 72 70; /* #424846 */
+
+	--color-inverse-surface: 221 228 224; /* #DDE4E0 */
+	--color-inverse-on-surface: 43 50 48; /* #2B3230 */
+	--color-inverse-primary: 78 99 94; /* #4E635E */
+
+	--color-error: 255 180 171; /* #FFB4AB */
+	--color-on-error: 105 0 5; /* #690005 */
+	--color-error-container: 147 0 10; /* #93000A */
+	--color-on-error-container: 255 218 214; /* #FFDAD6 */
+
+	--color-gold: 230 193 131; /* #E6C183 */
+}

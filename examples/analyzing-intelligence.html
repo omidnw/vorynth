@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en" class="light">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<script id="tailwind-config">
+			try {
+				tailwind.config = {
+					darkMode: "class",
+					theme: {
+						extend: {
+							colors: {
+								"on-tertiary-container": "#8d9292",
+								"outline-variant": "#c2c8c5",
+								"on-surface": "#191c1d",
+								"surface-variant": "#e1e3e3",
+								"surface-container-low": "#f2f4f4",
+								"on-secondary-container": "#536662",
+								"on-tertiary-fixed-variant": "#424847",
+								"on-error": "#ffffff",
+								"primary-fixed": "#d0e7e1",
+								"on-background": "#191c1d",
+								"on-primary-fixed": "#0a1f1b",
+								"surface-container": "#eceeee",
+								error: "#ba1a1a",
+								"on-primary": "#ffffff",
+								"on-tertiary": "#ffffff",
+								"surface-tint": "#4e635e",
+								"secondary-container": "#cfe4df",
+								"secondary-fixed-dim": "#b6cbc6",
+								background: "#f8fafa",
+								"on-primary-container": "#809691",
+								"inverse-surface": "#2e3131",
+								"secondary-fixed": "#d2e7e2",
+								"primary-container": "#1a2e2a",
+								primary: "#051916",
+								"inverse-on-surface": "#eff1f1",
+								"primary-fixed-dim": "#b5cbc5",
+								"on-secondary": "#ffffff",
+								"inverse-primary": "#b5cbc5",
+								"surface-container-lowest": "#ffffff",
+								"surface-container-high": "#e6e8e9",
+								"on-primary-fixed-variant": "#364b46",
+								"on-secondary-fixed": "#0c1f1c",
+								"surface-container-highest": "#e1e3e3",
+								"tertiary-fixed": "#dee3e2",
+								"on-tertiary-fixed": "#171d1c",
+								"surface-dim": "#d8dada",
+								surface: "#f8fafa",
+								secondary: "#4f625e",
+								"error-container": "#ffdad6",
+								outline: "#727876",
+								"tertiary-container": "#262b2b",
+								"on-surface-variant": "#424846",
+								"tertiary-fixed-dim": "#c2c7c7",
+								"on-error-container": "#93000a",
+								"on-secondary-fixed-variant": "#384a47",
+								"surface-bright": "#f8fafa",
+								tertiary: "#111716",
+							},
+							borderRadius: {
+								DEFAULT: "0.125rem",
+								lg: "0.25rem",
+								xl: "0.5rem",
+								full: "0.75rem",
+							},
+							spacing: {
+								"margin-desktop": "48px",
+								"sidebar-width": "260px",
+								"margin-mobile": "20px",
+								unit: "4px",
+								gutter: "24px",
+								"max-content-width": "800px",
+							},
+							fontFamily: {
+								"headline-lg-mobile": ["Newsreader"],
+								"body-lg": ["Geist"],
+								"label-sm": ["Geist"],
+								"headline-md": ["Newsreader"],
+								"headline-lg": ["Newsreader"],
+								"label-md": ["Geist"],
+								"display-lg": ["Newsreader"],
+								"body-md": ["Geist"],
+								"mono-technical": ["Geist Mono"],
+							},
+							fontSize: {
+								"headline-lg-mobile": [
+									"28px",
+									{ lineHeight: "36px", fontWeight: "500" },
+								],
+								"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+								"label-sm": [
+									"12px",
+									{
+										lineHeight: "16px",
+										letterSpacing: "0.05em",
+										fontWeight: "500",
+									},
+								],
+								"headline-md": [
+									"24px",
+									{ lineHeight: "32px", fontWeight: "500" },
+								],
+								"headline-lg": [
+									"32px",
+									{
+										lineHeight: "40px",
+										letterSpacing: "-0.01em",
+										fontWeight: "500",
+									},
+								],
+								"label-md": [
+									"14px",
+									{
+										lineHeight: "20px",
+										letterSpacing: "0.02em",
+										fontWeight: "600",
+									},
+								],
+								"display-lg": [
+									"48px",
+									{
+										lineHeight: "56px",
+										letterSpacing: "-0.02em",
+										fontWeight: "500",
+									},
+								],
+								"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+								"mono-technical": [
+									"13px",
+									{ lineHeight: "20px", fontWeight: "400" },
+								],
+							},
+						},
+					},
+				};
+			} catch (_e) {}
+		</script>
+		<meta charset="utf-8" />
+	</head>
+	<body class="bg-surface text-on-surface overflow-hidden">
+		<!-- Sidebar Navigation -->
+		<aside
+			class="bg-surface-container dark:bg-surface-container-high w-[260px] h-screen fixed left-0 top-0 border-r border-outline-variant dark:border-outline flex flex-col h-full py-8"
+		>
+			<div class="px-6 mb-12">
+				<h1
+					class="font-headline-md text-headline-md font-medium text-primary dark:text-primary-fixed"
+				>
+					Vorynth
+				</h1>
+				<p
+					class="text-on-tertiary-container font-label-sm text-label-sm tracking-wider"
+				>
+					Local Engine Active
+				</p>
+			</div>
+			<nav class="flex-grow space-y-1">
+				<a
+					href="#"
+					class="flex items-center gap-3 border-l-2 border-primary dark:border-primary-fixed text-primary dark:text-primary-fixed pl-4 py-2 font-medium hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200"
+				>
+					<span class="material-symbols-outlined">today</span>
+					<span class="font-body-md text-body-md">Today's Brief</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center gap-3 text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200"
+				>
+					<span class="material-symbols-outlined">psychology</span>
+					<span class="font-body-md text-body-md">Insights</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center gap-3 text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200"
+				>
+					<span class="material-symbols-outlined">database</span>
+					<span class="font-body-md text-body-md">Sources</span>
+				</a>
+				<a
+					href="#"
+					class="flex items-center gap-3 text-on-surface-variant dark:text-on-tertiary-container pl-4 py-2 hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors duration-200"
+				>
+					<span class="material-symbols-outlined">settings</span>
+					<span class="font-body-md text-body-md">Settings</span>
+				</a>
+			</nav>
+			<div class="px-6 mt-auto">
+				<button
+					class="w-full bg-primary-container text-primary-fixed-dim py-3 px-4 rounded font-label-md text-label-md hover:bg-primary transition-colors flex items-center justify-center gap-2"
+				>
+					<span class="material-symbols-outlined text-[18px]">bolt</span>
+					Generate Brief
+				</button>
+			</div>
+		</aside>
+		<!-- Top App Bar -->
+		<header
+			class="fixed top-0 right-0 left-[260px] h-16 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline flex items-center justify-between px-margin-desktop w-full ml-[260px] z-10"
+		>
+			<div class="flex items-center gap-4">
+				<span class="material-symbols-outlined text-primary">analytics</span>
+				<h2 class="font-headline-md text-headline-md font-medium text-primary">
+					Signal Processing
+				</h2>
+			</div>
+			<div class="flex items-center gap-6">
+				<div class="flex items-center gap-2 text-on-surface-variant">
+					<span
+						class="material-symbols-outlined text-[20px] animate-spin"
+						style="animation-duration: 3s"
+						>sync</span
+					>
+					<span class="font-mono-technical text-mono-technical"
+						>428 Signals Remaining</span
+					>
+				</div>
+				<div
+					class="flex items-center gap-4 border-l border-outline-variant pl-6"
+				>
+					<span
+						class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-opacity duration-200"
+						>shield</span
+					>
+					<span
+						class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-opacity duration-200"
+						>memory</span
+					>
+					<div
+						class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden"
+					>
+						<img
+							class="w-full h-full object-cover"
+							data-alt="Close-up studio portrait of a professional individual with a neutral expression, clean lighting, and a soft minimalist gray background. High-fidelity photography style with emphasis on clarity and calm authority to match the premium Vorynth brand identity."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuCU4lC1uFOz8zjjYubWux27eNInyRuqua6I-TSzYUPv7ZJYlNC5adYN3QBSTk0VmP0lbPHJ2bww4s-1CqbaxIe7eE7uevCmny5hgjH57nfpQ7oYFEiPi92xTIdXEZeUFTrlLmqcSGIcA6wbZb8v1sVlHtFOmfb2yaoxf2j-hp7mxJbutXC_TjNK48_PpLOjIZSeGTVincXv6qvqR9IRB8retVB_TtYk84H-GqycOXETkeJZiyeUaBq5"
+						/>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- Main Content Canvas -->
+		<main
+			class="ml-[260px] pt-16 h-screen flex flex-col items-center justify-center relative overflow-hidden"
+		>
+			<!-- Subtle Atmospheric Background Shader Placeholder -->
+
+			<div class="max-w-[800px] w-full px-margin-desktop z-10 space-y-12">
+				<!-- Analysis State Indicator -->
+				<div class="space-y-6 text-center">
+					<div
+						class="inline-flex items-center gap-2 px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full font-mono-technical text-label-sm"
+					>
+						<span
+							class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"
+						></span>
+						ACTIVE ENGINE: VORYNTH_v4.2
+					</div>
+					<h1
+						class="font-display-lg text-display-lg text-primary leading-tight"
+						id="status-title"
+					>
+						Collecting
+					</h1>
+					<p
+						class="font-body-lg text-body-lg text-on-surface-variant max-w-lg mx-auto"
+						id="status-desc"
+					>
+						Retrieving high-fidelity data points from localized nodes.
+						Encryption verified.
+					</p>
+				</div>
+				<!-- Visual Progress Track -->
+				<div class="relative w-full h-[1px] bg-outline-variant overflow-hidden">
+					<div
+						class="absolute left-0 top-0 h-full bg-primary progress-line"
+						id="progress-bar"
+						style="width: 25%"
+					></div>
+				</div>
+				<!-- Bento Grid - Processing Details -->
+				<div class="grid grid-cols-12 gap-gutter">
+					<!-- Status Item 1 -->
+					<div
+						class="col-span-3 p-4 border border-primary bg-surface-container-lowest transition-all duration-500"
+						id="step-collecting"
+					>
+						<div class="flex justify-between items-start mb-4">
+							<span class="material-symbols-outlined text-primary" id="icon-1"
+								>download</span
+							>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container"
+								>01</span
+							>
+						</div>
+						<p class="font-label-md text-label-md text-primary">Collecting</p>
+						<p
+							class="font-mono-technical text-[11px] text-on-tertiary-container uppercase tracking-widest mt-1"
+						>
+							Status: Active
+						</p>
+					</div>
+					<!-- Status Item 2 -->
+					<div
+						class="col-span-3 p-4 border border-outline-variant bg-surface opacity-50 transition-all duration-500"
+						id="step-filtering"
+					>
+						<div class="flex justify-between items-start mb-4">
+							<span
+								class="material-symbols-outlined text-on-tertiary-container"
+								id="icon-2"
+								>filter_list</span
+							>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container"
+								>02</span
+							>
+						</div>
+						<p class="font-label-md text-label-md text-on-surface-variant">
+							Filtering
+						</p>
+						<p
+							class="font-mono-technical text-[11px] text-on-tertiary-container uppercase tracking-widest mt-1"
+						>
+							Pending
+						</p>
+					</div>
+					<!-- Status Item 3 -->
+					<div
+						class="col-span-3 p-4 border border-outline-variant bg-surface opacity-50 transition-all duration-500"
+						id="step-ranking"
+					>
+						<div class="flex justify-between items-start mb-4">
+							<span
+								class="material-symbols-outlined text-on-tertiary-container"
+								id="icon-3"
+								>unfold_less</span
+							>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container"
+								>03</span
+							>
+						</div>
+						<p class="font-label-md text-label-md text-on-surface-variant">
+							Ranking
+						</p>
+						<p
+							class="font-mono-technical text-[11px] text-on-tertiary-container uppercase tracking-widest mt-1"
+						>
+							Pending
+						</p>
+					</div>
+					<!-- Status Item 4 -->
+					<div
+						class="col-span-3 p-4 border border-outline-variant bg-surface opacity-50 transition-all duration-500"
+						id="step-generating"
+					>
+						<div class="flex justify-between items-start mb-4">
+							<span
+								class="material-symbols-outlined text-on-tertiary-container"
+								id="icon-4"
+								>auto_awesome</span
+							>
+							<span
+								class="font-mono-technical text-mono-technical text-on-tertiary-container"
+								>04</span
+							>
+						</div>
+						<p class="font-label-md text-label-md text-on-surface-variant">
+							Briefing
+						</p>
+						<p
+							class="font-mono-technical text-[11px] text-on-tertiary-container uppercase tracking-widest mt-1"
+						>
+							Pending
+						</p>
+					</div>
+					<!-- Large "Noise reduction" Visualization -->
+					<div
+						class="col-span-12 p-8 border border-outline-variant bg-surface-container-lowest relative overflow-hidden"
+					>
+						<div
+							class="flex flex-col md:flex-row justify-between items-center gap-8 relative z-10"
+						>
+							<div class="space-y-4 max-w-md">
+								<h3 class="font-headline-md text-headline-md text-primary">
+									Signal Analysis
+								</h3>
+								<p class="font-body-md text-body-md text-on-surface-variant">
+									Vorynth is currently stripping noise from 428 disparate data
+									streams to find the three critical insights that matter for
+									your afternoon focus.
+								</p>
+							</div>
+							<div class="flex gap-4">
+								<!-- Visual noise bars -->
+								<div class="flex items-end gap-1 h-24">
+									<div
+										class="w-1.5 bg-outline-variant h-full animate-pulse"
+										style="animation-delay: 0.1s"
+									></div>
+									<div
+										class="w-1.5 bg-primary h-1/2 animate-pulse"
+										style="animation-delay: 0.2s"
+									></div>
+									<div
+										class="w-1.5 bg-outline-variant h-3/4 animate-pulse"
+										style="animation-delay: 0.3s"
+									></div>
+									<div
+										class="w-1.5 bg-outline-variant h-1/4 animate-pulse"
+										style="animation-delay: 0.4s"
+									></div>
+									<div
+										class="w-1.5 bg-primary h-full animate-pulse"
+										style="animation-delay: 0.5s"
+									></div>
+									<div
+										class="w-1.5 bg-outline-variant h-2/3 animate-pulse"
+										style="animation-delay: 0.6s"
+									></div>
+								</div>
+								<div class="flex items-center">
+									<span
+										class="material-symbols-outlined text-primary text-[32px]"
+										>arrow_right_alt</span
+									>
+								</div>
+								<div class="flex items-center">
+									<div
+										class="w-8 h-8 rounded-full border-2 border-primary flex items-center justify-center"
+									>
+										<span
+											class="material-symbols-outlined text-primary text-[20px] font-bold"
+											>check</span
+										>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="absolute inset-0 opacity-5 pointer-events-none">
+							<div
+								class="w-full h-full bg-[radial-gradient(#1A2E2A_1px,transparent_1px)] [background-size:20px_20px]"
+							></div>
+						</div>
+					</div>
+				</div>
+				<!-- Footer micro-copy -->
+				<div
+					class="flex justify-between items-center text-on-tertiary-container font-mono-technical text-[12px] uppercase tracking-widest pt-4"
+				>
+					<span>System Health: Nominal</span>
+					<span id="eta-text">Estimated Time: 18s</span>
+					<span>Privacy: Hardened Local-Only</span>
+				</div>
+			</div>
+		</main>
+		<script>
+			const states = [
+				{
+					title: "Collecting",
+					desc: "Retrieving high-fidelity data points from localized nodes. Encryption verified.",
+					progress: 25,
+					step: "step-collecting",
+				},
+				{
+					title: "Filtering",
+					desc: "Removing ambient noise and commercial biases. Isolating intellectual signal.",
+					progress: 50,
+					step: "step-filtering",
+				},
+				{
+					title: "Ranking",
+					desc: "Cross-referencing with your historical domains to prioritize urgency and depth.",
+					progress: 75,
+					step: "step-ranking",
+				},
+				{
+					title: "Generating Brief",
+					desc: "Synthesizing precise technical summaries for immediate cognition. Finalizing...",
+					progress: 98,
+					step: "step-generating",
+				},
+			];
+
+			let currentState = 0;
+			const statusTitle = document.getElementById("status-title");
+			const statusDesc = document.getElementById("status-desc");
+			const progressBar = document.getElementById("progress-bar");
+			const etaText = document.getElementById("eta-text");
+
+			function updateUI() {
+				const config = states[currentState];
+
+				// Fade out
+				statusTitle.style.opacity = 0;
+				statusDesc.style.opacity = 0;
+
+				setTimeout(() => {
+					statusTitle.innerText = config.title;
+					statusDesc.innerText = config.desc;
+					progressBar.style.width = `${config.progress}%`;
+
+					// Update grid visual indicators
+					states.forEach((s, idx) => {
+						const el = document.getElementById(s.step);
+						const icon = document.getElementById(`icon-${idx + 1}`);
+						const statusSubtext = el.querySelector("p:last-child");
+
+						if (idx === currentState) {
+							el.classList.remove("opacity-50", "border-outline-variant");
+							el.classList.add(
+								"border-primary",
+								"bg-surface-container-lowest",
+								"opacity-100",
+							);
+							icon.classList.add("text-primary");
+							statusSubtext.innerText = "Active";
+						} else if (idx < currentState) {
+							el.classList.remove(
+								"border-primary",
+								"bg-surface-container-lowest",
+							);
+							el.classList.add(
+								"border-outline-variant",
+								"bg-surface",
+								"opacity-70",
+							);
+							icon.innerText = "check_circle";
+							icon.classList.add("text-secondary");
+							statusSubtext.innerText = "Complete";
+						}
+					});
+
+					// Fade in
+					statusTitle.style.opacity = 1;
+					statusDesc.style.opacity = 1;
+				}, 500);
+
+				// Mock ETA countdown
+				let time = 18 - currentState * 4;
+				etaText.innerText = `Estimated Time: ${Math.max(3, time)}s`;
+
+				currentState = (currentState + 1) % states.length;
+			}
+
+			// Apply smooth transition to text
+			statusTitle.style.transition = "opacity 0.5s ease-in-out";
+			statusDesc.style.transition = "opacity 0.5s ease-in-out";
+
+			// Initial cycle
+			setInterval(updateUI, 4000);
+		</script>
+	</body>
+</html>

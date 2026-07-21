@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Vorynth global styles.
+ *
+ * The body defaults to the "Technical Editorial" pairing (Geist body /
+ * Newsreader headlines) on the neutral canvas. Depth comes from tonal
+ * segmentation, not shadows (project-details / colors docs).
+ */
+
+@layer base {
+	html {
+		font-family: theme("fontFamily.body");
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+
+	body {
+		@apply bg-background text-on-surface antialiased;
+		min-height: 100vh;
+	}
+
+	/* Material Symbols defaults — match the example markup. */
+	.material-symbols-outlined {
+		font-family: "Material Symbols Outlined";
+		font-weight: normal;
+		font-style: normal;
+		display: inline-block;
+		line-height: 1;
+		text-transform: none;
+		letter-spacing: normal;
+		word-wrap: normal;
+		white-space: nowrap;
+		direction: ltr;
+		-webkit-font-feature-settings: "liga";
+		-webkit-font-smoothing: antialiased;
+		font-variation-settings:
+			"FILL" 0,
+			"wght" 400,
+			"GRAD" 0,
+			"opsz" 24;
+	}
+
+	/* Selection — primary tint, low ink. */
+	::selection {
+		@apply bg-primary-fixed text-on-primary-fixed;
+	}
+
+	/* Understated scrollbars to keep the precision-instrument feel. */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: theme("colors.outline-variant") transparent;
+	}
+	*::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+	*::-webkit-scrollbar-thumb {
+		@apply bg-outline-variant rounded;
+	}
+}
+
+@layer utilities {
+	/* Hide scrollbar on horizontal filter bars (used in Today's Brief). */
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+}
+
+/**
+ * RTL support (project-details.md §22). Vorynth ships in English; any RTL
+ * language the user imports (fa, ar, he, …) sets `<html dir="rtl">` and these
+ * rules mirror the fixed shell so the sidebar, top bar offset and content
+ * margins flip cleanly. Components written with logical CSS where possible
+ * (flex direction, gap, padding-inline) need no overrides.
+ */
+@layer components {
+	[dir="rtl"] .rtl-flip-sidebar {
+		left: auto !important;
+		right: 0;
+		border-right-width: 0;
+		border-left: 1px solid theme("colors.outline-variant");
+	}
+	[dir="rtl"] .rtl-flip-main {
+		margin-left: 0 !important;
+		margin-right: theme("spacing.sidebar-width");
+	}
+	[dir="rtl"] .rtl-flip-topbar {
+		left: 0 !important;
+		right: theme("spacing.sidebar-width");
+	}
+	[dir="rtl"] .rtl-flip-rank-rail {
+		order: 2;
+	}
+}

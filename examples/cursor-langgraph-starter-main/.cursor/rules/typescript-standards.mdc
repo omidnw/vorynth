@@ -1,0 +1,68 @@
+---
+description: TypeScript coding standards for this project
+globs: src/**/*.ts
+alwaysApply: true
+---
+
+# TypeScript Standards
+
+## Code Style
+
+### General Rules
+- Use TypeScript strict mode (already configured in tsconfig.json)
+- Prefer `const` over `let`, never use `var`
+- Use explicit return types for functions
+- Use template literals over string concatenation
+
+### Naming Conventions
+- `camelCase` for variables, functions, and methods
+- `PascalCase` for types, interfaces, classes, and annotations
+- `SCREAMING_SNAKE_CASE` for constants
+- Prefix private class members with underscore: `_privateMethod`
+
+### Functions
+- Prefer arrow functions for callbacks and inline functions
+- Use async/await over raw promises
+- Keep functions small and focused (single responsibility)
+
+### Imports
+- Use named imports over default imports when possible
+- Group imports: external packages first, then internal modules
+- Use the `@/*` path alias for internal imports
+
+```typescript
+import { StateGraph, START, END } from "@langchain/langgraph";
+import { ChatOpenAI } from "@langchain/openai";
+
+import { AgentState } from "@/state/index.js";
+import { callModel } from "@/nodes/agent.js";
+```
+
+### Exports
+- Use named exports over default exports
+- Export types alongside implementations
+- Re-export from index files for clean public API
+
+## Error Handling
+
+- Use try/catch for async operations that may fail
+- Create custom error classes for domain-specific errors
+- Always log errors with context before re-throwing
+
+## Type Safety
+
+- Avoid `any` type - use `unknown` if type is truly unknown
+- Use type guards for runtime type checking
+- Leverage discriminated unions for state machines
+
+```typescript
+type Result<T> = 
+  | { success: true; data: T }
+  | { success: false; error: Error };
+```
+
+## Documentation
+
+- Add JSDoc comments for public functions and types
+- Document parameters, return values, and thrown errors
+- Include usage examples for complex functions

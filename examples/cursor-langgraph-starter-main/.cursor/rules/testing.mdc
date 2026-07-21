@@ -1,0 +1,111 @@
+---
+description: Testing guidelines for LangGraph workflows
+globs: tests/**/*.ts, **/*.test.ts
+alwaysApply: false
+---
+
+# Testing LangGraph Workflows
+
+## Testing Framework
+
+This project uses Vitest for testing. Tests are located in the `tests/` directory.
+
+## Testing Strategies
+
+### Unit Testing Nodes
+Test node functions in isolation by providing mock state:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { myNode } from "@/nodes/myNode.js";
+
+describe("myNode", () => {
+  it("should update state correctly", async () => {
+    const mockState = {
+      messages: [{ role: "user", content: "test" }],
+    };
+    
+    const result = await myNode(mockState);
+    
+    expect(result.nextStep).toBe("expected");
+  });
+});
+```
+
+### Testing Edge Functions
+Test routing logic with different state configurations:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { shouldContinue } from "@/edges/router.js";
+
+describe("shouldContinue", () => {
+  it("should return 'tools' when tool calls exist", () => {
+    const state = {
+      messages: [{
+        role: "assistant",
+        tool_calls: [{ name: "search", args: {} }],
+      }],
+    };
+    
+    expect(shouldContinue(state)).toBe("tools");
+  });
+});
+```
+
+### Integration Testing Graphs
+Test the compiled graph end-to-end:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { graph } from "@/workflows/agent.js";
+
+describe("Agent Workflow", () => {
+  it("should complete a simple conversation", async () => {
+    const result = await graph.invoke({
+      messages: [{ role: "user", content: "Hello" }],
+    });
+    
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[1].role).toBe("assistant");
+  });
+});
+```
+
+## Mocking
+
+### Mock LLM Responses
+Use a mock model for deterministic tests:
+
+```typescript
+import { FakeListChatModel } from "@langchain/core/utils/testing";
+
+const mockModel = new FakeListChatModel({
+  responses: ["Hello! How can I help you?"],
+});
+```
+
+### Mock Tools
+Create mock tool implementations:
+
+```typescript
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+
+const mockSearchTool = tool(
+  async () => "Mock search result",
+  {
+    name: "search",
+    description: "Mock search",
+    schema: z.object({ query: z.string() }),
+  }
+);
+```
+
+## Best Practices
+
+- Test nodes and edges in isolation first
+- Use mocks to avoid API calls in unit tests
+- Write integration tests for critical workflows
+- Test error handling paths
+- Use descriptive test names that explain the scenario

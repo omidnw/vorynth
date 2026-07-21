@@ -1,0 +1,132 @@
+---
+description: Guidelines for writing LangGraph evaluations with LangSmith
+globs: src/evals/**/*.ts
+alwaysApply: false
+---
+
+# LangGraph Evaluation Rules
+
+## Evaluation Framework
+
+This project uses LangSmith for evaluations. Evaluators assess agent performance across multiple dimensions.
+
+## Evaluator Structure
+
+### Basic Evaluator Pattern
+```typescript
+import type { Run, Example } from "langsmith/schemas";
+import type { EvaluationResult } from "langsmith/evaluation";
+
+const myEvaluator = async (
+  run: Run,
+  example?: Example
+): Promise<EvaluationResult> => {
+  const outputs = run.outputs || {};
+  const inputs = run.inputs || {};
+  const reference = example?.outputs || {};
+  
+  const score = /* 0 to 1 */;
+  
+  return {
+    key: "metric_name",
+    score,
+    comment: "Explanation of the score",
+  };
+};
+```
+
+### Evaluator Guidelines
+- `key`: Unique identifier for the metric (snake_case)
+- `score`: Number between 0 and 1 (or boolean converted to 0/1)
+- `comment`: Human-readable explanation of the score
+- Handle edge cases gracefully (missing data, empty responses)
+
+## Common Evaluator Types
+
+### 1. Heuristic Evaluators
+Fast, deterministic checks:
+- Response length bounds
+- Presence/absence of keywords
+- Tool usage patterns
+- Error detection
+
+### 2. Reference-Based Evaluators
+Compare against expected outputs:
+- Exact match
+- Contains expected content
+- Correct tool selection
+
+### 3. LLM-as-Judge Evaluators
+Use another LLM for subjective assessment:
+```typescript
+const llmJudge = async ({ prediction }) => {
+  const response = await judgeLLM.invoke([
+    { role: "system", content: "Rate 1-5 for helpfulness. Reply with just the number." },
+    { role: "user", content: prediction.messages.at(-1).content },
+  ]);
+  return { 
+    key: "llm_helpfulness", 
+    score: parseInt(response.content) / 5 
+  };
+};
+```
+
+## Dataset Best Practices
+
+### Example Structure
+```typescript
+{
+  inputs: {
+    messages: [{ role: "user", content: "User query" }],
+  },
+  outputs: {
+    expected_tool: "tool_name",  // or "null" for no tool
+    expected_topic: "topic",
+    expected_result: "value",
+  },
+}
+```
+
+### Dataset Guidelines
+- Include 20-50+ examples for meaningful metrics
+- Cover diverse scenarios: happy path, edge cases, errors
+- Balance tool-using vs non-tool queries
+- Tag examples by category for filtered analysis
+- Update dataset as agent capabilities change
+
+## Running Evaluations
+
+```bash
+# Create/reset the evaluation dataset
+pnpm eval:create-dataset
+
+# Run evaluation against the dataset
+pnpm eval
+
+# With custom dataset name
+EVAL_DATASET=my-dataset pnpm eval
+```
+
+## Adding New Evaluators
+
+1. Create evaluator function in `src/evals/evaluators.ts`
+2. Export from the evaluators array
+3. Evaluator will automatically be included in runs
+
+## Interpreting Results
+
+View results in LangSmith dashboard:
+- Aggregate scores across all examples
+- Per-example breakdown
+- Compare across experiment runs
+- Identify failure patterns
+
+## Environment Variables
+
+Required for evals:
+- `LANGCHAIN_API_KEY`: LangSmith API key
+- `LANGCHAIN_TRACING_V2=true`: Enable tracing
+
+Optional:
+- `EVAL_DATASET`: Override default dataset name
+- `EVAL_PREFIX`: Custom experiment prefix
