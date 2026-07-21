@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="vorynth-logo.png" alt="Vorynth" width="360" />
+</p>
+
 # Vorynth
 
 > **Less reading. More understanding.**

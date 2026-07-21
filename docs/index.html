@@ -4,91 +4,260 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Vorynth — A local-first personal intelligence engine. Turn information overload into clear insight." />
-  <meta name="theme-color" content="#0f1a17" />
+  <meta name="theme-color" content="#0a1411" />
+  <meta name="color-scheme" content="dark" />
   <title>Vorynth — Personal Intelligence Engine</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="apple-touch-icon" href="logo-192.png" sizes="192x192" />
+  <link rel="icon" href="logo-192.png" sizes="192x192" type="image/png" />
+  <link rel="icon" href="logo-512.png" sizes="512x512" type="image/png" />
+
+  <!-- Google Fonts: Inter + Material Symbols Outlined -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+
   <style>
+    /* ── Reset & Variables ────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
     :root {
-      --bg: #0f1a17;
-      --bg-card: #15221e;
-      --bg-hover: #1a2e2a;
-      --fg: #e2e8e6;
-      --fg-muted: #96a8a2;
-      --accent: #5bbf9e;
-      --accent-hover: #6dceaf;
-      --border: #1e332e;
-      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --bg:          #0a1411;
+      --bg-elevated: #0f1a17;
+      --bg-card:     #11231e;
+      --bg-hover:    #172f28;
+      --fg:          #e2e8e6;
+      --fg-muted:    #8ba19a;
+      --fg-dim:      #5f7a72;
+      --accent:      #5bbf9e;
+      --accent-dim:  #3d9e7e;
+      --accent-blue: #5ba8d6;
+      --accent-glow: rgba(91, 191, 158, 0.15);
+      --border:      #1a332c;
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-xl:   20px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --max-w:       1040px;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
     body {
       font-family: var(--font);
       background: var(--bg);
       color: var(--fg);
-      line-height: 1.6;
-      min-height: 100vh;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { color: var(--accent-hover); text-decoration: underline; }
 
-    /* ── Layout ─────────────────────────────────────────── */
-    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--accent-dim); }
 
-    /* ── Hero ────────────────────────────────────────────── */
+    /* ── Material Symbols overrides ───────────────────────── */
+    .icon {
+      font-family: 'Material Symbols Outlined';
+      font-weight: 400;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .icon--fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .icon--lg { font-size: 32px; }
+    .icon--xl { font-size: 40px; }
+
+    /* ── Utility ──────────────────────────────────────────── */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Nav ──────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(10, 20, 17, 0.8);
+      backdrop-filter: blur(16px) saturate(1.4);
+      -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    nav .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--fg);
+    }
+    nav .logo .icon { font-size: 22px; color: var(--accent); }
+    nav .nav-links { display: flex; gap: 24px; }
+    nav .nav-links a {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--fg-muted);
+      transition: color 0.2s;
+    }
+    nav .nav-links a:hover { color: var(--fg); }
+
+    /* ── Google Translate widget (in nav) ─────────────────── */
+    .translate-wrap { display: inline-flex; align-items: center; }
+    .goog-te-gadget {
+      font-family: var(--font) !important;
+      font-size: 0 !important;           /* hide label text */
+      color: transparent !important;
+    }
+    .goog-te-gadget .goog-te-combo {
+      font-family: var(--font) !important;
+      font-size: 0.8rem !important;
+      color: var(--fg-muted) !important;
+      background: transparent !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-sm) !important;
+      padding: 4px 28px 4px 8px !important;
+      outline: none !important;
+      cursor: pointer !important;
+      min-width: 120px;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238ba19a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 6px center !important;
+      background-size: 14px !important;
+      transition: border-color 0.2s;
+    }
+    .goog-te-gadget .goog-te-combo:hover {
+      color: var(--fg) !important;
+    }
+    .goog-te-gadget .goog-te-combo:focus {
+      border-color: var(--accent) !important;
+    }
+    .goog-te-gadget > span { display: none !important; }
+    .goog-te-gadget img { display: none !important; }
+    /* Hide the auto-inserted translate banner so it doesn't push content */
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    body { top: 0px !important; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
     .hero {
-      padding: 100px 0 60px;
+      position: relative;
+      padding: 140px 0 80px;
       text-align: center;
+      overflow: hidden;
     }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 600px 400px at 20% 40%, rgba(91, 191, 158, 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 500px at 80% 60%, rgba(91, 168, 214, 0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 300px 300px at 50% 20%, rgba(91, 191, 158, 0.04) 0%, transparent 70%);
+      pointer-events: none;
+      animation: heroGlow 12s ease-in-out infinite alternate;
+    }
+    @keyframes heroGlow {
+      0%   { transform: translate(0, 0); }
+      50%  { transform: translate(2%, -1%); }
+      100% { transform: translate(-1%, 2%); }
+    }
+    .hero .container { position: relative; z-index: 1; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(91, 191, 158, 0.08);
+      border: 1px solid rgba(91, 191, 158, 0.15);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 24px;
+    }
+    .hero-badge .icon { font-size: 16px; }
+
     .hero h1 {
-      font-size: 3.2rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 16px;
-      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      font-size: clamp(2.6rem, 6vw, 4.2rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.08;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 20%, var(--accent) 80%);
       background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
     .hero .tagline {
-      font-size: 1.25rem;
+      font-size: clamp(1rem, 2vw, 1.2rem);
       color: var(--fg-muted);
       max-width: 600px;
-      margin: 0 auto 32px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
     }
+    .hero .tagline strong { color: var(--fg); }
+
     .hero-badges {
       display: flex;
       gap: 8px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 40px;
+      margin-bottom: 36px;
     }
-    .hero-badges img { height: 24px; }
+    .hero-badges img { height: 22px; border-radius: 4px; }
+
     .hero-buttons {
       display: flex;
       gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
     }
+
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 12px 28px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-weight: 600;
-      font-size: 0.95rem;
-      transition: all 0.2s;
+      font-size: 0.9rem;
+      transition: all 0.25s ease;
       border: none;
       cursor: pointer;
+      font-family: var(--font);
     }
+    .btn .icon { font-size: 20px; }
+
     .btn-primary {
-      background: var(--accent);
-      color: #0f1a17;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+      color: #0a1411;
+      box-shadow: 0 2px 20px var(--accent-glow);
     }
     .btn-primary:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 30px var(--accent-glow);
       text-decoration: none;
+      color: #0a1411;
     }
+
     .btn-outline {
       background: transparent;
       color: var(--fg);
@@ -97,105 +266,338 @@
     .btn-outline:hover {
       background: var(--bg-hover);
       border-color: var(--fg-muted);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
       text-decoration: none;
     }
 
-    /* ── Sections ────────────────────────────────────────── */
-    section { padding: 60px 0; }
-    section h2 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: 32px;
-      text-align: center;
+    .hero-links {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: var(--fg-dim);
     }
-    section h2 .emoji { margin-right: 8px; }
+    .hero-links a { color: var(--fg-muted); transition: color 0.2s; }
+    .hero-links a:hover { color: var(--accent); }
+    .hero-links .sep { margin: 0 10px; color: var(--border); }
 
-    /* ── Features ────────────────────────────────────────── */
+    /* ── Section shared ───────────────────────────────────── */
+    section { padding: 72px 0; }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: rgba(91, 191, 158, 0.07);
+      border: 1px solid rgba(91, 191, 158, 0.12);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .section-label .icon { font-size: 16px; }
+
+    section h2 {
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    section .section-sub {
+      font-size: 1rem;
+      color: var(--fg-muted);
+      max-width: 540px;
+      margin-bottom: 40px;
+    }
+    section .section-head {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    section .section-head .section-sub {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Features ─────────────────────────────────────────── */
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
     }
+
     .feature-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      transition: border-color 0.2s, transform 0.2s;
+      border-radius: var(--radius-md);
+      padding: 28px 24px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
     .feature-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
+      border-color: rgba(91, 191, 158, 0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
     }
-    .feature-card .icon { font-size: 1.5rem; margin-bottom: 12px; }
-    .feature-card h3 { font-size: 1rem; margin-bottom: 8px; }
-    .feature-card p { font-size: 0.875rem; color: var(--fg-muted); line-height: 1.5; }
+    .feature-card:hover::before { opacity: 1; }
 
-    /* ── Architecture ─────────────────────────────────────── */
-    .arch-diagram {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 32px;
-      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-      font-size: 0.8rem;
-      line-height: 1.7;
-      overflow-x: auto;
-      white-space: pre;
+    .feature-card .icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: rgba(91, 191, 158, 0.1);
+      margin-bottom: 16px;
+    }
+    .feature-card .icon-wrap .icon { font-size: 22px; color: var(--accent); }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 0.85rem;
       color: var(--fg-muted);
+      line-height: 1.55;
     }
-    .arch-diagram .highlight { color: var(--accent); }
 
-    /* ── Platform grid ───────────────────────────────────── */
-    .platform-grid {
+    /* ── Stats / Metrics ──────────────────────────────────── */
+    .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
     }
-    .platform-card {
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px 16px;
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
       text-align: center;
       transition: border-color 0.2s;
     }
-    .platform-card:hover { border-color: var(--accent); }
-    .platform-card .icon { font-size: 1.8rem; margin-bottom: 8px; }
-    .platform-card .name { font-size: 0.85rem; font-weight: 600; }
-    .platform-card .status { font-size: 0.75rem; color: var(--fg-muted); margin-top: 4px; }
+    .stat-card:hover { border-color: rgba(91, 191, 158, 0.25); }
 
-    /* ── Footer ──────────────────────────────────────────── */
+    .stat-card .icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(91, 191, 158, 0.08);
+      margin-bottom: 12px;
+    }
+    .stat-card .icon-wrap .icon { font-size: 20px; color: var(--accent); }
+
+    .stat-card .stat-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--fg);
+    }
+    .stat-card .stat-label {
+      font-size: 0.8rem;
+      color: var(--fg-muted);
+      margin-top: 4px;
+    }
+
+    /* ── Architecture ─────────────────────────────────────── */
+    .arch-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      overflow: hidden;
+    }
+    .arch-diagram {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.8;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--fg-dim);
+    }
+    .arch-diagram .branch    { color: var(--fg-muted); }
+    .arch-diagram .folder    { color: var(--accent); font-weight: 600; }
+    .arch-diagram .comment   { color: var(--fg-dim); font-style: italic; }
+    .arch-diagram .highlight { color: var(--accent-blue); }
+
+    /* ── Platform Support ─────────────────────────────────── */
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .platform-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px 16px 20px;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+    .platform-card:hover {
+      border-color: rgba(91, 191, 158, 0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
+    }
+
+    .platform-card .icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(91, 191, 158, 0.08);
+      margin-bottom: 12px;
+    }
+    .platform-card .icon-wrap .icon { font-size: 24px; color: var(--accent); }
+
+    .platform-card .name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .platform-card .status {
+      font-size: 0.78rem;
+      color: var(--fg-muted);
+    }
+    .platform-card .tag {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .tag--native {
+      background: rgba(91, 191, 158, 0.12);
+      color: var(--accent);
+    }
+    .tag--source {
+      background: rgba(91, 168, 214, 0.12);
+      color: var(--accent-blue);
+    }
+
+    /* ── Footer ───────────────────────────────────────────── */
     footer {
       text-align: center;
-      padding: 40px 0;
+      padding: 48px 0;
       border-top: 1px solid var(--border);
-      color: var(--fg-muted);
+      color: var(--fg-dim);
       font-size: 0.85rem;
     }
-    footer a { color: var(--fg-muted); }
-    footer a:hover { color: var(--accent); }
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    footer .footer-links a {
+      color: var(--fg-muted);
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    footer .footer-links a:hover { color: var(--accent); }
+    footer .copyright { color: var(--fg-dim); }
+    footer .copyright a { color: var(--fg-muted); }
+    footer .copyright a:hover { color: var(--accent); }
 
-    /* ── Responsive ──────────────────────────────────────── */
-    @media (max-width: 640px) {
-      .hero { padding: 60px 0 40px; }
-      .hero h1 { font-size: 2.2rem; }
-      .hero .tagline { font-size: 1rem; }
+    /* ── Scroll Reveal ────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.05s; }
+    .reveal-delay-2 { transition-delay: 0.1s; }
+    .reveal-delay-3 { transition-delay: 0.15s; }
+    .reveal-delay-4 { transition-delay: 0.2s; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav .nav-links { gap: 16px; }
+      nav .nav-links a { font-size: 0.8rem; }
+
+      .hero { padding: 120px 0 60px; }
+
+      section { padding: 56px 0; }
+
       .features-grid { grid-template-columns: 1fr; }
+      .platform-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 0 16px; }
+      .hero { padding: 100px 0 48px; }
+      section { padding: 40px 0; }
+      .features-grid { gap: 12px; }
+      .platform-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
     }
   </style>
 </head>
 <body>
-  <!-- ─── Hero ──────────────────────────────────────────── -->
+
+  <!-- ─── Nav ─────────────────────────────────────────────── -->
+  <nav>
+    <div class="container">
+      <a href="#" class="logo">
+        <img src="logo-nav.png" alt="Vorynth" height="28" style="border-radius:4px;" />
+        Vorynth
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#platforms">Platforms</a>
+        <a href="https://github.com/omidnw/vorynth">GitHub</a>
+        <span class="translate-wrap" id="google_translate_element"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ────────────────────────────────────────────── -->
   <header class="hero">
     <div class="container">
+      <div class="hero-badge">
+        <span class="icon">new_releases</span>
+        v1.3.0 — MIT Licensed
+      </div>
+
       <h1>Vorynth</h1>
       <p class="tagline">
         A local-first personal intelligence engine that turns information
         overload into clear insight. Spend <strong>minutes</strong>
-        understanding what matters instead of hours searching for it.
+        understanding what matters — instead of hours searching for it.
       </p>
+
       <div class="hero-badges">
         <a href="https://github.com/omidnw/vorynth/actions/workflows/ci.yml">
           <img src="https://github.com/omidnw/vorynth/actions/workflows/ci.yml/badge.svg" alt="CI" />
@@ -203,67 +605,94 @@
         <a href="https://github.com/omidnw/vorynth/actions/workflows/package.yml">
           <img src="https://github.com/omidnw/vorynth/actions/workflows/package.yml/badge.svg" alt="Package" />
         </a>
-        <img src="https://img.shields.io/badge/version-1.3.0-blue" alt="Version" />
-        <img src="https://img.shields.io/badge/license-MIT-blue" alt="License" />
+        <img src="https://img.shields.io/badge/version-1.3.0-5bbf9e" alt="Version" />
+        <img src="https://img.shields.io/badge/license-MIT-5bbf9e" alt="License" />
       </div>
+
       <div class="hero-buttons">
         <a href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary">
-          ⬇ Download
+          <span class="icon">download</span>
+          Download
         </a>
         <a href="https://github.com/omidnw/vorynth" class="btn btn-outline">
-          View on GitHub →
+          View on GitHub
+          <span class="icon">arrow_right_alt</span>
         </a>
       </div>
-      <p style="margin-top: 16px; font-size: 0.85rem; color: var(--fg-muted);">
-        <a href="https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md" style="color: var(--fg-muted);">📖 Setup Guide</a>
-        &nbsp;·&nbsp;
-        <a href="https://github.com/omidnw/vorynth/blob/master/README.md" style="color: var(--fg-muted);">README</a>
-      </p>
+
+      <div class="hero-links">
+        <a href="https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md">
+          <span class="icon" style="font-size:14px;vertical-align:-2px;">menu_book</span>
+          Setup Guide
+        </a>
+        <span class="sep">·</span>
+        <a href="https://github.com/omidnw/vorynth/blob/master/README.md">
+          <span class="icon" style="font-size:14px;vertical-align:-2px;">article</span>
+          README
+        </a>
+      </div>
     </div>
   </header>
 
-  <!-- ─── Features ──────────────────────────────────────── -->
-  <section>
+  <!-- ─── Features ────────────────────────────────────────── -->
+  <section id="features">
     <div class="container">
-      <h2><span class="emoji">✦</span> Features</h2>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="icon">📡</div>
-          <h3>Multi-Source Collection</h3>
-          <p>RSS feeds with per-source fetch windows and rate limiting. 13 seed sources covering AI, engineering, security & more.</p>
+      <div class="section-head reveal">
+        <div class="section-label">
+          <span class="icon">stars</span>
+          Capabilities
         </div>
-        <div class="feature-card">
-          <div class="icon">🧠</div>
+        <h2>Everything you need to stay informed</h2>
+        <p class="section-sub">
+          Collect, analyze, and understand — all on your machine, all under your control.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="icon-wrap"><span class="icon">rss_feed</span></div>
+          <h3>Multi-Source Collection</h3>
+          <p>RSS feeds with per-source fetch windows and rate limiting. 13 seed sources covering AI, engineering, security &amp; more.</p>
+        </div>
+
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="icon-wrap"><span class="icon">model_training</span></div>
           <h3>LangGraph Intelligence</h3>
           <p>AI workflow: collect → normalize → dedup → rank → classify → analyze → brief. All local, all private.</p>
         </div>
-        <div class="feature-card">
-          <div class="icon">🤖</div>
+
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="icon-wrap"><span class="icon">smart_toy</span></div>
           <h3>4 LLM Providers</h3>
           <p>OpenAI, Anthropic Claude, Google Gemini, Groq — switch per query or per generate. Bring your own key.</p>
         </div>
-        <div class="feature-card">
-          <div class="icon">🔍</div>
+
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="icon-wrap"><span class="icon">manage_search</span></div>
           <h3>FTS5 Search + AI RAG</h3>
           <p>Blazing-fast full-text search with Persian/Arabic support. Ask questions in natural language with cited answers.</p>
         </div>
-        <div class="feature-card">
-          <div class="icon">🌐</div>
+
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="icon-wrap"><span class="icon">translate</span></div>
           <h3>i18n + RTL</h3>
-          <p>English & Persian UI with RTL auto-detection for AI output. More languages via standard ICU message format.</p>
+          <p>English &amp; Persian UI with RTL auto-detection for AI output. More languages via standard ICU message format.</p>
         </div>
-        <div class="feature-card">
-          <div class="icon">🔒</div>
+
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="icon-wrap"><span class="icon">lock</span></div>
           <h3>Privacy First</h3>
           <p>No cloud account. No telemetry. Your API keys, history, and insights stay under your control — local-first.</p>
         </div>
-        <div class="feature-card">
-          <div class="icon">💾</div>
-          <h3>Backup & Restore</h3>
+
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="icon-wrap"><span class="icon">backup</span></div>
+          <h3>Backup &amp; Restore</h3>
           <p>Full database snapshots with manifest. One-click export, restore, and delete from the settings panel.</p>
         </div>
-        <div class="feature-card">
-          <div class="icon">🌙</div>
+
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="icon-wrap"><span class="icon">palette</span></div>
           <h3>Dark Mode + Themes</h3>
           <p>System-aware theme with multiple accent colors. Beautiful design that adapts to your preference.</p>
         </div>
@@ -271,76 +700,205 @@
     </div>
   </section>
 
-  <!-- ─── Architecture ──────────────────────────────────── -->
+  <!-- ─── Stats ───────────────────────────────────────────── -->
   <section>
     <div class="container">
-      <h2><span class="emoji">🏗</span> Architecture</h2>
-      <div class="arch-diagram">Vorynth/
-├── apps/
-│   ├── <span class="highlight">desktop/</span>          Tauri v2 + React 18 + Vite + Tailwind
-│   │   ├── src/              UI pages & components
+      <div class="stats-grid">
+        <div class="stat-card reveal reveal-delay-1">
+          <div class="icon-wrap"><span class="icon">rss_feed</span></div>
+          <div class="stat-value">13+</div>
+          <div class="stat-label">Seed Sources</div>
+        </div>
+        <div class="stat-card reveal reveal-delay-2">
+          <div class="icon-wrap"><span class="icon">smart_toy</span></div>
+          <div class="stat-value">4</div>
+          <div class="stat-label">LLM Providers</div>
+        </div>
+        <div class="stat-card reveal reveal-delay-3">
+          <div class="icon-wrap"><span class="icon">devices</span></div>
+          <div class="stat-value">5</div>
+          <div class="stat-label">Platform Targets</div>
+        </div>
+        <div class="stat-card reveal reveal-delay-4">
+          <div class="icon-wrap"><span class="icon">shield</span></div>
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Local &amp; Private</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Architecture ────────────────────────────────────── -->
+  <section id="architecture">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-label">
+          <span class="icon">account_tree</span>
+          Structure
+        </div>
+        <h2>Architecture</h2>
+        <p class="section-sub">A monorepo with three packages — core engine, desktop shell, and shared types.</p>
+      </div>
+
+      <div class="arch-wrap reveal">
+        <div class="arch-diagram"><span class="folder">Vorynth/</span>
+├── <span class="folder">apps/</span>
+│   ├── <span class="highlight">desktop/</span>          <span class="comment">Tauri v2 + React 18 + Vite + Tailwind</span>
+│   │   ├── src/              UI pages &amp; components
 │   │   └── src-tauri/        Rust shell + sidecar launcher
-│   └── <span class="highlight">core-engine/</span>      NestJS + Fastify — intelligence runtime
-│       ├── collector/        RSS polling & rate limiting
+│   └── <span class="highlight">core-engine/</span>      <span class="comment">NestJS + Fastify — intelligence runtime</span>
+│       ├── collector/        RSS polling &amp; rate limiting
 │       ├── normalizer/       Dedup, classification, scoring
 │       ├── intelligence/     LangGraph.js workflow
 │       ├── search/           FTS5 + AI RAG search
 │       ├── backup/           Snapshot management
 │       ├── llm/              Provider abstraction
 │       └── data/             SQLite + Drizzle ORM
-└── packages/
-    └── <span class="highlight">types/</span>            Shared TypeScript interfaces</div>
+└── <span class="folder">packages/</span>
+    └── <span class="highlight">types/</span>            <span class="comment">Shared TypeScript interfaces</span></div>
+      </div>
     </div>
   </section>
 
-  <!-- ─── Platform Support ──────────────────────────────── -->
-  <section>
+  <!-- ─── Platform Support ────────────────────────────────── -->
+  <section id="platforms">
     <div class="container">
-      <h2><span class="emoji">🖥</span> Platform Support</h2>
-      <div class="platform-grid">
-        <div class="platform-card">
-          <div class="icon">🍎</div>
-          <div class="name">macOS</div>
-          <div class="status">ARM + Intel</div>
+      <div class="section-head reveal">
+        <div class="section-label">
+          <span class="icon">devices</span>
+          Compatibility
         </div>
-        <div class="platform-card">
-          <div class="icon">🪟</div>
+        <h2>Platform Support</h2>
+        <p class="section-sub">Native installers for desktop operating systems — plus source-only access for others.</p>
+      </div>
+
+      <div class="platform-grid">
+        <div class="platform-card reveal reveal-delay-1">
+          <div class="icon-wrap"><span class="icon">desktop_mac</span></div>
+          <div class="name">macOS</div>
+          <div class="status">Apple Silicon + Intel</div>
+          <div class="tag tag--native">Native</div>
+        </div>
+        <div class="platform-card reveal reveal-delay-2">
+          <div class="icon-wrap"><span class="icon">window</span></div>
           <div class="name">Windows</div>
           <div class="status">x86_64</div>
+          <div class="tag tag--native">Native</div>
         </div>
-        <div class="platform-card">
-          <div class="icon">🐧</div>
+        <div class="platform-card reveal reveal-delay-3">
+          <div class="icon-wrap"><span class="icon">terminal</span></div>
           <div class="name">Linux</div>
           <div class="status">x86_64 + ARM64</div>
+          <div class="tag tag--native">Native</div>
         </div>
-        <div class="platform-card">
-          <div class="icon">🆓</div>
+        <div class="platform-card reveal reveal-delay-1">
+          <div class="icon-wrap"><span class="icon">dns</span></div>
           <div class="name">FreeBSD</div>
           <div class="status">x86_64</div>
+          <div class="tag tag--native">Native</div>
         </div>
-        <div class="platform-card">
-          <div class="icon">📱</div>
+        <div class="platform-card reveal reveal-delay-2">
+          <div class="icon-wrap"><span class="icon">globe</span></div>
           <div class="name">Web / PWA</div>
           <div class="status">Incl. Harmony OS</div>
+          <div class="tag tag--source">Source</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Footer ────────────────────────────────────────── -->
+  <!-- ─── CTA ─────────────────────────────────────────────── -->
+  <section>
+    <div class="container" style="text-align:center;">
+      <div class="reveal">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:rgba(91,191,158,0.1);margin-bottom:16px;">
+          <span class="icon icon--xl" style="color:var(--accent);">download</span>
+        </div>
+        <h2 style="margin-bottom:8px;">Get started today</h2>
+        <p style="color:var(--fg-muted);max-width:440px;margin:0 auto 24px;">
+          Download the latest release for your platform, or clone the repo and run from source.
+        </p>
+        <div class="hero-buttons" style="justify-content:center;">
+          <a href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary">
+            <span class="icon">download</span>
+            Download
+          </a>
+          <a href="https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md" class="btn btn-outline">
+            <span class="icon">menu_book</span>
+            Setup Guide
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ──────────────────────────────────────────── -->
   <footer>
     <div class="container">
-      <p>
-        <a href="https://github.com/omidnw/vorynth">GitHub</a>
-        &nbsp;·&nbsp;
-        <a href="https://github.com/omidnw/vorynth/releases">Releases</a>
-        &nbsp;·&nbsp;
-        <a href="https://github.com/omidnw/vorynth/issues">Issues</a>
-      </p>
-      <p style="margin-top: 12px;">
-        Built with ❤️ by <a href="https://github.com/omidnw">Omid Reza Keshtkar</a>
+      <div class="footer-links">
+        <a href="https://github.com/omidnw/vorynth">
+          <span class="icon" style="font-size:16px;vertical-align:-3px;">code</span>
+          Source
+        </a>
+        <a href="https://github.com/omidnw/vorynth/releases">
+          <span class="icon" style="font-size:16px;vertical-align:-3px;">download</span>
+          Releases
+        </a>
+        <a href="https://github.com/omidnw/vorynth/issues">
+          <span class="icon" style="font-size:16px;vertical-align:-3px;">bug_report</span>
+          Issues
+        </a>
+        <a href="https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md">
+          <span class="icon" style="font-size:16px;vertical-align:-3px;">menu_book</span>
+          Guide
+        </a>
+      </div>
+      <p class="copyright">
+        Built with <span style="color:var(--accent);">&#9829;</span> by
+        <a href="https://github.com/omidnw">Omid Reza Keshtkar</a>
+        &nbsp;·&nbsp; MIT Licensed
       </p>
     </div>
   </footer>
+
+  <!-- ─── Scroll reveal via Intersection Observer ─────────── -->
+  <script>
+    (function() {
+      if (!('IntersectionObserver' in window)) {
+        document.querySelectorAll('.reveal').forEach(function(el) {
+          el.classList.add('visible');
+        });
+        return;
+      }
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.12,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      document.querySelectorAll('.reveal').forEach(function(el) {
+        observer.observe(el);
+      });
+    })();
+  </script>
+  <!-- ─── Google Translate ─────────────────────────────── -->
+  <script>
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'fa,ar,de,fr,es,ja,ko,zh-CN,ru,pt,tr,hi',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+  </script>
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>

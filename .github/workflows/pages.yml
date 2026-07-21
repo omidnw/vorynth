@@ -72,8 +72,8 @@ jobs:
           # Create the deployment directory
           mkdir -p _site
 
-          # Copy the landing page
-          cp docs/index.html _site/
+          # Copy all static assets from docs/ (index.html, favicon, logos, etc.)
+          cp -r docs/* _site/
 
           # Copy the built frontend assets under /app/ so the landing page
           # can link to them, or for a future "live demo" sub-page.
@@ -84,6 +84,8 @@ jobs:
 
           echo "Pages artifact contents:"
           ls -la _site/
+          # Show subdirs too
+          find _site -type f | head -30
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
