@@ -59,3 +59,15 @@ Before writing custom logic for anything standardised (language lists, date form
 2. **Read the file** before editing (the Edit tool requires it)
 3. **Typecheck** after changes → `pnpm --filter @vorynth/core-engine typecheck`
 4. **Check desktop too** → `pnpm --filter @vorynth/desktop typecheck`
+
+## 🔴 NEVER commit or push without explicit approval
+
+**I NEVER run `git commit`, `git push`, or any equivalent command** unless the user explicitly tells me to — for example "commit this", "push it", "submit a PR", or similar clear instruction.
+
+- Showing the diff, suggesting a commit message, staging changes: ✅ OK (with permission)
+- Actually committing or pushing: ❌ **FORBIDDEN without user saying so**
+- This applies to ALL branches, including `master`.
+- "Go ahead", "do it", "apply the changes", "fix it" — these are NOT commit permission. The user must explicitly say "commit" or "push".
+- If unsure, ask. NEVER assume.
+
+Violating this rule is a serious breach of trust. The user reviews everything before it reaches the remote.

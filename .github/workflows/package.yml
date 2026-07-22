@@ -63,7 +63,7 @@ jobs:
             use-cross: false
 
           # ── Windows ──────────────────────────────────────────────────────
-          - os: windows-latest
+          - os: windows-2022
             target: x86_64-pc-windows-msvc
             label: Windows
             artifact: vorynth-windows-x64
@@ -152,6 +152,7 @@ jobs:
           releaseBody: "See the assets below to download this version."
           releaseDraft: true
           prerelease: false
+          overwrite: true
           args: --target ${{ matrix.target }}
 
       - name: Upload artifacts
@@ -190,13 +191,22 @@ jobs:
           usesh: true
           copyback: true
           prepare: |
-            # Switch to latest repo (quarterly doesn't have webkit2-gtk4)
+            # Switch to latest repo (quarterly doesn't have webkit2-gtk in latest)
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' \
               > /usr/local/etc/pkg/repos/FreeBSD.conf
             pkg update -f
             pkg install -y node npm python3 rust pkgconf
-            pkg install -y webkit2-gtk4 gtk3 librsvg2 libxcb
+            # List available webkit packages so we know what's available
+            pkg search webkit2 || true
+            # Install webkit — try gtk4 flavor first (Tauri v2 needs webkit2gtk-4.1),
+            # fall back to default gtk3 flavor if gtk4 doesn't exist as a separate pkg
+            pkg install -y gtk3 librsvg2 libxcb
+            if pkg search -q '^webkit2-gtk3-gtk4-'; then
+              pkg install -y webkit2-gtk3-gtk4
+            else
+              pkg install -y webkit2-gtk3
+            fi
 
           run: |
             # pnpm is not available on FreeBSD pkg, use npm to install it
