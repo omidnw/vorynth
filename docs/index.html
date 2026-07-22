@@ -622,7 +622,7 @@
     <div class="container">
       <div class="hero-badge">
         <span class="icon">new_releases</span>
-        v1.5.0 — MIT Licensed
+        v1.5.0
       </div>
 
       <h1>Vorynth</h1>
@@ -634,7 +634,9 @@
         <strong>Th</strong> <span class="origin-arrow">→</span> thought · depth
       </p>
       <p class="tagline">
-        A personal intelligence engine that turns information overload into clear insight — entirely local, entirely private.
+        You have sources you trust — journals, blogs, newsletters, news sites.
+        Vorynth visits them for you, highlights what matters, and keeps
+        everything searchable. All local, all private, no account required.
       </p>
 
       <div class="hero-badges">
@@ -648,18 +650,21 @@
         <img src="https://img.shields.io/badge/license-MIT-5bbf9e" alt="License" />
       </div>
 
-      <div class="hero-buttons">
-        <a href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary">
-          <span class="icon">download</span>
-          Download
-        </a>
-        <a href="https://github.com/omidnw/vorynth" class="btn btn-outline">
-          View on GitHub
-          <span class="icon">arrow_right_alt</span>
-        </a>
-      </div>
+	      <div class="hero-buttons">
+	        <a id="download-btn" href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary">
+	          <span class="icon">download</span>
+	          <span id="download-label">Download</span>
+	        </a>
+	        <a href="https://github.com/omidnw/vorynth" class="btn btn-outline">
+	          View on GitHub
+	          <span class="icon">arrow_right_alt</span>
+	        </a>
+	      </div>
+	      <div id="platform-detect" style="margin-top:10px;font-size:0.82rem;color:var(--fg-dim);min-height:1.2em;">
+	        Detecting your platform…
+	      </div>
 
-      <div class="hero-links">
+	      <div class="hero-links">
         <a href="https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md">
           <span class="icon" style="font-size:14px;vertical-align:-2px;">menu_book</span>
           Setup Guide
@@ -681,59 +686,60 @@
           <span class="icon">stars</span>
           Capabilities
         </div>
-        <h2>Everything you need to stay informed</h2>
+        <h2>Stop hunting for news. Let it come to you.</h2>
         <p class="section-sub">
-          Collect, analyze, and understand — all on your machine, all under your control.
+          Define your sources once. Vorynth collects the updates, keeps everything
+          searchable, and delivers short briefs — so you focus on what matters.
         </p>
       </div>
 
       <div class="features-grid">
         <div class="feature-card reveal reveal-delay-1">
           <div class="icon-wrap"><span class="icon">rss_feed</span></div>
-          <h3>Multi-Source Collection</h3>
-          <p>RSS feeds with per-source fetch windows and rate limiting. 13 seed sources covering AI, engineering, security &amp; more.</p>
+          <h3>Your Sources, Collected</h3>
+          <p>Follow any site with a feed — journals, blogs, newsletters. Vorynth checks them so you don&rsquo;t have to visit a dozen tabs every morning.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-2">
           <div class="icon-wrap"><span class="icon">model_training</span></div>
-          <h3>LangGraph Intelligence</h3>
-          <p>AI workflow: collect → normalize → dedup → rank → classify → analyze → brief. All local, all private.</p>
+          <h3>Summarized for You</h3>
+          <p>Instead of wading through hundreds of articles, get a short brief of what&rsquo;s important. Daily, weekly, or monthly — you decide.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-3">
           <div class="icon-wrap"><span class="icon">smart_toy</span></div>
-          <h3>4 LLM Providers</h3>
-          <p>OpenAI, Anthropic Claude, Google Gemini, Groq — switch per query or per generate. Bring your own key.</p>
+          <h3>Ask in Plain Language</h3>
+          <p>Search everything collected just by typing a question. Vorynth finds relevant articles and answers with citations — like a research assistant.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-1">
           <div class="icon-wrap"><span class="icon">manage_search</span></div>
-          <h3>FTS5 Search + AI RAG</h3>
-          <p>Blazing-fast full-text search with Persian/Arabic support. Ask questions in natural language with cited answers.</p>
+          <h3>Search Every Source</h3>
+          <p>Remember reading something but can&rsquo;t find it? Search across every collected article by keyword, instantly — no more lost bookmarks.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-2">
           <div class="icon-wrap"><span class="icon">translate</span></div>
-          <h3>i18n + RTL</h3>
-          <p>English &amp; Persian UI with RTL auto-detection for AI output. More languages via standard ICU message format.</p>
+          <h3>In Your Language</h3>
+          <p>Use Vorynth in English, Persian, or export and translate the UI yourself. AI summaries adapt to your language preference.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-3">
           <div class="icon-wrap"><span class="icon">lock</span></div>
-          <h3>Privacy First</h3>
-          <p>No cloud account. No telemetry. Your API keys, history, and insights stay under your control — local-first.</p>
+          <h3>Your Machine, Your Data</h3>
+          <p>Everything runs locally. No cloud, no telemetry, no account. Your sources, history, and keys never leave your device.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-1">
           <div class="icon-wrap"><span class="icon">backup</span></div>
-          <h3>Backup &amp; Restore</h3>
-          <p>Full database snapshots with manifest. One-click export, restore, and delete from the settings panel.</p>
+          <h3>You&rsquo;re in Control</h3>
+          <p>Full backup, restore, or delete with one click. Nothing leaves your computer unless you explicitly export it.</p>
         </div>
 
         <div class="feature-card reveal reveal-delay-2">
           <div class="icon-wrap"><span class="icon">palette</span></div>
-          <h3>Dark Mode + Themes</h3>
-          <p>System-aware theme with multiple accent colors. Beautiful design that adapts to your preference.</p>
+          <h3>Beautiful at Any Hour</h3>
+          <p>Dark mode, light mode, and a clean reading experience that adapts to your preference — and your battery.</p>
         </div>
       </div>
     </div>
@@ -775,26 +781,25 @@
           <span class="icon">account_tree</span>
           Structure
         </div>
-        <h2>Architecture</h2>
-        <p class="section-sub">A monorepo with three packages — core engine, desktop shell, and shared types.</p>
+        <h2>How it works</h2>
+        <p class="section-sub">Two parts, one purpose: collect what matters and put it in front of you — all on your machine.</p>
       </div>
 
       <div class="arch-wrap reveal">
-        <div class="arch-diagram"><span class="folder">Vorynth/</span>
-├── <span class="folder">apps/</span>
-│   ├── <span class="highlight">desktop/</span>          <span class="comment">Tauri v2 + React 18 + Vite + Tailwind</span>
-│   │   ├── src/              UI pages &amp; components
-│   │   └── src-tauri/        Rust shell + sidecar launcher
-│   └── <span class="highlight">core-engine/</span>      <span class="comment">NestJS + Fastify — intelligence runtime</span>
-│       ├── collector/        RSS polling &amp; rate limiting
-│       ├── normalizer/       Dedup, classification, scoring
-│       ├── intelligence/     LangGraph.js workflow
-│       ├── search/           FTS5 + AI RAG search
-│       ├── backup/           Snapshot management
-│       ├── llm/              Provider abstraction
-│       └── data/             SQLite + Drizzle ORM
-└── <span class="folder">packages/</span>
-    └── <span class="highlight">types/</span>            <span class="comment">Shared TypeScript interfaces</span></div>
+        <div class="arch-diagram"><span class="folder">Vorynth</span>
+        
+  <span class="branch">├──</span> <span class="highlight">Desktop App</span>    <span class="comment">The window you open. Beautiful, fast, shows your briefs and search results.</span>
+  <span class="branch">└──</span> <span class="highlight">Core Engine</span>    <span class="comment">Runs in the background — collects from your sources, summarizes, and indexes everything for search.</span>
+  
+  <span class="folder">How data flows</span>
+  
+  <span class="branch">1.</span> You add sources (blogs, journals, news sites, any RSS feed).
+  <span class="branch">2.</span> The engine checks them automatically, on your schedule.
+  <span class="branch">3.</span> AI reads each article, classifies it, and builds your daily brief.
+  <span class="branch">4.</span> Everything is indexed — search or ask questions across all your sources.
+  <span class="branch">5.</span> The desktop app shows your briefs, search results, and insights.
+  
+  <span class="folder">And none of it leaves your computer.</span></div>
       </div>
     </div>
   </section>
@@ -858,9 +863,9 @@
           Download the latest release for your platform, or clone the repo and run from source.
         </p>
         <div class="hero-buttons" style="justify-content:center;">
-          <a href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary">
+          <a href="https://github.com/omidnw/vorynth/releases" class="btn btn-primary" id="download-btn-cta">
             <span class="icon">download</span>
-            Download
+            <span id="download-label-cta">Download the latest release</span>
           </a>
           <a href="https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md" class="btn btn-outline">
             <span class="icon">menu_book</span>
@@ -966,7 +971,94 @@
       document.querySelectorAll('.reveal').forEach(function(el) {
         observer.observe(el);
       });
+		    })();
+		  </script>
+
+	  <!-- ─── Smart download: auto-detect OS & asset ─────────── -->
+	  <script>
+	    (function() {
+		      var TAG = 'v1.5.0';
+		      var VER = '1.5.0';
+		      var BASE = 'https://github.com/omidnw/vorynth/releases/download/' + TAG + '/';
+		      var RELEASES = 'https://github.com/omidnw/vorynth/releases';
+	      var ua = navigator.userAgent;
+	      var plat = navigator.platform || '';
+
+	      // ── Detect Mac architecture (Apple Silicon vs Intel) ──
+	      function getMacArch() {
+	        if (!/Macintosh|MacIntel|MacPPC|Mac68K/.test(ua)) return null;
+	        try {
+	          var c = document.createElement('canvas');
+	          var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+	          if (!gl) return 'unknown';
+	          var exts = gl.getSupportedExtensions();
+	          return exts.indexOf('WEBGL_compressed_texture_etc') !== -1
+	            ? 'arm' : 'intel';
+	        } catch (_) { return 'unknown'; }
+	      }
+
+	      var isWin = /Win/.test(plat);
+	      var isLinux = /Linux/.test(plat) && !/Android/.test(ua);
+	      var isFreeBSD = /FreeBSD/.test(plat);
+	      var macArch = getMacArch();
+	      var isMac = macArch !== null;
+
+	      var asset, label, platText;
+
+	      if (isWin) {
+	        asset = 'Vorynth_' + VER + '_x64-setup.exe';
+	        label = 'Download for Windows';
+	        platText = 'Windows';
+	      } else if (isMac && macArch === 'arm') {
+	        asset = 'Vorynth_' + VER + '_aarch64.dmg';
+	        label = 'Download for macOS (Apple Silicon)';
+	        platText = 'macOS (Apple Silicon)';
+	      } else if (isMac && macArch === 'intel') {
+	        asset = '';
+	        label = 'Intel Mac not yet supported';
+	        platText = 'macOS (Intel) — support coming soon';
+	      } else if (isMac) {
+	        asset = '';
+	        label = 'See all downloads';
+	        platText = 'macOS — detection failed';
+	      } else if (isLinux && !/ARM|aarch64/.test(plat)) {
+	        asset = 'Vorynth_' + VER + '_amd64.AppImage';
+	        label = 'Download for Linux (x86_64)';
+	        platText = 'Linux (x86_64)';
+	      } else if (isLinux) {
+	        asset = 'Vorynth_' + VER + '_arm64.deb';
+	        label = 'Download for Linux (ARM64)';
+	        platText = 'Linux (ARM64)';
+	      } else if (isFreeBSD) {
+	        asset = 'vorynth-freebsd-x64.tar';
+	        label = 'Download for FreeBSD';
+	        platText = 'FreeBSD';
+	      } else {
+	        asset = '';
+	        label = 'See all downloads';
+	        platText = '';
+	      }
+
+	      var url = asset ? BASE + asset : RELEASES;
+
+	      function setAnchor(id, href) {
+	        var el = document.getElementById(id);
+	        if (el) el.href = href;
+	      }
+	      function setText(id, text) {
+	        var el = document.getElementById(id);
+	        if (el) el.textContent = text;
+	      }
+	      setAnchor('download-btn', url);
+	      setText('download-label', label);
+	      setAnchor('download-btn-cta', url);
+	      setText('download-label-cta', label);
+
+	      var detect = document.getElementById('platform-detect');
+	      if (detect) {
+	        detect.textContent = platText ? 'Detected: ' + platText : '';
+	      }
 	    })();
 	  </script>
-	</body>
+		</body>
 </html>
