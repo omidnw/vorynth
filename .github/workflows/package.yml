@@ -289,6 +289,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # upload-artifact only lands in the workflow run's Artifacts section —
+      # attach the bundle to the GitHub release draft as well, next to the
+      # installers tauri-action uploads. The action finds the existing draft
+      # for this tag (created by tauri-action) or creates it if this job
+      # finishes first.
+      - name: Attach HarmonyOS bundle to release
+        if: matrix.is-harmonyos == true
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Vorynth ${{ github.ref_name }}"
+          draft: true
+          prerelease: false
+          files: vorynth-harmonyos-raw-bundle.tar.gz
+
   # ── FreeBSD (native) ─────────────────────────────────────────────────────
   # Built inside a FreeBSD VM on an Ubuntu runner. Tauri on FreeBSD uses the
   # native FreeBSD WebKit port. This is experimental — if the build fails, the
@@ -374,3 +391,14 @@ jobs:
           path: vorynth-freebsd-x64.tar.gz
           if-no-files-found: error
           retention-days: 14
+
+      - name: Attach FreeBSD tarball to release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Vorynth ${{ github.ref_name }}"
+          draft: true
+          prerelease: false
+          files: vorynth-freebsd-x64.tar.gz
