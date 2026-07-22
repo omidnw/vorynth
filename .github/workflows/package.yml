@@ -191,10 +191,15 @@ jobs:
           usesh: true
           copyback: true
           prepare: |
-            # Switch to latest repo (quarterly doesn't have webkit2-gtk in latest)
+            # Switch to latest repo (quarterly doesn't have webkit2-gtk in latest).
+            # FreeBSD 15 renamed the official repo from "FreeBSD" to "FreeBSD-ports"
+            # and pkg+http:// requires mirror_type: "srv".
             mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' \
-              > /usr/local/etc/pkg/repos/FreeBSD.conf
+            echo 'FreeBSD-ports: {
+              url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest",
+              mirror_type: "srv",
+              enabled: yes
+            }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             pkg update -f
             pkg install -y node npm python3 rust pkgconf
             # List available webkit packages so we know what's available
