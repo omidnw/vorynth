@@ -349,17 +349,28 @@ jobs:
             cp -r apps/core-engine/dist-bundle \
               apps/desktop/src-tauri/binaries/vorynth-core-x86_64-unknown-freebsd
 
-            # Install Tauri CLI (not available via FreeBSD pkg, compile from source)
-            cargo install tauri-cli --version "^2"
+            # NOTE: tauri-cli can never be installed on FreeBSD — it depends
+            # on cargo-mobile2, which hard-fails with compile_error! on
+            # unsupported hosts (FreeBSD included) and is NOT behind a
+            # feature flag. Build with plain cargo instead: the frontend is
+            # embedded at compile time via tauri::generate_context!(), and
+            # the sidecar ships as a plain directory next to the binary
+            # (main.rs searches `binaries/` relative to the executable).
+            cargo build --release --target x86_64-unknown-freebsd \
+              --manifest-path apps/desktop/src-tauri/Cargo.toml
 
-            cd apps/desktop/src-tauri
-            cargo tauri build --target x86_64-unknown-freebsd
+            # Package: binary + sidecar in one tarball.
+            mkdir -p freebsd-output/binaries
+            cp apps/desktop/src-tauri/target/x86_64-unknown-freebsd/release/vorynth-desktop \
+              freebsd-output/
+            cp -r apps/desktop/src-tauri/binaries/vorynth-core-x86_64-unknown-freebsd \
+              freebsd-output/binaries/
+            tar -czf vorynth-freebsd-x64.tar.gz -C freebsd-output .
 
       - name: Upload FreeBSD artifacts
         uses: actions/upload-artifact@v4
         with:
           name: vorynth-freebsd-x64
-          path: |
-            apps/desktop/src-tauri/target/x86_64-unknown-freebsd/release/bundle/**/*
-          if-no-files-found: warn
+          path: vorynth-freebsd-x64.tar.gz
+          if-no-files-found: error
           retention-days: 14
