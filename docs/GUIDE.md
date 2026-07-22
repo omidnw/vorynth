@@ -284,42 +284,78 @@ cargo tauri build --target x86_64-unknown-freebsd
 
 ### Harmony OS (OpenHarmony)
 
-The CI pipeline now produces a cross-compiled bundle via the `Package` workflow:
+HarmonyOS NEXT support is **experimental**. The CI pipeline cross-compiles a
+native Rust library and bundles it with the frontend assets, but there is no
+ready-to-install `.hap` package yet — the output is a raw bundle intended for
+DevEco Studio.
 
-- **Rust native library** — the desktop shell is cross-compiled as a shared
-  library (`libvorynth_desktop.so`) for `aarch64-unknown-linux-ohos`.
-- **Frontend assets** — the React app is built and bundled alongside.
-- **Output** — a `vorynth-harmonyos-raw-bundle.tar.gz` archive with a DevEco
-  Studio–friendly layout (`entry/libs/arm64-v8a/` + `rawfile/`).
+**What the CI produces** (`vorynth-harmonyos-raw-bundle.tar.gz`):
+
+- **Rust shared library** — the Tauri shell cross-compiled as
+  `libvorynth_desktop.so` for `aarch64-unknown-linux-ohos` (ARM64).
+- **Frontend assets** — the built React app, placed under `rawfile/` for
+  embedding in a HarmonyOS WebView.
+- **Layout** — matches DevEco Studio's expected project structure:
+  ```
+  harmonyos-output/
+  └── entry/
+      ├── libs/arm64-v8a/
+      │   └── libvorynth_desktop.so    # compiled Rust shell
+      └── src/main/resources/rawfile/
+          └── ...                       # frontend assets
+  ```
+
+**Toolchain used by CI:**
+
+| Component | Version / Source |
+| --------- | ---------------- |
+| Rust target | `aarch64-unknown-linux-ohos` (Tier 2 with host tools) |
+| OHOS SDK | OpenHarmony **6.0-Release** from `repo.huaweicloud.com` |
+| C/C++ compiler | clang from the OHOS NDK (`linux/native/llvm/bin/clang`) |
+| Sysroot | OHOS native sysroot (`linux/native/sysroot`) |
+
+The SDK (~2.3 GiB) is downloaded once and cached across CI runs via
+`actions/cache`.
 
 **To use the bundle:**
+
 1. Download the artifact from the latest CI run on the `master` branch.
-2. Import the extracted `harmonyos-output/` directory into a DevEco Studio project.
-3. Create an ArkTS wrapper that loads the `.so` via FFI and renders the
-   web assets in a WebView component.
+2. Extract the archive and copy `harmonyos-output/` into a new DevEco Studio
+   project (API 12+, HarmonyOS NEXT).
+3. Write an ArkTS wrapper that:
+   - Loads `libvorynth_desktop.so` via NAPI / FFI.
+   - Spawns the bundled core engine (the `.so` does not self-start).
+   - Renders the frontend assets in a `Web` component.
+4. Build the `.hap` in DevEco Studio and sideload onto a device.
 
 **Current limitations:**
-- The Rust library exports a minimal `vorynth_init` function. The actual
-  native bridge (engine spawning, IPC) needs further development.
-- The OHOS NDK download URL in the workflow is a placeholder — you may need
-  to update it to the correct Huawei SDK download link.
 
-> If you test the bundle and it works on your device, please let me know at
-> **[omidrezakeshtkar@icloud.com](mailto:omidrezakeshtkar@icloud.com)**.
+- No `.hap` installer is produced — only the raw `.so` + assets bundle.
+- The Rust library exports a minimal native interface; the full IPC bridge
+  (engine lifecycle, IPC over local socket) is not yet wired for HarmonyOS.
+- The bundle is **untested on real hardware**. If you try it, feedback is
+  welcome at **[omidrezakeshtkar@icloud.com](mailto:omidrezakeshtkar@icloud.com)**.
 
-**Alternative — run from source:**
-
-If you prefer to skip the CI bundle, clone the repo and run directly:
+**Building locally instead of CI:**
 
 ```bash
-git clone https://github.com/omidnw/vorynth.git
-cd vorynth
+# Prerequisites: Rust ≥ 1.82, OHOS NDK 6.0 extracted somewhere
+rustup target add aarch64-unknown-linux-ohos
+
+# Point Rust at the OHOS clang + sysroot (create wrapper scripts, see
+# https://doc.rust-lang.org/rustc/platform-support/openharmony.html)
+export OHOS_NDK_HOME=/path/to/ohos-sdk/linux/native
+
+# Build
 pnpm install
-pnpm dev
+pnpm --filter @vorynth/desktop build
+pnpm --filter @vorynth/core-engine bundle
+cd apps/desktop/src-tauri
+cargo build --release --target aarch64-unknown-linux-ohos --lib
 ```
 
-The Vite frontend will be accessible in the browser at `http://localhost:5173`.
-You will also need the core engine running — see [Running](#running).
+The `.so` lands at
+`apps/desktop/src-tauri/target/aarch64-unknown-linux-ohos/release/libvorynth_desktop.so`.
 
 ---
 

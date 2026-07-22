@@ -124,7 +124,7 @@ localization, and report generation.
 | Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                                                                                      |
 | FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                                                                                                         |
 | Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                                                                                                  |
-| Harmony OS       | 🟡 CI bundle            | Cross-compiled `.so` + frontend via CI. If you test it and it works, please let me know at **[omidrezakeshtkar@icloud.com](mailto:omidrezakeshtkar@icloud.com)**. |
+| Harmony OS       | 🟡 Experimental         | Cross-compiled `.so` + frontend via CI (OpenHarmony 6.0). Raw bundle for DevEco Studio — no `.hap` yet. See [Harmony OS notes](docs/GUIDE.md#harmony-os-openharmony). |
 
 ---
 
@@ -168,7 +168,7 @@ or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 - [x] 4 LLM providers (OpenAI, Claude, Gemini, Groq)
 - [x] CI/CD: automated builds for 6 platforms
 - [ ] Android / iOS mobile builds (Tauri v2 mobile)
-- [ ] Harmony OS native support (pending Tauri/OHOS ecosystem)
+- [ ] Harmony OS native `.hap` build (raw `.so` bundle exists; needs ArkTS bridge + DevEco packaging)
 - [ ] Plugin system for custom sources & analyzers
 
 ---
