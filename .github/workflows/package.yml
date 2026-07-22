@@ -112,22 +112,59 @@ jobs:
           targets: ${{ matrix.target }}
 
       # HarmonyOS needs a custom toolchain setup (OHOS NDK + Rust target).
-      # NOTE: The OHOS NDK download URL below is a placeholder — replace with
-      # the actual URL from the Huawei developer site for the SDK version you need.
+      # The NDK provides the clang cross-compiler and OHOS sysroot needed
+      # by Rust's aarch64-unknown-linux-ohos target.
+      - name: Cache OHOS NDK
+        id: cache-ohos
+        if: matrix.is-harmonyos == true
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.home }}/ohos-sdk
+          key: ohos-sdk-6.0-Release
+
       - name: Setup Rust & NDK for HarmonyOS
         if: matrix.is-harmonyos == true
         run: |
           rustup target add aarch64-unknown-linux-ohos || \
             rustup target add aarch64-unknown-linux-gnu
 
-          echo "Downloading OpenHarmony Command Line Tools / SDK Components..."
-          mkdir -p $HOME/ohos-sdk
-          # TODO: Replace with the real OHOS NDK download URL
-          curl -L -o ohos-ndk.linux.zip https://huaweicloud.com
-          tar -xzf ohos-ndk.linux.zip -C $HOME/ohos-sdk
+          # Download & extract the OHOS SDK if cache missed.
+          # The SDK is ~2.3 GiB; caching avoids re-download on subsequent runs.
+          if [ ! -d "$HOME/ohos-sdk/linux/native/llvm/bin" ]; then
+            echo "Downloading OpenHarmony SDK (~2.3 GiB, may take a while)..."
+            mkdir -p "$HOME/ohos-sdk"
+            sudo apt-get install -y -qq unzip
+            curl -L -o /tmp/ohos-sdk.tar.gz \
+              "https://repo.huaweicloud.com/openharmony/os/6.0-Release/ohos-sdk-windows_linux-public.tar.gz"
+            tar -xzf /tmp/ohos-sdk.tar.gz -C "$HOME/ohos-sdk"
+            rm /tmp/ohos-sdk.tar.gz
 
-          echo "OHOS_NDK_HOME=$HOME/ohos-sdk/command-line-tools/sdk/native" >> $GITHUB_ENV
-          echo "PATH=$HOME/ohos-sdk/command-line-tools/sdk/native/llvm/bin:$PATH" >> $GITHUB_ENV
+            # The tarball bundles per-platform zips. Extract the Linux native NDK.
+            NATIVE_ZIP="$(ls "$HOME/ohos-sdk/linux"/native-linux-x64-*.zip 2>/dev/null | head -1)"
+            if [ -n "$NATIVE_ZIP" ]; then
+              unzip -q "$NATIVE_ZIP" -d "$HOME/ohos-sdk/linux/"
+              rm "$NATIVE_ZIP"
+            fi
+          fi
+
+          # Create clang wrapper — the Rust linker expects a compiler named
+          # "aarch64-unknown-linux-ohos-clang" on PATH. The wrapper injects the
+          # target triple, sysroot, and the -D__MUSL__ flag the OHOS C runtime
+          # requires.
+          mkdir -p "$HOME/.cargo/bin"
+          cat > "$HOME/.cargo/bin/aarch64-unknown-linux-ohos-clang" << EOF
+          #!/bin/sh
+          exec $HOME/ohos-sdk/linux/native/llvm/bin/clang \
+            -target aarch64-linux-ohos \
+            --sysroot=$HOME/ohos-sdk/linux/native/sysroot \
+            -D__MUSL__ \
+            "\$@"
+          EOF
+          chmod +x "$HOME/.cargo/bin/aarch64-unknown-linux-ohos-clang"
+
+          echo "OHOS_NDK_HOME=$HOME/ohos-sdk/linux/native" >> "$GITHUB_ENV"
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          echo "$HOME/ohos-sdk/linux/native/llvm/bin" >> "$GITHUB_PATH"
 
       - name: Install Linux system deps
         if: startsWith(matrix.os, 'ubuntu') && matrix.is-harmonyos == false
@@ -203,7 +240,7 @@ jobs:
         if: matrix.is-harmonyos == true
         env:
           CC: aarch64-unknown-linux-ohos-clang
-          AR: aarch64-unknown-linux-ohos-ar
+          AR: llvm-ar
         run: |
           cd apps/desktop/src-tauri
           cargo build --release --target=aarch64-unknown-linux-ohos --lib
@@ -311,6 +348,10 @@ jobs:
             mkdir -p apps/desktop/src-tauri/binaries
             cp -r apps/core-engine/dist-bundle \
               apps/desktop/src-tauri/binaries/vorynth-core-x86_64-unknown-freebsd
+
+            # Install Tauri CLI (not available via FreeBSD pkg, compile from source)
+            cargo install tauri-cli --version "^2"
+
             cd apps/desktop/src-tauri
             cargo tauri build --target x86_64-unknown-freebsd
 

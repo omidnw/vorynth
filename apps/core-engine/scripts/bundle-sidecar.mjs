@@ -139,7 +139,16 @@ console.log("  run with:  node dist-bundle/launcher.cjs --port 4399");
 
 function run(cmd, args) {
 	return new Promise((resolve, reject) => {
-		const child = spawn(cmd, args, { stdio: "inherit", shell: process.platform === "win32" });
+		const isWin = process.platform === "win32";
+		// On Windows, .cmd/.bat wrappers (pnpm, npm) need a shell to execute
+		// their batch file. Node 24+ deprecates array args with shell:true —
+		// concatenate the full command string instead.
+		const child = isWin
+			? spawn(
+					`${cmd} ${args.map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" ")}`,
+					{ stdio: "inherit", shell: true },
+				)
+			: spawn(cmd, args, { stdio: "inherit" });
 		child.on("close", (code) =>
 			code === 0 ? resolve(undefined) : reject(new Error(`${cmd} exited ${code}`)),
 		);
