@@ -1005,10 +1005,14 @@
 
 	      var asset, label, platText;
 
-	      if (isWin) {
-	        asset = 'Vorynth_' + VER + '_x64-setup.exe';
-	        label = 'Download for Windows';
-	        platText = 'Windows';
+		      if (isWin && /ARM64/.test(ua)) {
+		        asset = 'Vorynth_' + VER + '_arm64-setup.exe';
+		        label = 'Download for Windows (ARM64)';
+		        platText = 'Windows (ARM64)';
+		      } else if (isWin) {
+		        asset = 'Vorynth_' + VER + '_x64-setup.exe';
+		        label = 'Download for Windows';
+		        platText = 'Windows';
 	      } else if (isMac && macArch === 'arm') {
 	        asset = 'Vorynth_' + VER + '_aarch64.dmg';
 	        label = 'Download for macOS (Apple Silicon)';

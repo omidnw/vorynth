@@ -28,6 +28,9 @@ use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 use tauri::WebviewWindowBuilder;
 
 const SIDECAR_BASENAME: &str = "vorynth-core";
@@ -223,6 +226,11 @@ fn main() {
         }
     };
     cmd.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
+    // On Windows, suppress the console window that Node.js would otherwise
+    // open for the child process (CREATE_NO_WINDOW = 0x08000000).
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
 
     // Point the engine at a persistent app-data directory so the SQLite DB
     // lives outside the .app bundle (e.g. ~/Library/Application Support/…).
