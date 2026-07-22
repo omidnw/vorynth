@@ -5,7 +5,8 @@
  *   1. `--port <n>` CLI flag (this is how Tauri passes its chosen free port
  *      to the bundled sidecar in production).
  *   2. `PORT` env var (dev convenience).
- *   3. Fallback 14317.
+ *   3. Fallback 34117 — must match the one in desktop/src/lib/api/config.ts so
+ *      frontend and engine agree without any runtime communication.
  *
  * In production we rely on Tauri to hand us a free port so the sidecar never
  * collides with other local services.
@@ -22,7 +23,7 @@ export async function resolvePort(
 		return fromEnv;
 	}
 
-	return 14317;
+	return 34117;
 }
 
 function parsePortFlag(argv: string[]): number | null {

@@ -307,12 +307,12 @@ DevEco Studio.
 
 **Toolchain used by CI:**
 
-| Component | Version / Source |
-| --------- | ---------------- |
-| Rust target | `aarch64-unknown-linux-ohos` (Tier 2 with host tools) |
-| OHOS SDK | OpenHarmony **6.0-Release** from `repo.huaweicloud.com` |
+| Component      | Version / Source                                        |
+| -------------- | ------------------------------------------------------- |
+| Rust target    | `aarch64-unknown-linux-ohos` (Tier 2 with host tools)   |
+| OHOS SDK       | OpenHarmony **6.0-Release** from `repo.huaweicloud.com` |
 | C/C++ compiler | clang from the OHOS NDK (`linux/native/llvm/bin/clang`) |
-| Sysroot | OHOS native sysroot (`linux/native/sysroot`) |
+| Sysroot        | OHOS native sysroot (`linux/native/sysroot`)            |
 
 The SDK (~2.3 GiB) is downloaded once and cached across CI runs via
 `actions/cache`.

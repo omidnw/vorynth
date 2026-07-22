@@ -1,6 +1,6 @@
 {
 	"name": "vorynth",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"private": true,
 	"description": "Vorynth — a local-first personal intelligence engine.",
 	"license": "MIT",
@@ -9,9 +9,11 @@
 		"node": ">=20.0.0",
 		"pnpm": ">=10.0.0"
 	},
-	"scripts": {
-		"dev": "concurrently -n core,desktop -c '#4F625E,#1A2E2A' -t HH:mm:ss 'pnpm --filter @vorynth/core-engine dev' 'pnpm --filter @vorynth/desktop dev'",
-		"build": "pnpm -r run build",
+		"scripts": {
+			"version:sync": "node scripts/version-sync.mjs",
+			"version:check": "node scripts/version-sync.mjs --check",
+			"dev": "concurrently -n core,desktop -c '#4F625E,#1A2E2A' -t HH:mm:ss 'pnpm --filter @vorynth/core-engine dev' 'pnpm --filter @vorynth/desktop dev'",
+			"build": "pnpm -r run build",
 		"dev:desktop": "pnpm --filter @vorynth/desktop dev",
 		"dev:core": "pnpm --filter @vorynth/core-engine dev",
 		"typecheck": "pnpm -r run typecheck",

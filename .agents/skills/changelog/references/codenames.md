@@ -54,6 +54,7 @@ Update this list when you add a codename to `RELEASES`. One codename per release
 
 | Version | Codename                        | Principle       |
 | ------- | ------------------------------- | --------------- |
+| 1.5.0   | Knowledge Paths                 | §2 — name       |
 | 1.3.0   | In Your Language                | composition     |
 | 1.2.0   | Richer Briefing, Smarter Search | composition     |
 | 1.1.0   | Understand Before You Read      | product vision  |

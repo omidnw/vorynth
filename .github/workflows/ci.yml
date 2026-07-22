@@ -42,6 +42,10 @@ jobs:
       - name: Rebuild native addon
         run: pnpm rebuild better-sqlite3
 
+      # Version files must stay in sync — catches drift early.
+      - name: Version check
+        run: pnpm version:check
+
       # @vorynth/types needs its dist/ emitted before dependent packages
       # can resolve it via exports.
       - name: Build shared types

@@ -32,6 +32,47 @@ export interface Release {
 
 export const RELEASES: Release[] = [
 	{
+		version: "1.5.0",
+		codename: "Knowledge Paths",
+		date: "2026-07-22",
+		summary:
+			"Vorynth tells its own story now — the name origin, the build system, and every supported platform are documented end-to-end. CI pipelines for Harmony OS, FreeBSD, and Windows have been hardened, and the favicon finally carries the actual Vorynth logo instead of a generic placeholder.",
+		changes: [
+			{
+				type: "new",
+				text: "Name origin ('Why Vorynth?') added to the landing page and README — Vor (vision/voyage) + Yn (intelligence network) + Th (thought/depth).",
+			},
+			{
+				type: "new",
+				text: "OpenHarmony/Harmony OS setup guide completely rewritten with real SDK URLs, toolchain table, bundle directory layout, DevEco Studio steps, and honest limitations.",
+			},
+			{
+				type: "improved",
+				text: "CI no longer runs on doc-only changes (README, AGENTS.md, docs/, .agents/, LICENSE) — saves runner time when only documentation is updated.",
+			},
+			{
+				type: "fixed",
+				text: "Harmony OS CI build: NDK download URL corrected to the real OpenHarmony 6.0-Release SDK archive, extraction path fixed, clang wrapper scripts created for the Rust cross-compiler linker.",
+			},
+			{
+				type: "fixed",
+				text: "FreeBSD CI build: cargo-tauri CLI now installed via `cargo install` before building — the FreeBSD VM does not ship a prebuilt tauri package.",
+			},
+			{
+				type: "fixed",
+				text: "Windows CI deprecation warning (Node 24): `spawn()` with `shell:true` no longer passes array arguments — uses a concatenated command string on Windows and direct array form elsewhere.",
+			},
+			{
+				type: "improved",
+				text: "Favicon regenerated from the actual Vorynth logo (not a generic brain) — 4 resolutions (16, 32, 48, 64 px) in a single .ico resource via ImageMagick.",
+			},
+			{
+				type: "improved",
+				text: "'Built with ZCode' section added to README — a personal note crediting the tools used during development, explicitly framed as experience rather than promotion.",
+			},
+		],
+	},
+	{
 		version: "1.4.0",
 		codename: "Local Engine",
 		date: "2026-07-22",

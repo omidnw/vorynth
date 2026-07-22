@@ -43,50 +43,50 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-          include:
-            # ── macOS ────────────────────────────────────────────────────────
-            - os: macos-14
-              target: aarch64-apple-darwin
-              label: macOS (Apple Silicon)
-              artifact: vorynth-macos-arm64
-              use-cross: false
-              is-harmonyos: false
-            - os: macos-13
-              target: x86_64-apple-darwin
-              label: macOS (Intel)
-              artifact: vorynth-macos-x64
-              use-cross: false
-              is-harmonyos: false
+        include:
+          # ── macOS ────────────────────────────────────────────────────────
+          - os: macos-14
+            target: aarch64-apple-darwin
+            label: macOS (Apple Silicon)
+            artifact: vorynth-macos-arm64
+            use-cross: false
+            is-harmonyos: false
+          - os: macos-13
+            target: x86_64-apple-darwin
+            label: macOS (Intel)
+            artifact: vorynth-macos-x64
+            use-cross: false
+            is-harmonyos: false
 
-            # ── Linux ─────────────────────────────────────────────────────────
-            - os: ubuntu-22.04
-              target: x86_64-unknown-linux-gnu
-              label: Linux x86_64
-              artifact: vorynth-linux-x64
-              use-cross: false
-              is-harmonyos: false
-            - os: ubuntu-24.04-arm
-              target: aarch64-unknown-linux-gnu
-              label: Linux ARM64
-              artifact: vorynth-linux-arm64
-              use-cross: false
-              is-harmonyos: false
+          # ── Linux ─────────────────────────────────────────────────────────
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: Linux x86_64
+            artifact: vorynth-linux-x64
+            use-cross: false
+            is-harmonyos: false
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: Linux ARM64
+            artifact: vorynth-linux-arm64
+            use-cross: false
+            is-harmonyos: false
 
-            # ── Windows ──────────────────────────────────────────────────────
-            - os: windows-2022
-              target: x86_64-pc-windows-msvc
-              label: Windows
-              artifact: vorynth-windows-x64
-              use-cross: false
-              is-harmonyos: false
+          # ── Windows ──────────────────────────────────────────────────────
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            label: Windows
+            artifact: vorynth-windows-x64
+            use-cross: false
+            is-harmonyos: false
 
-            # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
-            - os: ubuntu-24.04
-              target: aarch64-unknown-linux-ohos
-              label: HarmonyOS NEXT (ARM64)
-              artifact: vorynth-harmonyos-arm64
-              use-cross: false
-              is-harmonyos: true
+          # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
+          - os: ubuntu-24.04
+            target: aarch64-unknown-linux-ohos
+            label: HarmonyOS NEXT (ARM64)
+            artifact: vorynth-harmonyos-arm64
+            use-cross: false
+            is-harmonyos: true
 
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}

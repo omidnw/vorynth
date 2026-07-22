@@ -350,7 +350,7 @@ export interface TodaysBrief {
  * `/status` endpoint, the Settings page, the Changelog) reads this same
  * constant so they never drift.
  */
-export const VORYNTH_VERSION = "1.4.0";
+export const VORYNTH_VERSION = "1.5.0";
 
 /** Engine status surfaced to the UI (e.g. onboarding, settings). */
 export interface EngineStatus {

@@ -116,14 +116,14 @@ localization, and report generation.
 
 ## Cross-platform support
 
-| Platform         | Support                 | Notes                                                                                                                                                             |
-| ---------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS 12+        | ✅ Native (ARM + Intel) | Full native experience                                                                                                                                            |
-| Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                                                                                                            |
-| Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                                                                                                                |
-| Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                                                                                      |
-| FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                                                                                                         |
-| Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                                                                                                  |
+| Platform         | Support                 | Notes                                                                                                                                                                 |
+| ---------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS 12+        | ✅ Native (ARM + Intel) | Full native experience                                                                                                                                                |
+| Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                                                                                                                |
+| Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                                                                                                                    |
+| Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                                                                                          |
+| FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                                                                                                             |
+| Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                                                                                                      |
 | Harmony OS       | 🟡 Experimental         | Cross-compiled `.so` + frontend via CI (OpenHarmony 6.0). Raw bundle for DevEco Studio — no `.hap` yet. See [Harmony OS notes](docs/GUIDE.md#harmony-os-openharmony). |
 
 ---
