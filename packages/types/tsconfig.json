@@ -7,8 +7,7 @@
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
-		"incremental": true,
-		"tsBuildInfoFile": "dist/.tsbuildinfo"
+		"incremental": false
 	},
 	"include": ["src/**/*.ts"]
 }

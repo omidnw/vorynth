@@ -39,8 +39,14 @@ await mkdir(outDir, { recursive: true });
 // 1. Build the workspace types package so its dist/ exists. ncc needs to
 //    resolve @vorynth/types to compiled JS — pointing it at .ts source makes
 //    ncc try to compile the workspace package and trip TS6059 (rootDir).
+//    Skip if already built (CI builds types before bundle step).
 console.log("▶ building @vorynth/types");
-await run("pnpm", ["--filter", "@vorynth/types", "build"]);
+const typesDist = join(root, "..", "..", "packages", "types", "dist", "index.js");
+if (!existsSync(typesDist)) {
+	await run("pnpm", ["--filter", "@vorynth/types", "build"]);
+} else {
+	console.log("• @vorynth/types already built, skipping");
+}
 
 // 2. Inline all pure-JS deps into a single bundle. better-sqlite3's
 //    JavaScript wrapper is inlined; only the native .node binary is kept
@@ -143,12 +149,22 @@ function run(cmd, args) {
 		// On Windows, .cmd/.bat wrappers (pnpm, npm) need a shell to execute
 		// their batch file. Node 24+ deprecates array args with shell:true —
 		// concatenate the full command string instead.
+		//
+		// Also pipe "Y" to stdin so that if cmd.exe shows the "Terminate batch
+		// job (Y/N)?" prompt (common on Ctrl+C during CI cancellation), it gets
+		// answered automatically instead of hanging forever.
 		const child = isWin
 			? spawn(
 					`${cmd} ${args.map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" ")}`,
-					{ stdio: "inherit", shell: true },
+					{ stdio: ["pipe", "inherit", "inherit"], shell: true },
 				)
 			: spawn(cmd, args, { stdio: "inherit" });
+
+		if (isWin && child.stdin) {
+			child.stdin.write("Y\n");
+			child.stdin.end();
+		}
+
 		child.on("close", (code) =>
 			code === 0 ? resolve(undefined) : reject(new Error(`${cmd} exited ${code}`)),
 		);

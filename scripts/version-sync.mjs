@@ -81,30 +81,39 @@ const TARGETS = [
 				);
 			},
 		},
-	{
-		path: "apps/core-engine/package.json",
-		patch(content) {
-			const json = JSON.parse(content);
-			json.version = VERSION;
-			return JSON.stringify(json, null, "\t") + "\n";
+		{
+			path: "apps/core-engine/package.json",
+			patch(content) {
+				return replaceOnce(
+					content,
+					/"version": "\d+\.\d+\.\d+"/,
+					`"version": "${VERSION}"`,
+					this.path,
+				);
+			},
 		},
-	},
-	{
-		path: "apps/desktop/package.json",
-		patch(content) {
-			const json = JSON.parse(content);
-			json.version = VERSION;
-			return JSON.stringify(json, null, "\t") + "\n";
+		{
+			path: "apps/desktop/package.json",
+			patch(content) {
+				return replaceOnce(
+					content,
+					/"version": "\d+\.\d+\.\d+"/,
+					`"version": "${VERSION}"`,
+					this.path,
+				);
+			},
 		},
-	},
-	{
-		path: "apps/desktop/src-tauri/tauri.conf.json",
-		patch(content) {
-			const json = JSON.parse(content);
-			json.version = VERSION;
-			return JSON.stringify(json, null, "\t") + "\n";
+		{
+			path: "apps/desktop/src-tauri/tauri.conf.json",
+			patch(content) {
+				return replaceOnce(
+					content,
+					/"version": "\d+\.\d+\.\d+"/,
+					`"version": "${VERSION}"`,
+					this.path,
+				);
+			},
 		},
-	},
 	{
 		path: "apps/desktop/src-tauri/Cargo.toml",
 		patch(content) {
