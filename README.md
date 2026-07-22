@@ -28,6 +28,22 @@ your API keys, history, and insights stay under your control.
 
 ---
 
+## Why Vorynth?
+
+Vorynth is a **constructed name** built from three parts:
+
+| Part | Meaning |
+| ---- | ------- |
+| **Vor** | Vision, voyage, moving forward — seeing beyond the obvious |
+| **Yn** | Intelligence network — connecting many sources into one layer |
+| **Th** | Thought, depth — turning raw information into real understanding |
+
+Together: *a forward-looking intelligence network that transforms global information into deeper understanding.*
+
+Unlike a category name like "DevNewsAI," Vorynth describes a **mission** — one that scales beyond software into any domain where information matters.
+
+---
+
 ## Quick start
 
 ```bash

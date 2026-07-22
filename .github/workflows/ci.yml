@@ -3,7 +3,19 @@ name: CI
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "AGENTS.md"
+      - ".agents/**"
+      - "LICENSE"
   pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "AGENTS.md"
+      - ".agents/**"
+      - "LICENSE"
 
 jobs:
   verify:

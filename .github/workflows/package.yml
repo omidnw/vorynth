@@ -26,6 +26,12 @@ on:
   push:
     branches: [master]
     tags: ["v*"]
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "AGENTS.md"
+      - ".agents/**"
+      - "LICENSE"
   workflow_dispatch:
 
 # Required for the tauri-action to create GitHub releases

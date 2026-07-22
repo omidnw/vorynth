@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Vorynth — A local-first personal intelligence engine. Turn information overload into clear insight." />
-  <meta name="theme-color" content="#0a1411" />
-  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" id="theme-color" content="#0a1411" />
+  <meta name="color-scheme" id="color-scheme" content="dark light" />
   <title>Vorynth — Personal Intelligence Engine</title>
   <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48" />
   <link rel="apple-touch-icon" href="logo-192.png" sizes="192x192" />
@@ -40,6 +40,37 @@
       --radius-xl:   20px;
       --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       --max-w:       1040px;
+    }
+
+    /* ── Light theme ───────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg:          #f2f7f5;
+      --bg-elevated: #e8efec;
+      --bg-card:     #ffffff;
+      --bg-hover:    #e0e9e5;
+      --fg:          #1a2e28;
+      --fg-muted:    #4f6b63;
+      --fg-dim:      #7a958c;
+      --accent:      #3d9e7e;
+      --accent-dim:  #2d8a6c;
+      --accent-blue: #4a8fc0;
+      --accent-glow: rgba(61, 158, 126, 0.18);
+      --border:      #c8d9d2;
+    }
+    [data-theme="light"] nav {
+      background: rgba(242, 247, 245, 0.85);
+    }
+    [data-theme="light"] .hero h1 {
+      background: linear-gradient(135deg, #1a2e28 20%, var(--accent) 80%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    [data-theme="light"] .btn-primary {
+      color: #fff;
+    }
+    [data-theme="light"] .feature-card:hover {
+      box-shadow: 0 8px 40px rgba(0,0,0,0.08);
     }
 
     html { scroll-behavior: smooth; }
@@ -107,14 +138,42 @@
       color: var(--fg);
     }
     nav .logo .icon { font-size: 22px; color: var(--accent); }
-    nav .nav-links { display: flex; gap: 24px; }
+    nav .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
     nav .nav-links a {
+      display: inline-flex;
+      align-items: center;
       font-size: 0.85rem;
       font-weight: 500;
       color: var(--fg-muted);
       transition: color 0.2s;
+      line-height: 1;
     }
 	    nav .nav-links a:hover { color: var(--fg); }
+
+    /* ── Theme toggle ──────────────────────────────────────── */
+    .theme-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      margin: 0 0 0 4px;
+      border-radius: 6px;
+      color: var(--fg-muted);
+      transition: background 0.2s, color 0.2s;
+      line-height: 1;
+    }
+    .theme-toggle:hover {
+      background: var(--bg-hover);
+      color: var(--fg);
+    }
+    .theme-toggle .icon { font-size: 18px; }
 
 	    /* ── Hero ─────────────────────────────────────────────── */
     .hero {
@@ -168,12 +227,23 @@
       -webkit-text-fill-color: transparent;
     }
 
+    .hero .name-origin {
+      font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+      color: var(--fg-dim);
+      margin: -8px 0 18px;
+      letter-spacing: 0.02em;
+    }
+    .hero .name-origin strong { color: var(--accent); font-weight: 600; }
+    .hero .origin-arrow { color: var(--border); margin: 0 4px; font-size: 0.75em; }
+    .hero .origin-sep { display: inline-block; width: 14px; }
+    .hero .origin-sep::before { content: '·'; color: var(--border); }
+
     .hero .tagline {
-      font-size: clamp(1rem, 2vw, 1.2rem);
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
       color: var(--fg-muted);
-      max-width: 600px;
+      max-width: 560px;
       margin: 0 auto 28px;
-      line-height: 1.6;
+      line-height: 1.5;
     }
     .hero .tagline strong { color: var(--fg); }
 
@@ -540,7 +610,10 @@
         <a href="#architecture">Architecture</a>
         <a href="#platforms">Platforms</a>
         <a href="https://github.com/omidnw/vorynth">GitHub</a>
-	      </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+          <span class="icon icon--toggle" id="theme-icon">dark_mode</span>
+        </button>
+      </div>
     </div>
   </nav>
 
@@ -553,10 +626,15 @@
       </div>
 
       <h1>Vorynth</h1>
+      <p class="name-origin">
+        <strong>Vor</strong> <span class="origin-arrow">→</span> vision · voyage · forward
+        <span class="origin-sep"></span>
+        <strong>Yn</strong> <span class="origin-arrow">→</span> intelligence network
+        <span class="origin-sep"></span>
+        <strong>Th</strong> <span class="origin-arrow">→</span> thought · depth
+      </p>
       <p class="tagline">
-        A local-first personal intelligence engine that turns information
-        overload into clear insight. Spend <strong>minutes</strong>
-        understanding what matters — instead of hours searching for it.
+        A personal intelligence engine that turns information overload into clear insight — entirely local, entirely private.
       </p>
 
       <div class="hero-badges">
@@ -822,7 +900,46 @@
     </div>
   </footer>
 
-  <!-- ─── Scroll reveal via Intersection Observer ─────────── -->
+	  <!-- ─── Theme toggle (dark/light) ──────────────────────── -->
+	  <script>
+	    (function() {
+	      var key = 'vorynth-theme';
+	      var html = document.documentElement;
+	      var icon = document.getElementById('theme-icon');
+	      var metaColor = document.getElementById('theme-color');
+
+	      function setTheme(theme) {
+	        html.setAttribute('data-theme', theme);
+	        icon.textContent = theme === 'dark' ? 'dark_mode' : 'light_mode';
+	        if (metaColor) {
+	          metaColor.content = theme === 'dark' ? '#0a1411' : '#f2f7f5';
+	        }
+	        try { localStorage.setItem(key, theme); } catch (_) {}
+	      }
+
+	      // Determine initial theme: localStorage > system preference > dark
+	      var saved;
+	      try { saved = localStorage.getItem(key); } catch (_) {}
+	      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+	      var theme = saved || (prefersDark ? 'dark' : 'light');
+	      setTheme(theme);
+
+	      // Listen for system preference changes (only if no saved choice)
+	      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+	        var current;
+	        try { current = localStorage.getItem(key); } catch (_) {}
+	        if (!current) setTheme(e.matches ? 'dark' : 'light');
+	      });
+
+	      // Toggle on button click
+	      document.getElementById('theme-toggle').addEventListener('click', function() {
+	        var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+	        setTheme(next);
+	      });
+	    })();
+	  </script>
+
+	  <!-- ─── Scroll reveal via Intersection Observer ─────────── -->
   <script>
     (function() {
       if (!('IntersectionObserver' in window)) {
