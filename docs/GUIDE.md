@@ -284,22 +284,42 @@ cargo tauri build --target x86_64-unknown-freebsd
 
 ### Harmony OS (OpenHarmony)
 
-Vorynth does **not** have a native Harmony OS build yet. Tauri v2 does not
-officially target Harmony OS / OpenHarmony.
+The CI pipeline now produces a cross-compiled bundle via the `Package` workflow:
 
-**Current options (from most to least practical):**
+- **Rust native library** — the desktop shell is cross-compiled as a shared
+  library (`libvorynth_desktop.so`) for `aarch64-unknown-linux-ohos`.
+- **Frontend assets** — the React app is built and bundled alongside.
+- **Output** — a `vorynth-harmonyos-raw-bundle.tar.gz` archive with a DevEco
+  Studio–friendly layout (`entry/libs/arm64-v8a/` + `rawfile/`).
 
-1. **Run from source** — clone the repo, install Node.js + pnpm on your
-   Harmony OS device (via Termux or native Node), and run `pnpm dev`. The
-   Vite frontend will be accessible in the browser at `http://localhost:5173`.
-   You will also need the core engine running — see [Running](#running).
+**To use the bundle:**
+1. Download the artifact from the latest CI run on the `master` branch.
+2. Import the extracted `harmonyos-output/` directory into a DevEco Studio project.
+3. Create an ArkTS wrapper that loads the `.so` via FFI and renders the
+   web assets in a WebView component.
 
-2. **Android compatibility** — if your Harmony OS device supports Android
-   apps (pre-NEXT), you can try running the Tauri Android build once mobile
-   support is added.
+**Current limitations:**
+- The Rust library exports a minimal `vorynth_init` function. The actual
+  native bridge (engine spawning, IPC) needs further development.
+- The OHOS NDK download URL in the workflow is a placeholder — you may need
+  to update it to the correct Huawei SDK download link.
 
-3. **Future native support** — once the Tauri ecosystem or OHOS community
-   provides a native target, we will add it to the CI pipeline.
+> If you test the bundle and it works on your device, please let me know at
+> **[omidrezakeshtkar@icloud.com](mailto:omidrezakeshtkar@icloud.com)**.
+
+**Alternative — run from source:**
+
+If you prefer to skip the CI bundle, clone the repo and run directly:
+
+```bash
+git clone https://github.com/omidnw/vorynth.git
+cd vorynth
+pnpm install
+pnpm dev
+```
+
+The Vite frontend will be accessible in the browser at `http://localhost:5173`.
+You will also need the core engine running — see [Running](#running).
 
 ---
 

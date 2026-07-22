@@ -42,38 +42,51 @@ jobs:
   package:
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # ── macOS ────────────────────────────────────────────────────────
-          - os: macos-14
-            target: aarch64-apple-darwin
-            label: macOS (Apple Silicon)
-            artifact: vorynth-macos-arm64
-            use-cross: false
-          - os: macos-13
-            target: x86_64-apple-darwin
-            label: macOS (Intel)
-            artifact: vorynth-macos-x64
-            use-cross: false
+        matrix:
+          include:
+            # ── macOS ────────────────────────────────────────────────────────
+            - os: macos-14
+              target: aarch64-apple-darwin
+              label: macOS (Apple Silicon)
+              artifact: vorynth-macos-arm64
+              use-cross: false
+              is-harmonyos: false
+            - os: macos-13
+              target: x86_64-apple-darwin
+              label: macOS (Intel)
+              artifact: vorynth-macos-x64
+              use-cross: false
+              is-harmonyos: false
 
-          # ── Linux ─────────────────────────────────────────────────────────
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            label: Linux x86_64
-            artifact: vorynth-linux-x64
-            use-cross: false
-          - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            label: Linux ARM64
-            artifact: vorynth-linux-arm64
-            use-cross: false
+            # ── Linux ─────────────────────────────────────────────────────────
+            - os: ubuntu-22.04
+              target: x86_64-unknown-linux-gnu
+              label: Linux x86_64
+              artifact: vorynth-linux-x64
+              use-cross: false
+              is-harmonyos: false
+            - os: ubuntu-24.04-arm
+              target: aarch64-unknown-linux-gnu
+              label: Linux ARM64
+              artifact: vorynth-linux-arm64
+              use-cross: false
+              is-harmonyos: false
 
-          # ── Windows ──────────────────────────────────────────────────────
-          - os: windows-2022
-            target: x86_64-pc-windows-msvc
-            label: Windows
-            artifact: vorynth-windows-x64
-            use-cross: false
+            # ── Windows ──────────────────────────────────────────────────────
+            - os: windows-2022
+              target: x86_64-pc-windows-msvc
+              label: Windows
+              artifact: vorynth-windows-x64
+              use-cross: false
+              is-harmonyos: false
+
+            # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
+            - os: ubuntu-24.04
+              target: aarch64-unknown-linux-ohos
+              label: HarmonyOS NEXT (ARM64)
+              artifact: vorynth-harmonyos-arm64
+              use-cross: false
+              is-harmonyos: true
 
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
@@ -93,12 +106,31 @@ jobs:
           cache: pnpm
 
       - name: Setup Rust
+        if: matrix.is-harmonyos == false
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
+      # HarmonyOS needs a custom toolchain setup (OHOS NDK + Rust target).
+      # NOTE: The OHOS NDK download URL below is a placeholder — replace with
+      # the actual URL from the Huawei developer site for the SDK version you need.
+      - name: Setup Rust & NDK for HarmonyOS
+        if: matrix.is-harmonyos == true
+        run: |
+          rustup target add aarch64-unknown-linux-ohos || \
+            rustup target add aarch64-unknown-linux-gnu
+
+          echo "Downloading OpenHarmony Command Line Tools / SDK Components..."
+          mkdir -p $HOME/ohos-sdk
+          # TODO: Replace with the real OHOS NDK download URL
+          curl -L -o ohos-ndk.linux.zip https://huaweicloud.com
+          tar -xzf ohos-ndk.linux.zip -C $HOME/ohos-sdk
+
+          echo "OHOS_NDK_HOME=$HOME/ohos-sdk/command-line-tools/sdk/native" >> $GITHUB_ENV
+          echo "PATH=$HOME/ohos-sdk/command-line-tools/sdk/native/llvm/bin:$PATH" >> $GITHUB_ENV
+
       - name: Install Linux system deps
-        if: startsWith(matrix.os, 'ubuntu')
+        if: startsWith(matrix.os, 'ubuntu') && matrix.is-harmonyos == false
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
@@ -114,6 +146,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Rebuild native (better-sqlite3) for this platform
+        if: matrix.is-harmonyos == false
         run: pnpm rebuild better-sqlite3
 
       # @vorynth/types needs its dist/ emitted before dependent packages
@@ -137,9 +170,10 @@ jobs:
       - name: Bundle core engine sidecar
         run: pnpm --filter @vorynth/core-engine bundle
 
-      # ── Release ──────────────────────────────────────────────────────────────
-      # Stage 3: produce native installers and upload.
+      # ── Release (Tauri desktop builds) ─────────────────────────────────────────
+      # Stage 3a: produce native installers for standard desktop platforms.
       - name: Stage sidecar for Tauri
+        if: matrix.is-harmonyos == false
         shell: bash
         run: |
           mkdir -p apps/desktop/src-tauri/binaries
@@ -148,6 +182,7 @@ jobs:
           ls -la apps/desktop/src-tauri/binaries/
 
       - name: Build Tauri app
+        if: matrix.is-harmonyos == false
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -161,7 +196,37 @@ jobs:
           overwrite: true
           args: --target ${{ matrix.target }}
 
-      - name: Upload artifacts
+      # ── Release (HarmonyOS build) ─────────────────────────────────────────────
+      # Stage 3b: cross-compile the Rust shell as a shared library and package it
+      # with the frontend assets into a raw bundle for DevEco Studio import.
+      - name: Compile Rust library for HarmonyOS
+        if: matrix.is-harmonyos == true
+        env:
+          CC: aarch64-unknown-linux-ohos-clang
+          AR: aarch64-unknown-linux-ohos-ar
+        run: |
+          cd apps/desktop/src-tauri
+          cargo build --release --target=aarch64-unknown-linux-ohos --lib
+
+      - name: Assemble HarmonyOS app template
+        if: matrix.is-harmonyos == true
+        run: |
+          mkdir -p harmonyos-output/entry/src/main/resources/rawfile
+          mkdir -p harmonyos-output/entry/libs/arm64-v8a
+
+          # 1. Inject compiled frontend assets
+          cp -r apps/desktop/dist/* harmonyos-output/entry/src/main/resources/rawfile/
+
+          # 2. Inject compiled Rust shared library
+          cp apps/desktop/src-tauri/target/aarch64-unknown-linux-ohos/release/libvorynth_desktop.so \
+            harmonyos-output/entry/libs/arm64-v8a/
+
+          # 3. Compress to artifact archive
+          tar -czf vorynth-harmonyos-raw-bundle.tar.gz harmonyos-output/
+
+      # ── Upload ─────────────────────────────────────────────────────────────────
+      - name: Upload desktop artifacts
+        if: matrix.is-harmonyos == false
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -176,6 +241,15 @@ jobs:
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.tar.gz
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.tar.xz
           if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload HarmonyOS bundle
+        if: matrix.is-harmonyos == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: vorynth-harmonyos-raw-bundle.tar.gz
+          if-no-files-found: error
           retention-days: 14
 
   # ── FreeBSD (native) ─────────────────────────────────────────────────────
@@ -197,7 +271,8 @@ jobs:
           usesh: true
           copyback: true
           prepare: |
-            # Switch to latest repo (quarterly doesn't have webkit2-gtk in latest).
+            # Switch to latest repo (quarterly doesn't have the needed
+            # webkit2-gtk version in latest).
             # FreeBSD 15 renamed the official repo from "FreeBSD" to "FreeBSD-ports"
             # and pkg+http:// requires mirror_type: "srv".
             mkdir -p /usr/local/etc/pkg/repos
@@ -210,14 +285,10 @@ jobs:
             pkg install -y node npm python3 rust pkgconf
             # List available webkit packages so we know what's available
             pkg search webkit2 || true
-            # Install webkit — try gtk4 flavor first (Tauri v2 needs webkit2gtk-4.1),
-            # fall back to default gtk3 flavor if gtk4 doesn't exist as a separate pkg
+            # Install webkit — Tauri v2 needs webkit2gtk-4.1.
+            # On FreeBSD this package is called webkit2-gtk_41.
             pkg install -y gtk3 librsvg2 libxcb
-            if pkg search -q '^webkit2-gtk3-gtk4-'; then
-              pkg install -y webkit2-gtk3-gtk4
-            else
-              pkg install -y webkit2-gtk3
-            fi
+            pkg install -y webkit2-gtk_41
 
           run: |
             # pnpm is not available on FreeBSD pkg, use npm to install it

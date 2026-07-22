@@ -32,13 +32,13 @@ your API keys, history, and insights stay under your control.
 
 Vorynth is a **constructed name** built from three parts:
 
-| Part | Meaning |
-| ---- | ------- |
-| **Vor** | Vision, voyage, moving forward — seeing beyond the obvious |
-| **Yn** | Intelligence network — connecting many sources into one layer |
-| **Th** | Thought, depth — turning raw information into real understanding |
+| Part    | Meaning                                                          |
+| ------- | ---------------------------------------------------------------- |
+| **Vor** | Vision, voyage, moving forward — seeing beyond the obvious       |
+| **Yn**  | Intelligence network — connecting many sources into one layer    |
+| **Th**  | Thought, depth — turning raw information into real understanding |
 
-Together: *a forward-looking intelligence network that transforms global information into deeper understanding.*
+Together: _a forward-looking intelligence network that transforms global information into deeper understanding._
 
 Unlike a category name like "DevNewsAI," Vorynth describes a **mission** — one that scales beyond software into any domain where information matters.
 
@@ -116,15 +116,15 @@ localization, and report generation.
 
 ## Cross-platform support
 
-| Platform         | Support                 | Notes                                                                                       |
-| ---------------- | ----------------------- | ------------------------------------------------------------------------------------------- |
-| macOS 12+        | ✅ Native (ARM + Intel) | Full native experience                                                                      |
-| Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                                      |
-| Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                                          |
-| Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                |
-| FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                                   |
-| Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                            |
-| Harmony OS       | 🟡 Source only          | Run from source via `pnpm dev` — see [platform notes](docs/GUIDE.md#harmony-os-openharmony) |
+| Platform         | Support                 | Notes                                                                                                                                                             |
+| ---------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS 12+        | ✅ Native (ARM + Intel) | Full native experience                                                                                                                                            |
+| Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                                                                                                            |
+| Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                                                                                                                |
+| Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                                                                                      |
+| FreeBSD (x86_64) | ✅ Native               | Cross-compiled from Linux                                                                                                                                         |
+| Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                                                                                                  |
+| Harmony OS       | 🟡 CI bundle            | Cross-compiled `.so` + frontend via CI. If you test it and it works, please let me know at **[omidrezakeshtkar@icloud.com](mailto:omidrezakeshtkar@icloud.com)**. |
 
 ---
 
@@ -170,6 +170,20 @@ or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 - [ ] Android / iOS mobile builds (Tauri v2 mobile)
 - [ ] Harmony OS native support (pending Tauri/OHOS ecosystem)
 - [ ] Plugin system for custom sources & analyzers
+
+---
+
+## Built with ZCode
+
+This entire application — from the first line of code to the final cross-platform build — was developed using **ZCode**, an AI-native coding environment. I want to be clear: this isn't an endorsement or a promotion. It's simply my experience, shared as it happened.
+
+The bulk of the work — architecture design, module implementation, database schema, and the AI intelligence pipeline — was done with **GLM 5.2** (the flagship model from BigModel / Z.AI). Smaller, more focused edits and refinements were handled by **DeepSeek V4 Flash**. For theoretical analysis, design reasoning, and research guidance, I relied on **ChatGPT**.
+
+What surprised me most was the level of trust the tool earned. The agents, skill system, tool calls, and MCP integrations were clean enough that I felt confident building a production-grade application from zero to completion and publishing it on my own GitHub — something I wouldn't have attempted with earlier-generation AI tooling.
+
+This is my thanks to the teams behind ZCode, GLM, and the broader ecosystem that made this possible. If you're curious about the tooling behind Vorynth, you now know the story — no pitch, no promotion, just a genuine account of what one developer experienced.
+
+**感谢 ZCode 开发团队 — 你们的工具让一个人从零到一构建了整个项目。衷心致谢。**
 
 ---
 
