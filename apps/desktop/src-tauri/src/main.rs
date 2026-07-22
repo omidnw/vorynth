@@ -86,6 +86,10 @@ fn sidecar_command(port: u16) -> Option<(Command, String)> {
     }
 
     // 2. Bundled directory form (ncc bundle + launcher.cjs).
+    //    First try a bundled portable `node` binary inside the sidecar
+    //    directory itself (shipped alongside the bundle for zero-install).
+    //    Fall back to the system `node` on PATH.
+    //
     //    Search sibling `binaries/` (Tauri's externalBin destination) and
     //    `resources/` next to the executable.
     //    On macOS, also search `../Resources/` and `../Resources/binaries/`
@@ -101,22 +105,31 @@ fn sidecar_command(port: u16) -> Option<(Command, String)> {
         if let Some(found) = find_sidecar_dir(&dir.join(sub)) {
             let launcher = found.join("launcher.cjs");
             if launcher.exists() {
-                if let Some(node) = which_node() {
-                    log::info!(
-                        "launching bundled sidecar via node at {} (bundle {})",
-                        node.display(),
-                        found.display()
-                    );
-                    let mut cmd = Command::new(node);
-                    cmd.arg(launcher).arg("--port").arg(port.to_string());
-                    return Some((cmd, "bundled".into()));
+                // Try bundled portable node first (shipped with the app).
+                let bundled_name = if cfg!(windows) { "node.exe" } else { "node" };
+                let bundled_node = found.join(bundled_name);
+                let (node, mode) = if bundled_node.exists() {
+                    (bundled_node, "bundled-node")
+                } else if let Some(system_node) = which_node() {
+                    (system_node, "system-node")
                 } else {
                     log::error!(
-                        "bundled sidecar found at {} but `node` is not on PATH — \
-                         install Node or ship the single-executable build",
+                        "bundled sidecar found at {} but neither bundled node nor \
+                         system `node` is available — install Node or ship the \
+                         portable binary",
                         found.display()
                     );
-                }
+                    continue;
+                };
+                log::info!(
+                    "launching bundled sidecar via {} ({}, bundle {})",
+                    node.display(),
+                    mode,
+                    found.display()
+                );
+                let mut cmd = Command::new(node);
+                cmd.arg(launcher).arg("--port").arg(port.to_string());
+                return Some((cmd, mode.into()));
             }
         }
     }

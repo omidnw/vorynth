@@ -12,11 +12,9 @@ name: Package
 #   5. Release: stage sidecar → cargo tauri build → upload artifacts
 #
 # NOTE on "no Node install required" (project-details.md §15): in dev mode
-# the Tauri shell falls back to `pnpm dev`. For the packaged app, the bundle
-# still needs a Node runtime to execute the ESM launcher — that's why this
-# workflow is split per-OS (we ship a Node-bundled executable per target).
-# A pure Node-SEA that inlines Node itself is a follow-up once we add
-# signing; for now the installers bundle Node via Tauri's resource mechanism.
+# the Tauri shell falls back to `pnpm dev`. For the packaged app, the CI
+# bundles a portable Node.js binary alongside the sidecar bundle (see the
+# "Embed portable Node.js" step) so users never need to install Node.
 #
 # BSD Family note: Linux x86_64 binaries run on FreeBSD via the Linux ABI
 # compatibility layer (linuxulator). Native FreeBSD builds are also provided
@@ -72,15 +70,23 @@ jobs:
             use-cross: false
             is-harmonyos: false
 
-          # ── Windows ──────────────────────────────────────────────────────
-          - os: windows-2022
-            target: x86_64-pc-windows-msvc
-            label: Windows
-            artifact: vorynth-windows-x64
-            use-cross: false
-            is-harmonyos: false
+	          # ── Windows ──────────────────────────────────────────────────────
+	          - os: windows-2022
+	            target: x86_64-pc-windows-msvc
+	            label: Windows
+	            artifact: vorynth-windows-x64
+	            use-cross: false
+	            is-harmonyos: false
 
-          # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
+	          # ── Windows ARM64 ───────────────────────────────────────────────
+	          - os: windows-11-arm
+	            target: aarch64-pc-windows-msvc
+	            label: Windows ARM64
+	            artifact: vorynth-windows-arm64
+	            use-cross: false
+	            is-harmonyos: false
+
+	          # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
           - os: ubuntu-24.04
             target: aarch64-unknown-linux-ohos
             label: HarmonyOS NEXT (ARM64)
@@ -206,6 +212,37 @@ jobs:
 
       - name: Bundle core engine sidecar
         run: pnpm --filter @vorynth/core-engine bundle
+
+      # ── Embed portable Node.js ──────────────────────────────────────────────────
+      # Copy the Node.js binary from the CI runner into the sidecar bundle so the
+      # shipped app works without Node.js installed on the user's machine.
+      # The Rust sidecar spawner (main.rs) checks for a bundled `node`/`node.exe`
+      # in the sidecar directory before falling back to the system PATH.
+      - name: Embed portable Node.js
+        if: matrix.is-harmonyos == false
+        shell: bash
+        run: |
+          NODE_BIN="$(command -v node)"
+          # Resolve symlinks — setup-node uses version managers (nvm, fnm, etc.)
+          # which place shims rather than the real binary on PATH.
+          if command -v realpath &>/dev/null; then
+            NODE_BIN="$(realpath "$NODE_BIN")"
+          elif command -v readlink &>/dev/null; then
+            NODE_BIN="$(readlink -f "$NODE_BIN")"
+          fi
+          echo "Bundling Node.js from: $NODE_BIN"
+          case "${{ matrix.target }}" in
+            *windows*|*-msvc*)
+              cp "$NODE_BIN" apps/core-engine/dist-bundle/node.exe
+              chmod +x apps/core-engine/dist-bundle/node.exe
+              echo "Placed as node.exe ($(wc -c < apps/core-engine/dist-bundle/node.exe) bytes)"
+              ;;
+            *)
+              cp "$NODE_BIN" apps/core-engine/dist-bundle/node
+              chmod +x apps/core-engine/dist-bundle/node
+              echo "Placed as node ($(wc -c < apps/core-engine/dist-bundle/node) bytes)"
+              ;;
+          esac
 
       # ── Release (Tauri desktop builds) ─────────────────────────────────────────
       # Stage 3a: produce native installers for standard desktop platforms.
@@ -360,6 +397,10 @@ jobs:
             # Build
             pnpm --filter @vorynth/desktop build
             pnpm --filter @vorynth/core-engine bundle
+
+            # Embed portable Node.js so FreeBSD users don't need it installed
+            cp "$(command -v node)" apps/core-engine/dist-bundle/node
+            chmod +x apps/core-engine/dist-bundle/node
 
             # Release
             mkdir -p apps/desktop/src-tauri/binaries
