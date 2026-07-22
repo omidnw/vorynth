@@ -974,38 +974,72 @@
 		    })();
 		  </script>
 
-	  <!-- ─── Smart download: auto-detect OS & asset ─────────── -->
-	  <script>
-	    (function() {
-		      var TAG = 'v1.5.0';
-		      var VER = '1.5.0';
-		      var BASE = 'https://github.com/omidnw/vorynth/releases/download/' + TAG + '/';
-		      var RELEASES = 'https://github.com/omidnw/vorynth/releases';
-	      var ua = navigator.userAgent;
-	      var plat = navigator.platform || '';
+		  <!-- ─── Smart download: auto-detect OS & asset ─────────── -->
+		  <script>
+		    (async function() {
+			      var TAG = 'v1.5.0';
+			      var VER = '1.5.0';
+			      var BASE = 'https://github.com/omidnw/vorynth/releases/download/' + TAG + '/';
+			      var RELEASES = 'https://github.com/omidnw/vorynth/releases';
+		      var ua = navigator.userAgent;
+		      var plat = navigator.platform || '';
 
-	      // ── Detect Mac architecture (Apple Silicon vs Intel) ──
-	      function getMacArch() {
-	        if (!/Macintosh|MacIntel|MacPPC|Mac68K/.test(ua)) return null;
-	        try {
-	          var c = document.createElement('canvas');
-	          var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
-	          if (!gl) return 'unknown';
-	          var exts = gl.getSupportedExtensions();
-	          return exts.indexOf('WEBGL_compressed_texture_etc') !== -1
-	            ? 'arm' : 'intel';
-	        } catch (_) { return 'unknown'; }
-	      }
+		      // ── Detect Mac architecture (Apple Silicon vs Intel) ──
+		      function getMacArch() {
+		        if (!/Macintosh|MacIntel|MacPPC|Mac68K/.test(ua)) return null;
+		        try {
+		          var c = document.createElement('canvas');
+		          var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+		          if (!gl) return 'unknown';
+		          var exts = gl.getSupportedExtensions();
+		          return exts.indexOf('WEBGL_compressed_texture_etc') !== -1
+		            ? 'arm' : 'intel';
+		        } catch (_) { return 'unknown'; }
+		      }
 
-	      var isWin = /Win/.test(plat);
-	      var isLinux = /Linux/.test(plat) && !/Android/.test(ua);
-	      var isFreeBSD = /FreeBSD/.test(plat);
-	      var macArch = getMacArch();
-	      var isMac = macArch !== null;
+		      // ── Detect Windows architecture: ARM vs x64 ──
+		      async function detectWindowsArch() {
+		        // Modern: User-Agent Client Hints (Chromium browsers)
+		        if (navigator.userAgentData) {
+		          try {
+		            var hints = await navigator.userAgentData.getHighEntropyValues(['architecture', 'bitness']);
+		            if (hints.architecture === 'arm') return 'arm';
+		            if (hints.architecture === 'x86' && hints.bitness === '64') return 'x64';
+		          } catch (_) {}
+		        }
+		        // Fallback: UA string (Firefox, Safari, older browsers)
+		        if (/ARM/i.test(ua)) return 'arm';
+		        // x64 is the safe default for any modern Windows
+		        return 'x64';
+		      }
 
-	      var asset, label, platText;
+		      // ── Detect Linux architecture: ARM vs x64 ──
+		      async function detectLinuxArch() {
+		        // Modern: User-Agent Client Hints (Chromium browsers)
+		        if (navigator.userAgentData) {
+		          try {
+		            var hints = await navigator.userAgentData.getHighEntropyValues(['architecture', 'bitness']);
+		            if (hints.architecture === 'arm') return 'arm';
+		            if (hints.architecture === 'x86' && hints.bitness === '64') return 'x64';
+		          } catch (_) {}
+		        }
+		        // Fallback: UA string
+		        if (/arm|aarch64/i.test(ua)) return 'arm';
+		        return 'x64';
+		      }
 
-		      if (isWin && /ARM64/.test(ua)) {
+		      var isWin = /Win/.test(plat);
+		      var isLinux = /Linux/.test(plat) && !/Android/.test(ua);
+		      var isFreeBSD = /FreeBSD/.test(plat);
+		      var macArch = getMacArch();
+		      var isMac = macArch !== null;
+
+		      var winArch = isWin ? await detectWindowsArch() : null;
+		      var linuxArch = isLinux ? await detectLinuxArch() : null;
+
+		      var asset, label, platText;
+
+		      if (isWin && winArch === 'arm') {
 		        asset = 'Vorynth_' + VER + '_arm64-setup.exe';
 		        label = 'Download for Windows (ARM64)';
 		        platText = 'Windows (ARM64)';
@@ -1013,56 +1047,58 @@
 		        asset = 'Vorynth_' + VER + '_x64-setup.exe';
 		        label = 'Download for Windows';
 		        platText = 'Windows';
-	      } else if (isMac && macArch === 'arm') {
-	        asset = 'Vorynth_' + VER + '_aarch64.dmg';
-	        label = 'Download for macOS (Apple Silicon)';
-	        platText = 'macOS (Apple Silicon)';
-	      } else if (isMac && macArch === 'intel') {
-	        asset = '';
-	        label = 'Intel Mac not yet supported';
-	        platText = 'macOS (Intel) — support coming soon';
-	      } else if (isMac) {
-	        asset = '';
-	        label = 'See all downloads';
-	        platText = 'macOS — detection failed';
-	      } else if (isLinux && !/ARM|aarch64/.test(plat)) {
-	        asset = 'Vorynth_' + VER + '_amd64.AppImage';
-	        label = 'Download for Linux (x86_64)';
-	        platText = 'Linux (x86_64)';
-	      } else if (isLinux) {
-	        asset = 'Vorynth_' + VER + '_arm64.deb';
-	        label = 'Download for Linux (ARM64)';
-	        platText = 'Linux (ARM64)';
-	      } else if (isFreeBSD) {
-	        asset = 'vorynth-freebsd-x64.tar';
-	        label = 'Download for FreeBSD';
-	        platText = 'FreeBSD';
-	      } else {
-	        asset = '';
-	        label = 'See all downloads';
-	        platText = '';
-	      }
+		      } else if (isMac && macArch === 'arm') {
+		        asset = 'Vorynth_' + VER + '_aarch64.dmg';
+		        label = 'Download for macOS (Apple Silicon)';
+		        platText = 'macOS (Apple Silicon)';
+		      } else if (isMac && macArch === 'intel') {
+		        asset = '';
+		        label = 'Intel Mac not yet supported';
+		        platText = 'macOS (Intel) — support coming soon';
+		      } else if (isMac) {
+		        asset = '';
+		        label = 'See all downloads';
+		        platText = 'macOS — detection failed';
+		      } else if (isLinux && linuxArch === 'arm') {
+		        asset = 'Vorynth_' + VER + '_arm64.deb';
+		        label = 'Download for Linux (ARM64)';
+		        platText = 'Linux (ARM64)';
+		      } else if (isLinux) {
+		        asset = 'Vorynth_' + VER + '_amd64.AppImage';
+		        label = 'Download for Linux (x86_64)';
+		        platText = 'Linux (x86_64)';
+		      } else if (isFreeBSD) {
+		        asset = 'vorynth-freebsd-x64.tar';
+		        label = 'Download for FreeBSD';
+		        platText = 'FreeBSD';
+		      } else {
+		        asset = '';
+		        label = 'See all downloads';
+		        platText = '';
+		      }
 
-	      var url = asset ? BASE + asset : RELEASES;
+		      var url = asset ? BASE + asset : RELEASES;
 
-	      function setAnchor(id, href) {
-	        var el = document.getElementById(id);
-	        if (el) el.href = href;
-	      }
-	      function setText(id, text) {
-	        var el = document.getElementById(id);
-	        if (el) el.textContent = text;
-	      }
-	      setAnchor('download-btn', url);
-	      setText('download-label', label);
-	      setAnchor('download-btn-cta', url);
-	      setText('download-label-cta', label);
+		      function setAnchor(id, href) {
+		        var el = document.getElementById(id);
+		        if (el) el.href = href;
+		      }
+		      function setText(id, text) {
+		        var el = document.getElementById(id);
+		        if (el) el.textContent = text;
+		      }
+		      setAnchor('download-btn', url);
+		      setText('download-label', label);
+		      setAnchor('download-btn-cta', url);
+		      setText('download-label-cta', label);
 
-	      var detect = document.getElementById('platform-detect');
-	      if (detect) {
-	        detect.textContent = platText ? 'Detected: ' + platText : '';
-	      }
-	    })();
-	  </script>
+		      var detect = document.getElementById('platform-detect');
+		      if (detect) {
+		        detect.textContent = platText ? 'Detected: ' + platText : '';
+		      }
+		    })().catch(function(err) {
+		      console.error('Vorynth platform detection failed:', err);
+		    });
+		  </script>
 		</body>
 </html>
