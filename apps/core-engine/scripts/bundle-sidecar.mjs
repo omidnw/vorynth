@@ -145,26 +145,10 @@ console.log("  run with:  node dist-bundle/launcher.cjs --port 4399");
 
 function run(cmd, args) {
 	return new Promise((resolve, reject) => {
-		const isWin = process.platform === "win32";
-		// On Windows, .cmd/.bat wrappers (pnpm, npm) need a shell to execute
-		// their batch file. Node 24+ deprecates array args with shell:true —
-		// concatenate the full command string instead.
-		//
-		// Also pipe "Y" to stdin so that if cmd.exe shows the "Terminate batch
-		// job (Y/N)?" prompt (common on Ctrl+C during CI cancellation), it gets
-		// answered automatically instead of hanging forever.
-		const child = isWin
-			? spawn(
-					`${cmd} ${args.map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(" ")}`,
-					{ stdio: ["pipe", "inherit", "inherit"], shell: true },
-				)
-			: spawn(cmd, args, { stdio: "inherit" });
-
-		if (isWin && child.stdin) {
-			child.stdin.write("Y\n");
-			child.stdin.end();
-		}
-
+		const child = spawn(cmd, args, {
+			stdio: "inherit",
+			shell: process.platform === "win32",
+		});
 		child.on("close", (code) =>
 			code === 0 ? resolve(undefined) : reject(new Error(`${cmd} exited ${code}`)),
 		);
