@@ -70,23 +70,23 @@ jobs:
             use-cross: false
             is-harmonyos: false
 
-	          # ── Windows ──────────────────────────────────────────────────────
-	          - os: windows-2022
-	            target: x86_64-pc-windows-msvc
-	            label: Windows
-	            artifact: vorynth-windows-x64
-	            use-cross: false
-	            is-harmonyos: false
+          # ── Windows ──────────────────────────────────────────────────────
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            label: Windows
+            artifact: vorynth-windows-x64
+            use-cross: false
+            is-harmonyos: false
 
-	          # ── Windows ARM64 ───────────────────────────────────────────────
-	          - os: windows-11-arm
-	            target: aarch64-pc-windows-msvc
-	            label: Windows ARM64
-	            artifact: vorynth-windows-arm64
-	            use-cross: false
-	            is-harmonyos: false
+          # ── Windows ARM64 ───────────────────────────────────────────────
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            label: Windows ARM64
+            artifact: vorynth-windows-arm64
+            use-cross: false
+            is-harmonyos: false
 
-	          # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
+          # ── HarmonyOS / OpenHarmony ──────────────────────────────────────
           - os: ubuntu-24.04
             target: aarch64-unknown-linux-ohos
             label: HarmonyOS NEXT (ARM64)
