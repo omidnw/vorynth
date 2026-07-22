@@ -42,7 +42,7 @@ jobs:
   package:
     strategy:
       fail-fast: false
-        matrix:
+      matrix:
           include:
             # ── macOS ────────────────────────────────────────────────────────
             - os: macos-14

@@ -196,5 +196,16 @@ MIT — see [LICENSE](LICENSE). Copyright © 2026 Omid Reza Keshtkar.
 <p align="center">
   <sub>Built with ❤️ by <a href="https://github.com/omidnw">Omid Reza Keshtkar</a></sub>
   <br>
-  <sub><a href="docs/GUIDE.md">📖 Setup Guide</a></sub>
+  <sub>
+    <a href="mailto:omidnw@outlook.com">📧 omidnw@outlook.com</a>
+    <span style="color:#666">·</span>
+    <a href="https://www.linkedin.com/in/omid-reza-keshtkar/">LinkedIn</a>
+    <span style="color:#666">·</span>
+    <a href="docs/GUIDE.md">📖 Setup Guide</a>
+  </sub>
+  <br>
+  <sub style="font-size:0.75em;color:#666;">
+    For a faster response, reach me at
+    <a href="mailto:omidrezakeshtkar@icloud.com">omidrezakeshtkar@icloud.com</a>
+  </sub>
 </p>
