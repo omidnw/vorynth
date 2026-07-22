@@ -41,28 +41,38 @@ await mkdir(outDir, { recursive: true });
 //    ncc try to compile the workspace package and trip TS6059 (rootDir).
 //    Skip if already built (CI builds types before bundle step).
 console.log("▶ building @vorynth/types");
-const typesDist = join(root, "..", "..", "packages", "types", "dist", "index.js");
-if (!existsSync(typesDist)) {
-	await run("pnpm", ["--filter", "@vorynth/types", "build"]);
-} else {
-	console.log("• @vorynth/types already built, skipping");
-}
+	const typesDist = join(root, "..", "..", "packages", "types", "dist", "index.js");
+	if (!existsSync(typesDist)) {
+		// pnpm is a .cmd batch file on Windows — needs shell to execute.
+		await run("pnpm", ["--filter", "@vorynth/types", "build"], {
+			useShell: process.platform === "win32",
+		});
+	} else {
+		console.log("• @vorynth/types already built, skipping");
+	}
 
-// 2. Inline all pure-JS deps into a single bundle. better-sqlite3's
-//    JavaScript wrapper is inlined; only the native .node binary is kept
-//    separate (copied in step 3 below). The --external flag is intentionally
-//    NOT used for better-sqlite3 — externalising it would leave a bare
-//    `import "better-sqlite3"` in the ESM output that Node cannot resolve
-//    when the bundle is deployed without a node_modules tree.
-await run(nccBin, [
-	"build",
-	entry,
-	"--target",
-	"es2022",
-	"--no-source-map-register",
-	"-o",
-	outDir,
-]);
+	// 2. Inline all pure-JS deps into a single bundle. better-sqlite3's
+	//    JavaScript wrapper is inlined; only the native .node binary is kept
+	//    separate (copied in step 3 below). The --external flag is intentionally
+	//    NOT used for better-sqlite3 — externalising it would leave a bare
+	//    `import "better-sqlite3"` in the ESM output that Node cannot resolve
+	//    when the bundle is deployed without a node_modules tree.
+	//
+	//    We invoke ncc through process.execPath (the current node binary)
+	//    rather than relying on the .js file association or a shell wrapper.
+	//    On Windows CI, `spawn("cli.js", args, { shell: true })` goes through
+	//    cmd.exe which may fail to resolve the file association or hang
+	//    silently — running node directly is deterministic across platforms.
+	await run(process.execPath, [
+		nccBin,
+		"build",
+		entry,
+		"--target",
+		"es2022",
+		"--no-source-map-register",
+		"-o",
+		outDir,
+	]);
 console.log("• ncc produced dist-bundle/index.js");
 
 // Pick the largest emitted .js (the real bundle) in case ncc names it
@@ -143,12 +153,9 @@ await writeFile(
 console.log("✓ bundle complete → dist-bundle/");
 console.log("  run with:  node dist-bundle/launcher.cjs --port 4399");
 
-function run(cmd, args) {
+function run(cmd, args, { useShell = false } = {}) {
 	return new Promise((resolve, reject) => {
-		const child = spawn(cmd, args, {
-			stdio: "inherit",
-			shell: process.platform === "win32",
-		});
+		const child = spawn(cmd, args, { stdio: "inherit", shell: useShell });
 		child.on("close", (code) =>
 			code === 0 ? resolve(undefined) : reject(new Error(`${cmd} exited ${code}`)),
 		);
