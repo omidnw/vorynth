@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	fetchProfile,
@@ -16,6 +17,7 @@ import { LanguageSection } from "@/components/shell/LanguageSection";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useTranslation } from "react-i18next";
@@ -31,8 +33,9 @@ import ISO6391 from "iso-639-1";
  * Composed of self-contained sections — mirrors the SettingsPage pattern.
  */
 export function ProfilePage() {
-	const { t } = useTranslation();
-	const { data: profile, isLoading } = useQuery({
+		const { t } = useTranslation();
+		const navigate = useNavigate();
+		const { data: profile, isLoading } = useQuery({
 		queryKey: ["profile"],
 		queryFn: fetchProfile,
 	});
@@ -67,12 +70,41 @@ export function ProfilePage() {
 				generatedAt={profile.summaryGeneratedAt}
 			/>
 			<InterestsSection />
-			<LanguageSection
-				onLocaleChange={(code) => patchProfile({ preferredUiLanguage: code })}
-			/>
-			<AiLanguageSection />
-			<ReaderSettingsSection />
-		</section>
+				<LanguageSection
+					onLocaleChange={(code) => patchProfile({ preferredUiLanguage: code })}
+				/>
+				<AiLanguageSection />
+					<ReaderSettingsSection />
+
+					{/* Reset confirmation dialogs */}
+					<ConfirmResetSection />
+
+					{/* Tip: app settings live on the Settings page */}
+				<GhostCard className="flex items-center justify-between gap-4">
+					<div className="flex items-center gap-3">
+						<Icon
+							name="settings"
+							className="text-[24px] text-on-surface-variant"
+						/>
+						<div>
+							<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+								{t("profile.settingsTipTitle")}
+							</h3>
+							<p className="font-body text-body-sm text-on-tertiary-container">
+								{t("profile.settingsTipBody")}
+							</p>
+						</div>
+					</div>
+					<Button
+						variant="secondary"
+						size="sm"
+						icon="settings"
+						onClick={() => navigate("/settings")}
+					>
+						{t("nav.settings")}
+					</Button>
+				</GhostCard>
+			</section>
 	);
 }
 
@@ -519,17 +551,16 @@ function AiLanguageSection() {
 			</p>
 
 			<div className="space-y-3">
-				<select
+				<Select
 					value={currentLang}
-					onChange={(e) => update.mutate(e.target.value)}
-					className="w-full rounded border border-outline-variant bg-surface-container-low px-4 py-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-primary"
-				>
-					{ALL_LANGUAGES.map((lang) => (
-						<option key={lang.code} value={lang.code}>
-							{lang.nativeName} — {lang.name} ({lang.code})
-						</option>
-					))}
-				</select>
+					onChange={(v) => update.mutate(v)}
+					aria-label="AI output language"
+					options={ALL_LANGUAGES.map((lang) => ({
+						value: lang.code,
+						label: `${lang.nativeName} — ${lang.name} (${lang.code})`,
+						icon: "translate",
+					}))}
+				/>
 
 				{current ? (
 					<p className="font-mono text-[11px] text-secondary">
@@ -585,9 +616,48 @@ function ReaderSettingsSection() {
 			/>
 		</GhostCard>
 	);
-}
+	}
 
-// ── Shared bits ─────────────────────────────────────────────────────────────
+	function ConfirmResetSection() {
+		const queryClient = useQueryClient();
+		const patch = useMutation({
+			mutationFn: (values: Parameters<typeof patchSettings>[0]) =>
+				patchSettings(values),
+			onSuccess: () =>
+				queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
+		});
+
+		return (
+			<GhostCard className="flex items-center justify-between gap-4">
+				<div className="flex items-center gap-3">
+					<Icon
+						name="touch_app"
+						className="text-[24px] text-on-surface-variant"
+					/>
+					<div>
+						<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+							Confirmation dialogs
+						</h3>
+						<p className="font-body text-body-sm text-on-tertiary-container">
+							Reset "don't ask again" choices and show confirmation dialogs.
+						</p>
+					</div>
+				</div>
+				<Button
+					variant="secondary"
+					size="sm"
+					onClick={() => {
+						patch.mutate({ "ui.confirmDeleteProvider": true });
+					}}
+					disabled={patch.isPending}
+				>
+					{patch.isPending ? "Resetting…" : "Reset all"}
+				</Button>
+			</GhostCard>
+		);
+	}
+
+	// ── Shared bits ─────────────────────────────────────────────────────────────
 
 function Field({
 	label,

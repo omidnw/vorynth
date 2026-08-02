@@ -20,14 +20,17 @@ import type { LlmProviderKind } from "./llm-provider.js";
 /**
  * LLM provider configuration + engine status + usage endpoints.
  *
- *   GET    /llm/providers       list configured providers (no secrets)
- *   POST   /llm/providers       create or update a provider (+ encrypted key)
- *   DELETE /llm/providers/:id   remove a provider
- *   GET    /llm/status          active provider + live rate-limit state
- *   POST   /llm/verify          onboarding "verify connection" check
- *   GET    /llm/usage           aggregated token/request spend (Settings)
- *   DELETE /llm/usage           reset usage history
- *   GET    /status              full engine status for the frontend
+ *   GET    /llm/mode                current mode (intelligence | news)
+ *   POST   /llm/mode                set mode
+ *   GET    /llm/providers           list configured providers (no secrets)
+ *   POST   /llm/providers           create or update a provider (+ encrypted key)
+ *   DELETE /llm/providers/:id       remove a provider
+ *   POST   /llm/providers/:id/activate  set the active provider
+ *   GET    /llm/status              active provider + live rate-limit state
+ *   POST   /llm/verify              onboarding "verify connection" check
+ *   GET    /llm/usage               aggregated token/request spend (Settings)
+ *   DELETE /llm/usage               reset usage history
+ *   GET    /status                  full engine status for the frontend
  */
 @Controller()
 export class LlmController {
@@ -37,6 +40,25 @@ export class LlmController {
 		@Inject(ConfigService) private readonly config: ConfigService,
 		@Inject(DatabaseService) private readonly db: DatabaseService,
 	) {}
+
+	@Get("llm/mode")
+	mode() {
+		return { mode: this.llm.getMode() };
+	}
+
+	@Post("llm/mode")
+	async setMode(
+		@Body() body: { mode: "intelligence" | "news" },
+	) {
+		this.llm.setMode(body.mode);
+		return { mode: this.llm.getMode() };
+	}
+
+	@Post("llm/providers/:id/activate")
+	async activateProvider(@Param("id") id: string) {
+		this.llm.setActiveProviderId(id);
+		return { activeProviderId: id };
+	}
 
 	@Get("llm/providers")
 	async list() {
@@ -118,14 +140,15 @@ export class LlmController {
 			.select({ count: sql<number>`count(*)` })
 			.from(articles);
 
-		return {
-			ready: true,
-			version: VORYNTH_VERSION,
-			llm: {
-				configured,
-				providerKind: configured ? this.llm.activeKind : null,
-			},
-			sources: {
+			return {
+				ready: true,
+				version: VORYNTH_VERSION,
+				llm: {
+					configured,
+					providerKind: configured ? this.llm.activeKind : null,
+					mode: this.llm.getMode(),
+				},
+				sources: {
 				total: Number(totalSources[0]?.count ?? 0),
 				enabled: Number(enabledSources[0]?.count ?? 0),
 			},

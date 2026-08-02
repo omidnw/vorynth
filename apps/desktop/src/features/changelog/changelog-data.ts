@@ -27,10 +27,99 @@ export interface Release {
 	codename: string;
 	date: string;
 	summary: string;
+	/** User-facing change list (what a regular reader experiences). */
 	changes: ChangeEntry[];
+	/**
+	 * Technical change list (v1.6.0) — hidden behind the "Technical details"
+	 * toggle on the Changelog page for engineers. Optional for older releases.
+	 */
+	technical?: ChangeEntry[];
 }
 
 export const RELEASES: Release[] = [
+	{
+		version: "1.6.0",
+		codename: "Navigate the Maze",
+		date: "2026-08-01",
+		summary:
+			"Vorynth becomes a personal intelligence workspace. Intelligence and News modes are explicit choices, and the new Archive turns everything you collect — stories, saved items, summaries, searches, AI answers — into an organized, searchable, note-taking space. An in-app Documentation page explains exactly how Vorynth works, search moved into the Archive, sources gained time-range windows, and the app now ships with a real automated test suite.",
+		changes: [
+			{
+				type: "new",
+				text: "Mode switch — Intelligence (LLM-generated Why It Matters / Impact / Recommended Action) and News (ranked feed, no AI) are now explicit choices on the Settings page. Vorynth no longer decides for you based on whether a key exists; you can flip modes at any time, and the mode is remembered.",
+			},
+			{
+				type: "new",
+				text: "Active provider selection — when more than one LLM provider is configured, choose which one actually serves your calls via 'Set active' on each provider. The active provider is remembered, with the most recently enabled provider as the fallback.",
+			},
+			{
+				type: "new",
+				text: "Regenerate All Insights — one button in Settings re-runs the AI triad (Why It Matters, Impact, Recommended Action) for every story, updating existing insights in place using your current AI output language.",
+			},
+			{
+				type: "new",
+				text: "Translate Story Titles — translate every collected story's title into your AI output language in a single job. The original title is preserved and you can toggle between translated and original per article in the Brief.",
+			},
+			{
+				type: "new",
+				text: "Archive — a unified space for everything Vorynth has collected: stories, saved items, generated summaries, keyword searches, and Ask-AI answers. Create categories and folders, tag items, write notes, and move anything anywhere.",
+			},
+			{
+				type: "new",
+				text: "Save (bookmark) — every story now has a real Save action backed by the engine. Saved stories live in the Archive and get their own Bookmarks view — and retention never deletes something you saved.",
+			},
+			{
+				type: "new",
+				text: "Documentation & Tutorial — an in-app page explaining every screen, how data is collected, why titles and descriptions differ from the original, and exactly how importance ranking, Ask AI, and the brief summary work. No more black box.",
+			},
+			{
+				type: "improved",
+				text: "Search moved into the Archive — one place to find everything (stories, notes, tags, saved items, past searches), plus a new advanced search built for researchers: filter by domain, author, importance, date range, and whether a story has AI analysis.",
+			},
+			{
+				type: "improved",
+				text: "Sources page — pick a time window (day, week, month, year, or custom dates) to see what a source has published, with an honest note when older articles were pruned by the retention window.",
+			},
+			{
+				type: "improved",
+				text: "Provider deletion now asks for confirmation, with a 'don't show again' option — and the confirmation dialogs can be reset from your Profile so the safety net always comes back if you want it.",
+			},
+			{
+				type: "improved",
+				text: "Settings moved out of the sidebar navigation into the footer next to Profile, and the two pages cross-reference each other — app settings live on Settings, personalization lives on Profile, no more guessing which is which.",
+			},
+			{
+				type: "fixed",
+				text: "Dark-mode legibility — hover states on buttons, the theme toggle, insight details, and floating action bars no longer wash out their labels. Backgrounds change on hover while the text keeps its original (readable) color.",
+			},
+		],
+		technical: [
+			{
+				type: "new",
+				text: "Archive data model — metadata-only content_items spine linked from the origin tables (articles, search/brief/generated history) via additive columns and unique indexes; no shipped-table rebuilds (R-A01). Bookmarks are a flag on a content item, not a content type, so future bookmarking of AI answers/summaries needs no migration.",
+			},
+			{
+				type: "new",
+				text: "Domain invariants enforced and tested — every origin has exactly one spine (startup backfill self-heals), retention pruning skips bookmarked articles, source deletion returns 409 when saved stories exist unless force-confirmed, and collection nesting is capped at depth 3 with category→folder semantics.",
+			},
+			{
+				type: "improved",
+				text: "FTS5 articles_fts gained an author column (schema-triggered index rebuild); GET /search accepts author=; a new structured GET /search/advanced endpoint filters by domains, authors, importance tiers, date range, and insight presence.",
+			},
+			{
+				type: "improved",
+				text: "Brief entries now expose ranking signals (source reliability, freshness, length) — stored evidence surfaced for transparency, never an AI-generated explanation of its own reasoning.",
+			},
+			{
+				type: "new",
+				text: "Testing foundation — Jest + ts-jest for the engine (temp-SQLite harness, offline mocked LLM provider, domain-invariant suite), Vitest + Testing Library for UI components, Playwright for critical user journeys (role/aria selectors only, no data-test-id), Storybook for components with mock data.",
+			},
+			{
+				type: "fixed",
+				text: "The Archive's 'Saved' filter was ignored by the engine (the bookmarked query param wasn't wired through the controller) — it now correctly shows only bookmarked items. Bookmarks are also reachable with one click from the Brief and the Archive.",
+			},
+		],
+	},
 	{
 		version: "1.5.0",
 		codename: "Knowledge Paths",

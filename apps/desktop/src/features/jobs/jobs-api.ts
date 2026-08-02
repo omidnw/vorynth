@@ -66,6 +66,24 @@ export async function cancelJob(
 	});
 }
 
+export async function startRegenerateInsightsJob(
+	opts: { targetLanguage?: string } = {},
+): Promise<Job> {
+	return apiFetch<Job>("/jobs/regenerate-insights", {
+		method: "POST",
+		body: JSON.stringify(opts),
+	});
+}
+
+export async function startTranslateTitlesJob(
+	opts: { targetLanguage?: string } = {},
+): Promise<Job> {
+	return apiFetch<Job>("/jobs/translate-titles", {
+		method: "POST",
+		body: JSON.stringify(opts),
+	});
+}
+
 /** True when any job of the given kind is currently active. */
 export function isActive(jobs: JobList | undefined, kind: JobKind): boolean {
 	return Boolean(jobs?.active.some((j) => j.kind === kind));

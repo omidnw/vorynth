@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -8,6 +9,7 @@ import {
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -22,6 +24,7 @@ import { useTranslation } from "react-i18next";
 export function MediaPage() {
 	const { t } = useTranslation();
 	const queryClient = useQueryClient();
+	const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
 
 	const { data: summary, isLoading } = useQuery({
 		queryKey: ["media-local"],
@@ -95,20 +98,31 @@ export function MediaPage() {
 					</p>
 				</GhostCard>
 			) : (
-				<>
-					<div className="mb-6 flex justify-end">
-						<Button
-							variant="ghost"
+					<>
+						<div className="mb-6 flex justify-end">
+							<Button
+								variant="ghost"
+								icon="delete_forever"
+								onClick={() => setShowPurgeConfirm(true)}
+							>
+								{t("media.purgeAll")}
+							</Button>
+						</div>
+						<ConfirmDialog
+							open={showPurgeConfirm}
+							title={t("media.purgeAll")}
+							message={t("media.purgeConfirm")}
+							confirmLabel={t("media.purgeAll")}
+							cancelLabel={t("common.cancel")}
 							icon="delete_forever"
-							onClick={() => {
-								if (window.confirm(t("media.purgeConfirm"))) {
-									purgeAll.mutate();
-								}
+							danger
+							confirming={purgeAll.isPending}
+							onConfirm={() => {
+								setShowPurgeConfirm(false);
+								purgeAll.mutate();
 							}}
-						>
-							{t("media.purgeAll")}
-						</Button>
-					</div>
+							onCancel={() => setShowPurgeConfirm(false)}
+						/>
 					<div className="space-y-3">
 						{summary.articles.map((a) => (
 							<GhostCard

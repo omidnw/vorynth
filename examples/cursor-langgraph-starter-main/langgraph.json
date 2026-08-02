@@ -1,9 +1,0 @@
-{
-  "$schema": "https://langchain-ai.github.io/langgraph/langgraph.schema.json",
-  "node_version": "20",
-  "graphs": {
-    "agent": "./src/workflows/agent.ts:graph"
-  },
-  "env": ".env"
-}
-

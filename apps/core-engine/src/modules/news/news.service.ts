@@ -116,7 +116,7 @@ export class NewsService {
 		const scored = articleRows.map((a) => {
 			const src = sourceById.get(a.sourceId);
 			const category = (src?.category ?? "other") as SourceCategory;
-			const score = rankScore({
+			const factors = rankFactors({
 				category,
 				publishedAt: a.publishedAt ? a.publishedAt.getTime() : null,
 				contentLength: a.content?.length ?? 0,
@@ -126,7 +126,12 @@ export class NewsService {
 				article: a,
 				category,
 				sourceName: src?.name ?? "Unknown",
-				score,
+				score: factors.score,
+				ranking: {
+					sourceReliability: factors.sourceReliability,
+					freshnessScore: factors.freshnessScore,
+					lengthSignal: factors.lengthSignal,
+				},
 			};
 		});
 
@@ -139,6 +144,7 @@ export class NewsService {
 			sourceNames: [s.sourceName],
 			score: s.score,
 			importanceTier: tierFor(s.score) as ImportanceTier,
+			ranking: s.ranking,
 			insight: null,
 		}));
 
@@ -242,18 +248,29 @@ const SOURCE_RELIABILITY: Record<SourceCategory, number> = {
 	other: 3,
 };
 
-function rankScore(opts: {
+function rankFactors(opts: {
 	category: SourceCategory;
 	publishedAt: number | null;
 	contentLength: number;
 	now: number;
-}): number {
+}): {
+	score: number;
+	sourceReliability: number;
+	freshnessScore: number;
+	lengthSignal: number;
+} {
 	const reliability = SOURCE_RELIABILITY[opts.category] ?? 3;
 	const freshness = freshnessScore(opts.publishedAt, opts.now);
 	const lengthSignal = Math.min(2, opts.contentLength / 2000);
-	return Number(
+	const score = Number(
 		Math.min(10, reliability * 0.6 + freshness * 2 + lengthSignal).toFixed(2),
 	);
+	return {
+		score,
+		sourceReliability: reliability,
+		freshnessScore: freshness,
+		lengthSignal: Number(lengthSignal.toFixed(2)),
+	};
 }
 
 function freshnessScore(publishedAtMs: number | null, now: number): number {
@@ -276,6 +293,7 @@ function toArticleDto(row: {
 	publishedAt: Date | null;
 	collectedAt: Date;
 	hash: string;
+	contentItemId: string | null;
 }): BriefEntry["article"] {
 	return {
 		id: row.id,
@@ -287,5 +305,6 @@ function toArticleDto(row: {
 		publishedAt: row.publishedAt,
 		collectedAt: row.collectedAt,
 		hash: row.hash,
+		contentItemId: row.contentItemId,
 	};
 }

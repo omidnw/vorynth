@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { CrawlerModule } from "../crawler/crawler.module.js";
 import { IntelligenceModule } from "../intelligence/intelligence.module.js";
 import { LlmModule } from "../llm/llm.module.js";
+import { RetentionModule } from "../retention/retention.module.js";
 import { SchedulerService } from "./scheduler.service.js";
 import { SchedulerBootstrap } from "./scheduler.bootstrap.js";
 
@@ -13,7 +14,7 @@ import { SchedulerBootstrap } from "./scheduler.bootstrap.js";
  * we don't get duplicate "started" logs from two lifecycle hooks.
  */
 @Module({
-	imports: [CrawlerModule, LlmModule, IntelligenceModule],
+	imports: [CrawlerModule, LlmModule, IntelligenceModule, RetentionModule],
 	providers: [SchedulerService, SchedulerBootstrap],
 	exports: [SchedulerService],
 })

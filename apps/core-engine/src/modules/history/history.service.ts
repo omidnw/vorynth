@@ -1,7 +1,8 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { DatabaseService } from "../../db/database.service.js";
+import { attachSpine, createSpine } from "../../db/spine.js";
 import {
 	appSettings,
 	briefHistory,
@@ -18,6 +19,8 @@ import type {
 	GeneratedHistoryEntry,
 	GeneratedHistoryKind,
 	GeneratedHistoryList,
+	HistorySearchResult,
+	HistoryType,
 	PeriodSummary,
 	SearchHistoryEntry,
 	SearchHistoryList,
@@ -118,21 +121,33 @@ export class HistoryService {
 				"hits" in input.result
 					? (input.result as { hits: unknown[] }).hits.length
 					: 0;
-			this.db.db
-				.insert(searchHistory)
-				.values({
-					id,
-					query: input.query,
-					mode: input.mode,
-					result: input.result as unknown,
-					title: input.query,
-					archived: false,
-					tokensUsed,
-					hitCount,
-					createdAt: now,
-					updatedAt: now,
-				})
-				.run();
+			// History row + archive spine, one transaction (R-A09). Raw SQL —
+			// and note `db.transaction(fn)` must be invoked (`})()`).
+			this.db.rawDb.transaction(() => {
+				this.db.rawDb
+					.prepare(
+						`INSERT INTO search_history
+						   (id, query, mode, result, title, archived, tokens_used, hit_count, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+					)
+					.run(
+						id,
+						input.query,
+						input.mode,
+						JSON.stringify(input.result),
+						input.query,
+						tokensUsed,
+						hitCount,
+						now.getTime(),
+						now.getTime(),
+					);
+				const spineId = createSpine(
+					this.db.rawDb,
+					input.mode === "ai" ? "ai-ask" : "keyword-search",
+					now,
+				);
+				attachSpine(this.db.rawDb, "search_history", id, spineId);
+			})();
 			return this.toSearchEntry(
 				this.db.db
 					.select()
@@ -220,21 +235,28 @@ export class HistoryService {
 		try {
 			const id = randomUUID();
 			const now = new Date();
-			this.db.db
-				.insert(briefHistory)
-				.values({
-					id,
-					period: input.period,
-					periodStart: input.periodStart,
-					periodEnd: input.periodEnd,
-					result: input.result as unknown,
-					title: this.defaultBriefTitle(input.period, input.result),
-					archived: false,
-					storyCount: input.result.storyCount,
-					createdAt: now,
-					updatedAt: now,
-				})
-				.run();
+			// History row + archive spine (`summary`, immutable), one transaction.
+			this.db.rawDb.transaction(() => {
+				this.db.rawDb
+					.prepare(
+						`INSERT INTO brief_history
+						   (id, period, period_start, period_end, result, title, archived, story_count, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+					)
+					.run(
+						id,
+						input.period,
+						input.periodStart?.getTime() ?? null,
+						input.periodEnd?.getTime() ?? null,
+						JSON.stringify(input.result),
+						this.defaultBriefTitle(input.period, input.result),
+						input.result.storyCount,
+						now.getTime(),
+						now.getTime(),
+					);
+				const spineId = createSpine(this.db.rawDb, "summary", now);
+				attachSpine(this.db.rawDb, "brief_history", id, spineId);
+			})();
 			return this.toBriefEntry(
 				this.db.db
 					.select()
@@ -322,19 +344,26 @@ export class HistoryService {
 		try {
 			const id = randomUUID();
 			const now = new Date();
-			this.db.db
-				.insert(generatedHistory)
-				.values({
-					id,
-					kind: input.kind,
-					title: input.title.slice(0, 200),
-					result: input.result,
-					tokensUsed: input.tokensUsed,
-					archived: false,
-					createdAt: now,
-					updatedAt: now,
-				})
-				.run();
+			// History row + archive spine (`summary`, immutable), one transaction.
+			this.db.rawDb.transaction(() => {
+				this.db.rawDb
+					.prepare(
+						`INSERT INTO generated_history
+						   (id, kind, title, result, tokens_used, archived, created_at, updated_at)
+						 VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+					)
+					.run(
+						id,
+						input.kind,
+						input.title.slice(0, 200),
+						input.result,
+						input.tokensUsed,
+						now.getTime(),
+						now.getTime(),
+					);
+				const spineId = createSpine(this.db.rawDb, "summary", now);
+				attachSpine(this.db.rawDb, "generated_history", id, spineId);
+			})();
 			return this.toGeneratedEntry(
 				this.db.db
 					.select()
@@ -408,6 +437,105 @@ export class HistoryService {
 	clearGenerated(): number {
 		const res = this.db.db.delete(generatedHistory).run();
 		return res.changes;
+	}
+
+	// ── Unified history search ────────────────────────────────────────────────
+
+	/**
+	 * Search across search/brief/generated history by title/query text.
+	 * `type` narrows to one family; each hit's `type` tells the frontend which
+	 * existing full-detail page to open (`/history/<type>/<id>`).
+	 */
+	searchAll(
+		q: string,
+		type?: HistoryType,
+		includeArchived = false,
+	): HistorySearchResult {
+		const needle = `%${q}%`;
+		const items: HistorySearchResult["items"] = [];
+		const limit = 50;
+
+		if (!type || type === "search") {
+			const rows = this.db.db
+				.select()
+				.from(searchHistory)
+				.where(
+					and(
+						includeArchived ? undefined : eq(searchHistory.archived, false),
+						or(
+							like(searchHistory.title, needle),
+							like(searchHistory.query, needle),
+						),
+					),
+				)
+				.orderBy(desc(searchHistory.createdAt))
+				.limit(limit)
+				.all();
+			for (const r of rows) {
+				items.push({
+					id: r.id,
+					type: "search",
+					title: r.title,
+					createdAt: r.createdAt.toISOString(),
+					archived: r.archived,
+					snippet: r.query.slice(0, 80),
+				});
+			}
+		}
+
+		if (!type || type === "brief") {
+			const rows = this.db.db
+				.select()
+				.from(briefHistory)
+				.where(
+					and(
+						includeArchived ? undefined : eq(briefHistory.archived, false),
+						like(briefHistory.title, needle),
+					),
+				)
+				.orderBy(desc(briefHistory.createdAt))
+				.limit(limit)
+				.all();
+			for (const r of rows) {
+				items.push({
+					id: r.id,
+					type: "brief",
+					title: r.title,
+					createdAt: r.createdAt.toISOString(),
+					archived: r.archived,
+					snippet: r.title.slice(0, 80),
+				});
+			}
+		}
+
+		if (!type || type === "generated") {
+			const rows = this.db.db
+				.select()
+				.from(generatedHistory)
+				.where(
+					and(
+						includeArchived ? undefined : eq(generatedHistory.archived, false),
+						like(generatedHistory.title, needle),
+					),
+				)
+				.orderBy(desc(generatedHistory.createdAt))
+				.limit(limit)
+				.all();
+			for (const r of rows) {
+				items.push({
+					id: r.id,
+					type: "generated",
+					title: r.title,
+					createdAt: r.createdAt.toISOString(),
+					archived: r.archived,
+					snippet: r.title.slice(0, 80),
+				});
+			}
+		}
+
+		// Newest first across families.
+		items.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+		return { items };
 	}
 
 	// ── mappers ─────────────────────────────────────────────────────────────

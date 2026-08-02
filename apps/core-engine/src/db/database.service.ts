@@ -1,6 +1,7 @@
 import {
 	Injectable,
 	Logger,
+	Optional,
 	type OnModuleDestroy,
 	type OnModuleInit,
 } from "@nestjs/common";
@@ -32,8 +33,13 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 	private readonly drizzleInstance: BetterSQLite3Database<typeof schema>;
 	readonly filePath: string;
 
-	constructor() {
-		this.filePath = resolveDbPath();
+	/**
+	 * @param overridePath optional DB file path for tests — when omitted the
+	 * path is resolved from `VORYNTH_DATA_DIR` (or `<cwd>/data`). `@Optional`
+	 * keeps NestJS DI from trying to inject a `String` token for the param.
+	 */
+	constructor(@Optional() overridePath?: string) {
+		this.filePath = overridePath ?? resolveDbPath();
 		this.raw = new Database(this.filePath);
 		this.raw.pragma("journal_mode = WAL");
 		this.raw.pragma("foreign_keys = ON");

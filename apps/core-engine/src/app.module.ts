@@ -15,6 +15,9 @@ import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { SchedulerModule } from "./modules/scheduler/scheduler.module.js";
 import { MediaModule } from "./modules/media/media.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
+import { ArchiveModule } from "./modules/archive/archive.module.js";
+import { BookmarksModule } from "./modules/bookmarks/bookmarks.module.js";
+import { RetentionModule } from "./modules/retention/retention.module.js";
 
 /**
  * Root application module.
@@ -50,6 +53,11 @@ import { ProfileModule } from "./modules/profile/profile.module.js";
 		// History + LLM since ProfileModule depends on both.
 		MediaModule,
 		ProfileModule,
+		// v1.6.0 — unified archive (items, collections, tags, notes) + bookmarks.
+		ArchiveModule,
+		BookmarksModule,
+		// v1.6.0 — auto-delete retention (global "delete old stories" policy).
+		RetentionModule,
 	],
 })
 export class AppModule {}

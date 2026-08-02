@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocaleStore } from "@/i18n/locale-store.js";
 import type { TranslationCatalog } from "@/i18n/en.js";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 /**
  * Language section of Settings.
@@ -37,6 +38,8 @@ export function LanguageSection({
 		exportEnglish,
 	} = useLocaleStore();
 	const fileRef = useRef<HTMLInputElement>(null);
+	const [showError, setShowError] = useState(false);
+	const [removeTarget, setRemoveTarget] = useState<string | null>(null);
 
 	const handleExport = () => {
 		const blob = new Blob([exportEnglish()], { type: "application/json" });
@@ -65,9 +68,7 @@ export function LanguageSection({
 				setActive(code);
 				onLocaleChange?.(code);
 			} catch {
-				alert(
-					"Invalid catalog JSON. Make sure it's a Vorynth en.json you translated.",
-				);
+				setShowError(true);
 			}
 		};
 		reader.readAsText(file);
@@ -118,15 +119,15 @@ export function LanguageSection({
 						<DomainTag>
 							{loc.builtIn ? t("settings.builtIn") : t("settings.custom")}
 						</DomainTag>
-						{!loc.builtIn ? (
-							<button
-								onClick={() => removeCatalog(loc.code)}
-								className="ml-auto p-2 text-on-surface-variant hover:text-error"
-								aria-label={t("settings.remove")}
-							>
-								<Icon name="delete" className="text-[18px]" />
-							</button>
-						) : null}
+							{!loc.builtIn ? (
+								<button
+									onClick={() => setRemoveTarget(loc.code)}
+									className="ml-auto p-2 text-on-surface-variant hover:text-error"
+									aria-label={t("settings.remove")}
+								>
+									<Icon name="delete" className="text-[18px]" />
+								</button>
+							) : null}
 						{loc.builtIn && active === loc.code ? (
 							<span className="ml-auto font-label text-label-sm uppercase text-secondary">
 								{t("settings.active")}
@@ -168,6 +169,32 @@ export function LanguageSection({
 				<code className="text-secondary">fa.json</code>, and import — Vorynth
 				will lay out RTL automatically.
 			</p>
+
+			<ConfirmDialog
+				open={showError}
+				title="Invalid catalog JSON"
+				message="Make sure it's a Vorynth en.json you translated."
+				confirmLabel="OK"
+				cancelLabel="Close"
+				icon="error_outline"
+				danger={false}
+				onConfirm={() => setShowError(false)}
+				onCancel={() => setShowError(false)}
+			/>
+
+			<ConfirmDialog
+				open={Boolean(removeTarget)}
+				title="Remove language?"
+				message="This custom translation will be removed and the app will switch back to English. Your own files are untouched."
+				confirmLabel="Remove"
+				icon="delete"
+				danger
+				onConfirm={() => {
+					if (removeTarget) removeCatalog(removeTarget);
+					setRemoveTarget(null);
+				}}
+				onCancel={() => setRemoveTarget(null)}
+			/>
 		</GhostCard>
 	);
 }

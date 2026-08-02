@@ -4,15 +4,27 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { Select } from "@/components/ui/Select";
 import { CitedText } from "@/components/ui/CitedText.js";
 import { cn } from "@/lib/cn";
-import { searchKeyword, type AskResult } from "@/features/search/search-api.js";
+import {
+	advancedSearch,
+	searchKeyword,
+	type AskResult,
+} from "@/features/search/search-api.js";
+import { fetchSources } from "@/features/sources/sources-api.js";
 import { fetchEngineStatus } from "@/features/brief/brief-api.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 import { fetchSearchHistory } from "@/features/history/history-api.js";
 import { findSearchEntryId } from "@/features/history/use-history-id.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
-import type { SearchResult, SearchMode } from "@vorynth/types";
+import type {
+	AdvancedSearchQuery,
+	ImportanceTier,
+	SearchResult,
+	SearchMode,
+	SourceCategory,
+} from "@vorynth/types";
 
 /** How many keyword hits to show inline before offering "View all". */
 const KEYWORD_PREVIEW_HITS = 5;
@@ -42,6 +54,8 @@ export function SearchPage() {
 	const [mode, setMode] = useState<Mode>("keyword");
 	const [keywordResult, setKeywordResult] = useState<SearchResult | null>(null);
 	const [aiResult, setAiResult] = useState<AskResult | null>(null);
+	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [advancedResult, setAdvancedResult] = useState<SearchResult | null>(null);
 
 	const { data: status } = useQuery({
 		queryKey: ["engine-status"],
@@ -139,6 +153,36 @@ export function SearchPage() {
 				intelligenceEnabled={intelligenceEnabled}
 			/>
 
+			{/* Advanced search toggle */}
+			<div className="mt-4">
+				<button
+					type="button"
+					onClick={() => {
+						setShowAdvanced((v) => !v);
+						setAdvancedResult(null);
+					}}
+					aria-expanded={showAdvanced}
+					className="inline-flex items-center gap-1.5 font-label text-label-sm text-on-surface-variant transition-colors hover:text-primary"
+				>
+					<Icon
+						name={showAdvanced ? "expand_less" : "tune"}
+						className="text-[16px]"
+					/>
+					{showAdvanced ? "Hide advanced search" : "Advanced search"}
+				</button>
+			</div>
+
+			{/* Advanced search panel */}
+			{showAdvanced ? (
+				<AdvancedSearchPanel
+					onResult={(r) => {
+						setAdvancedResult(r);
+						setKeywordResult(null);
+						setAiResult(null);
+					}}
+				/>
+			) : null}
+
 			{/* Ask-AI background notice */}
 			{mode === "ai" && askActive ? (
 				<GhostCard className="mt-6 border-l-2 border-l-secondary">
@@ -157,6 +201,15 @@ export function SearchPage() {
 
 			{/* Results */}
 			<div className="mt-8">
+				{advancedResult ? (
+					<KeywordResults
+						result={advancedResult}
+						entryId={null}
+						historyFetching={false}
+						onViewFull={() => {}}
+					/>
+				) : null}
+
 				{mode === "ai" && aiResult ? (
 					<AiAnswerCard
 						result={aiResult}
@@ -177,7 +230,7 @@ export function SearchPage() {
 					/>
 				) : null}
 
-				{!hasResult && !keyword.isPending && !askActive ? (
+				{!hasResult && !keyword.isPending && !askActive && !advancedResult ? (
 					<SearchEmptyState
 						mode={mode}
 						intelligenceEnabled={intelligenceEnabled}
@@ -518,6 +571,257 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 					Read source
 				</a>
 			</div>
+		</GhostCard>
+	);
+}
+
+// ── Advanced search panel ────────────────────────────────────────────────────
+
+const ADVANCED_DOMAINS: SourceCategory[] = [
+	"ai",
+	"security",
+	"software-engineering",
+	"cloud",
+	"devops",
+	"backend",
+	"web-development",
+	"programming-languages",
+	"open-source",
+	"other",
+];
+const ADVANCED_IMPORTANCE: ImportanceTier[] = ["signal", "trend", "low-noise"];
+
+function AdvancedSearchPanel({
+	onResult,
+}: {
+	onResult: (result: SearchResult) => void;
+}) {
+	const [q, setQ] = useState("");
+	const [domains, setDomains] = useState<SourceCategory[]>([]);
+	const [importance, setImportance] = useState<ImportanceTier[]>([]);
+	const [author, setAuthor] = useState("");
+	const [from, setFrom] = useState("");
+	const [to, setTo] = useState("");
+	const [hasInsight, setHasInsight] = useState(false);
+
+	const { data: sourcesData } = useQuery({
+		queryKey: ["sources"],
+		queryFn: fetchSources,
+	});
+	const sourceOptions = (sourcesData ?? []).map((s) => ({
+		value: s.id,
+		label: s.name,
+		icon: "rss_feed",
+	}));
+	const [sourceId, setSourceId] = useState("");
+
+	const mutation = useMutation({
+		mutationFn: (query: AdvancedSearchQuery) => advancedSearch(query),
+		onSuccess: onResult,
+	});
+
+	const toggle = <T,>(list: T[], setList: (v: T[]) => void, value: T) =>
+		setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+
+	const runSearch = () => {
+		mutation.mutate({
+			q: q.trim() || undefined,
+			domains: domains.length ? domains : undefined,
+			importance: importance.length ? importance : undefined,
+			authors: author.trim() ? [author.trim()] : undefined,
+			sources: sourceId ? [sourceId] : undefined,
+			from: from || undefined,
+			to: to || undefined,
+			hasInsight: hasInsight || undefined,
+			limit: 25,
+		});
+	};
+
+	return (
+		<GhostCard className="mt-4">
+			<h3 className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+				<Icon name="tune" className="text-base" />
+				Advanced search
+			</h3>
+			<p className="mb-6 font-body text-body-sm text-on-tertiary-container">
+				Structured filters over the collected corpus — for research-grade queries.
+			</p>
+
+			{/* Row 1: keywords + author */}
+			<div className="mb-4 grid gap-3 sm:grid-cols-2">
+				<div className="space-y-1.5">
+					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+						Keywords
+					</label>
+					<div className="relative">
+						<span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">
+							search
+						</span>
+						<input
+							value={q}
+							onChange={(e) => setQ(e.target.value)}
+							placeholder="Full-text terms (optional)"
+							className="w-full rounded border border-outline-variant bg-surface-container-low py-2 pl-9 pr-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
+						/>
+					</div>
+				</div>
+				<div className="space-y-1.5">
+					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+						Author
+					</label>
+					<div className="relative">
+						<span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">
+							person
+						</span>
+						<input
+							value={author}
+							onChange={(e) => setAuthor(e.target.value)}
+							placeholder="e.g. BrianKrebs"
+							className="w-full rounded border border-outline-variant bg-surface-container-low py-2 pl-9 pr-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
+						/>
+					</div>
+				</div>
+			</div>
+
+			{/* Row 2: source + date range */}
+			<div className="mb-4 grid gap-3 sm:grid-cols-3">
+				<div className="space-y-1.5">
+					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+						Source
+					</label>
+					<Select
+						value={sourceId}
+						onChange={setSourceId}
+						aria-label="Filter by source"
+						placeholder="All sources"
+						options={sourceOptions}
+					/>
+				</div>
+				<div className="space-y-1.5">
+					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+						Collected from
+					</label>
+					<input
+						type="date"
+						value={from}
+						onChange={(e) => setFrom(e.target.value)}
+						className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
+					/>
+				</div>
+				<div className="space-y-1.5">
+					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+						to
+					</label>
+					<input
+						type="date"
+						value={to}
+						onChange={(e) => setTo(e.target.value)}
+						className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-2 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
+					/>
+				</div>
+			</div>
+
+			{/* Row 3: domain chips */}
+			<fieldset className="mb-4">
+				<legend className="mb-2 font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+					Domains
+				</legend>
+				<div className="flex flex-wrap gap-1.5">
+					{ADVANCED_DOMAINS.map((d) => {
+						const active = domains.includes(d);
+						return (
+							<button
+								key={d}
+								type="button"
+								onClick={() => toggle(domains, setDomains, d)}
+								aria-pressed={active}
+								className={cn(
+									"rounded-full px-3 py-1 font-label text-label-sm capitalize transition-colors",
+									active
+										? "bg-primary text-on-primary"
+										: "border border-outline-variant text-on-surface-variant hover:border-primary",
+								)}
+							>
+								{d.replace(/-/g, " ")}
+							</button>
+						);
+					})}
+				</div>
+			</fieldset>
+
+			{/* Row 4: importance + has insight */}
+			<div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+				<fieldset>
+					<legend className="mb-2 font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
+						Importance
+					</legend>
+					<div className="flex flex-wrap gap-1.5">
+						{ADVANCED_IMPORTANCE.map((i) => {
+							const active = importance.includes(i);
+							return (
+								<button
+									key={i}
+									type="button"
+									onClick={() => toggle(importance, setImportance, i)}
+									aria-pressed={active}
+									className={cn(
+										"rounded-full px-3 py-1 font-label text-label-sm capitalize transition-colors",
+										active
+											? "bg-primary text-on-primary"
+											: "border border-outline-variant text-on-surface-variant hover:border-primary",
+									)}
+								>
+									{i.replace(/-/g, " ")}
+								</button>
+							);
+						})}
+					</div>
+				</fieldset>
+				<label className="flex cursor-pointer items-center gap-2 font-body text-body-sm text-on-surface-variant">
+					<input
+						type="checkbox"
+						checked={hasInsight}
+						onChange={(e) => setHasInsight(e.target.checked)}
+						className="h-4 w-4 accent-secondary"
+					/>
+					Has AI analysis
+				</label>
+			</div>
+
+			{/* Search button */}
+			<div className="flex items-center gap-3">
+				<Button
+					icon="search"
+					onClick={runSearch}
+					disabled={mutation.isPending}
+				>
+					{mutation.isPending ? "Searching…" : "Search with filters"}
+				</Button>
+				{(domains.length > 0 || importance.length > 0 || author || from || to || hasInsight || sourceId) ? (
+					<button
+						type="button"
+						onClick={() => {
+							setDomains([]);
+							setImportance([]);
+							setAuthor("");
+							setFrom("");
+							setTo("");
+							setHasInsight(false);
+							setSourceId("");
+							setQ("");
+						}}
+						className="font-label text-label-sm text-on-surface-variant transition-colors hover:text-primary"
+					>
+						Clear filters
+					</button>
+				) : null}
+			</div>
+
+			{mutation.isError ? (
+				<p className="mt-3 font-mono text-mono-technical text-error">
+					{(mutation.error as Error).message}
+				</p>
+			) : null}
 		</GhostCard>
 	);
 }

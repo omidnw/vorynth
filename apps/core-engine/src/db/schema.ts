@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey } from "drizzle-orm/sqlite-core";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -20,22 +21,7 @@ export const sources = sqliteTable("sources", {
 	})
 		.notNull()
 		.default("rss"),
-	category: text("category", {
-		enum: [
-			"ai",
-			"software-engineering",
-			"programming-languages",
-			"web-development",
-			"backend",
-			"devops",
-			"cloud",
-			"security",
-			"open-source",
-			"other",
-		],
-	})
-		.notNull()
-		.default("other"),
+	category: text("category").notNull().default("other"),
 	adapter: text("adapter").notNull().default("rss"),
 	/** Opaque per-adapter JSON: feed URL, HTML selectors, etc. */
 	configuration: text("configuration", { mode: "json" })
@@ -49,6 +35,13 @@ export const sources = sqliteTable("sources", {
 	 * Set to 0 (or null) to mean "unlimited".
 	 */
 	fetchWindowDays: integer("fetch_window_days").notNull().default(7),
+	/**
+	 * Absolute time range (v1.6.0). When `fetchFrom` is set, the source keeps
+	 * articles published within [fetchFrom, fetchTo] instead of the relative
+	 * `fetchWindowDays` window. Both are epoch-ms; null = relative mode.
+	 */
+	fetchFrom: integer("fetch_from", { mode: "timestamp_ms" }),
+	fetchTo: integer("fetch_to", { mode: "timestamp_ms" }),
 	lastCheckedAt: integer("last_checked_at", { mode: "timestamp_ms" }),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.notNull()
@@ -63,6 +56,7 @@ export const articles = sqliteTable("articles", {
 		.notNull()
 		.references(() => sources.id, { onDelete: "cascade" }),
 	title: text("title").notNull(),
+	originalTitle: text("original_title"),
 	content: text("content").notNull().default(""),
 	url: text("url").notNull(),
 	author: text("author"),
@@ -72,6 +66,13 @@ export const articles = sqliteTable("articles", {
 		.default(sql`(unixepoch() * 1000)`),
 	/** SHA-256(title + publishedAt + sourceId), unique per source. */
 	hash: text("hash").notNull().unique(),
+	/**
+	 * Archive spine id (content_items). One spine per row, created by the
+	 * owning service in the same transaction. Nullable at the DB level
+	 * (additive migration, R-A01) but always set by the service layer — the
+	 * startup `ensureSpines()` backfill repairs any gap (R-A09).
+	 */
+	contentItemId: text("content_item_id").references(() => contentItems.id),
 });
 
 // ── Article Clusters ───────────────────────────────────────────────────────
@@ -257,6 +258,8 @@ export const searchHistory = sqliteTable("search_history", {
 	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
+	/** Archive spine id — `keyword-search` or `ai-ask` by mode (see contentItems). */
+	contentItemId: text("content_item_id").references(() => contentItems.id),
 });
 
 // ── Brief history (persisted period summaries) ──────────────────────────────
@@ -280,6 +283,8 @@ export const briefHistory = sqliteTable("brief_history", {
 	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
+	/** Archive spine id — `summary` (one per generation; immutable). */
+	contentItemId: text("content_item_id").references(() => contentItems.id),
 });
 
 // ── App settings (key/value) ────────────────────────────────────────────────
@@ -345,6 +350,105 @@ export const generatedHistory = sqliteTable("generated_history", {
 	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
+	/** Archive spine id — `summary` (one per generation; immutable). */
+	contentItemId: text("content_item_id").references(() => contentItems.id),
+});
+
+// ── Archive (v1.6.0) ───────────────────────────────────────────────────────
+// User-owned organization layer. `content_items` is the metadata-only spine
+// (R-A09 — never duplicate mutable domain data here; title/url/content live in
+// the origin tables and are joined at read time). Bookmark = a flag on a
+// content item, not an item type (R-A10).
+
+/**
+ * Collections tree (R-A11): category → folder → folder, depth ≤ 3. Same-kind
+ * sibling names are unique under a parent (a folder and a category with the
+ * same name coexist — their `kind` differs). Enforced by ArchiveService and
+ * the partial unique indexes in ddl.ts
+ * (`idx_collections_parent_kind_name` / `idx_collections_root_kind_name`).
+ */
+export const collections = sqliteTable("collections", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	description: text("description"),
+	/** Parent collection id — category contains folders only; folder contains
+	 * folders or items. Depth is capped at MAX_COLLECTION_DEPTH (service rule,
+	 * R-A11). */
+	parentId: text("parent_id").references(
+		(): AnySQLiteColumn => collections.id,
+		{ onDelete: "set null" },
+	),
+	kind: text("kind", { enum: ["category", "folder"] })
+		.notNull()
+		.default("folder"),
+	/** True when a future LLM-organization job proposed this collection. */
+	llmGenerated: integer("llm_generated", { mode: "boolean" })
+		.notNull()
+		.default(false),
+	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
+export const contentItems = sqliteTable("content_items", {
+	id: text("id").primaryKey(),
+	/** `article` | `summary` | `keyword-search` | `ai-ask`. Generated
+	 * artifacts all map to `summary` for now (finer types expand later). */
+	contentType: text("content_type", {
+		enum: ["article", "summary", "keyword-search", "ai-ask"],
+	}).notNull(),
+	/** Free-form user note — searchable in the Archive. */
+	note: text("note"),
+	/** Deleting a collection moves items to uncategorized (SET NULL). */
+	collectionId: text("collection_id").references(() => collections.id, {
+		onDelete: "set null",
+	}),
+	archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
+export const tags = sqliteTable("tags", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull().unique(),
+	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
+export const contentItemTags = sqliteTable(
+	"content_item_tags",
+	{
+		contentItemId: text("content_item_id")
+			.notNull()
+			.references(() => contentItems.id, { onDelete: "cascade" }),
+		tagId: text("tag_id")
+			.notNull()
+			.references(() => tags.id, { onDelete: "cascade" }),
+	},
+	(t) => ({
+		pk: primaryKey({ columns: [t.contentItemId, t.tagId] }),
+	}),
+);
+
+export const bookmarks = sqliteTable("bookmarks", {
+	id: text("id").primaryKey(),
+	/** One bookmark per content item — the flag that makes an item "saved".
+	 * Generic: works for articles today, AI answers/summaries later. */
+	contentItemId: text("content_item_id")
+		.notNull()
+		.unique()
+		.references(() => contentItems.id, { onDelete: "cascade" }),
+	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
 });
 
 // ── Convenience type re-exports ────────────────────────────────────────────
@@ -363,3 +467,8 @@ export type BriefHistoryRow = typeof briefHistory.$inferSelect;
 export type AppSettingRow = typeof appSettings.$inferSelect;
 export type ArticleMediaRow = typeof articleMedia.$inferSelect;
 export type GeneratedHistoryRow = typeof generatedHistory.$inferSelect;
+export type CollectionRow = typeof collections.$inferSelect;
+export type ContentItemRow = typeof contentItems.$inferSelect;
+export type TagRow = typeof tags.$inferSelect;
+export type ContentItemTagRow = typeof contentItemTags.$inferSelect;
+export type BookmarkRow = typeof bookmarks.$inferSelect;

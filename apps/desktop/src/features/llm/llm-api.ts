@@ -44,4 +44,30 @@ export async function verifyProvider(): Promise<{
 	});
 }
 
+// ── Mode ──────────────────────────────────────────────────────────────────────
+
+export async function fetchMode(): Promise<{ mode: "intelligence" | "news" }> {
+	return apiFetch<{ mode: "intelligence" | "news" }>("/llm/mode");
+}
+
+export async function setMode(
+	mode: "intelligence" | "news",
+): Promise<{ mode: "intelligence" | "news" }> {
+	return apiFetch<{ mode: "intelligence" | "news" }>("/llm/mode", {
+		method: "POST",
+		body: JSON.stringify({ mode }),
+	});
+}
+
+// ── Active provider ───────────────────────────────────────────────────────────
+
+export async function activateProvider(
+	id: string,
+): Promise<{ activeProviderId: string }> {
+	return apiFetch<{ activeProviderId: string }>(
+		`/llm/providers/${encodeURIComponent(id)}/activate`,
+		{ method: "POST" },
+	);
+}
+
 export type { LlmProviderConfig };

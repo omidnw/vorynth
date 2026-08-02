@@ -11,6 +11,7 @@ import type {
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { ConfirmDialog, PromptDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/cn";
 import {
 	deleteBriefEntries,
@@ -231,6 +232,8 @@ function SearchRow({
 	onArchive: () => void;
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const [showRename, setShowRename] = useState(false);
+	const [showDelete, setShowDelete] = useState(false);
 	return (
 		<li>
 			<GhostCard
@@ -295,13 +298,7 @@ function SearchRow({
 										label="Rename"
 										onClick={() => {
 											setMenuOpen(false);
-											const next = window.prompt("Rename entry", entry.title);
-											if (next && next.trim())
-												void patchSearchEntry(entry.id, {
-													title: next.trim(),
-												}).then(() => {
-													useHistoryStore.getState().noteMutation();
-												});
+											setShowRename(true);
 										}}
 									/>
 									<MenuItem
@@ -318,10 +315,7 @@ function SearchRow({
 										danger
 										onClick={() => {
 											setMenuOpen(false);
-											if (window.confirm("Delete this entry permanently?"))
-												void deleteSearchEntries([entry.id]).then(() => {
-													useHistoryStore.getState().noteMutation();
-												});
+											setShowDelete(true);
 										}}
 									/>
 								</div>
@@ -330,6 +324,33 @@ function SearchRow({
 					) : null}
 				</div>
 			</GhostCard>
+			<PromptDialog
+				open={showRename}
+				title="Rename entry"
+				defaultValue={entry.title}
+				onSubmit={(next) => {
+					setShowRename(false);
+					void patchSearchEntry(entry.id, { title: next }).then(() => {
+						useHistoryStore.getState().noteMutation();
+					});
+				}}
+				onCancel={() => setShowRename(false)}
+			/>
+			<ConfirmDialog
+				open={showDelete}
+				title="Delete entry?"
+				message="Delete this entry permanently?"
+				confirmLabel="Delete"
+				icon="delete"
+				danger
+				onConfirm={() => {
+					setShowDelete(false);
+					void deleteSearchEntries([entry.id]).then(() => {
+						useHistoryStore.getState().noteMutation();
+					});
+				}}
+				onCancel={() => setShowDelete(false)}
+			/>
 		</li>
 	);
 }
@@ -421,6 +442,8 @@ function BriefRow({
 	onArchive: () => void;
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const [showRename, setShowRename] = useState(false);
+	const [showDelete, setShowDelete] = useState(false);
 	return (
 		<li>
 			<GhostCard
@@ -482,13 +505,7 @@ function BriefRow({
 										label="Rename"
 										onClick={() => {
 											setMenuOpen(false);
-											const next = window.prompt("Rename entry", entry.title);
-											if (next && next.trim())
-												void patchBriefEntry(entry.id, {
-													title: next.trim(),
-												}).then(() => {
-													useHistoryStore.getState().noteMutation();
-												});
+											setShowRename(true);
 										}}
 									/>
 									<MenuItem
@@ -505,10 +522,7 @@ function BriefRow({
 										danger
 										onClick={() => {
 											setMenuOpen(false);
-											if (window.confirm("Delete this entry permanently?"))
-												void deleteBriefEntries([entry.id]).then(() => {
-													useHistoryStore.getState().noteMutation();
-												});
+											setShowDelete(true);
 										}}
 									/>
 								</div>
@@ -517,6 +531,33 @@ function BriefRow({
 					) : null}
 				</div>
 			</GhostCard>
+			<PromptDialog
+				open={showRename}
+				title="Rename entry"
+				defaultValue={entry.title}
+				onSubmit={(next) => {
+					setShowRename(false);
+					void patchBriefEntry(entry.id, { title: next }).then(() => {
+						useHistoryStore.getState().noteMutation();
+					});
+				}}
+				onCancel={() => setShowRename(false)}
+			/>
+			<ConfirmDialog
+				open={showDelete}
+				title="Delete entry?"
+				message="Delete this entry permanently?"
+				confirmLabel="Delete"
+				icon="delete"
+				danger
+				onConfirm={() => {
+					setShowDelete(false);
+					void deleteBriefEntries([entry.id]).then(() => {
+						useHistoryStore.getState().noteMutation();
+					});
+				}}
+				onCancel={() => setShowDelete(false)}
+			/>
 		</li>
 	);
 }
@@ -608,6 +649,7 @@ function GeneratedRow({
 	onArchive: () => void;
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const [showDelete, setShowDelete] = useState(false);
 	return (
 		<li>
 			<GhostCard
@@ -683,10 +725,7 @@ function GeneratedRow({
 										danger
 										onClick={() => {
 											setMenuOpen(false);
-											if (window.confirm("Delete this entry permanently?"))
-												void deleteGeneratedEntries([entry.id]).then(() => {
-													useHistoryStore.getState().noteMutation();
-												});
+											setShowDelete(true);
 										}}
 									/>
 								</div>
@@ -695,16 +734,32 @@ function GeneratedRow({
 					) : null}
 				</div>
 			</GhostCard>
+			<ConfirmDialog
+				open={showDelete}
+				title="Delete entry?"
+				message="Delete this entry permanently?"
+				confirmLabel="Delete"
+				icon="delete"
+				danger
+				onConfirm={() => {
+					setShowDelete(false);
+					void deleteGeneratedEntries([entry.id]).then(() => {
+						useHistoryStore.getState().noteMutation();
+					});
+				}}
+				onCancel={() => setShowDelete(false)}
+			/>
 		</li>
 	);
 }
 
-// ── Bulk actions ───────────────────────────────────────────────────────────
+	// ── Bulk actions ───────────────────────────────────────────────────────────
 
 function BulkActionBar({ scope }: { scope: HistoryScope }) {
 	const { selectedIds, clearSelection, setSelectMode } = useHistoryStore();
 	const qc = useQueryClient();
 	const count = selectedIds.size;
+	const [showDelete, setShowDelete] = useState(false);
 	if (count === 0) {
 		return (
 			<div className="border-t border-outline-variant px-5 py-3 text-center font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
@@ -726,7 +781,6 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 		clearSelection();
 	};
 	const doDelete = async () => {
-		if (!window.confirm(`Delete ${count} entries permanently?`)) return;
 		const del =
 			scope === "search"
 				? deleteSearchEntries
@@ -747,13 +801,26 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 				<Button variant="ghost" size="sm" icon="archive" onClick={doArchive}>
 					Archive
 				</Button>
-				<Button variant="secondary" size="sm" icon="delete" onClick={doDelete}>
+				<Button variant="secondary" size="sm" icon="delete" onClick={() => setShowDelete(true)}>
 					Delete
 				</Button>
 				<Button variant="ghost" size="sm" onClick={() => setSelectMode(false)}>
 					Cancel
 				</Button>
 			</div>
+			<ConfirmDialog
+				open={showDelete}
+				title={`Delete ${count} entries?`}
+				message={`Delete ${count} entries permanently? This cannot be undone.`}
+				confirmLabel="Delete"
+				icon="delete"
+				danger
+				onConfirm={() => {
+					setShowDelete(false);
+					void doDelete();
+				}}
+				onCancel={() => setShowDelete(false)}
+			/>
 		</div>
 	);
 }

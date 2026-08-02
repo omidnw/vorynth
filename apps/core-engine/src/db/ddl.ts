@@ -1,6 +1,7 @@
+import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import { normalizeText } from "../search/text-normalizer.js";
-import { FTS_VIRTUAL_DDL, FTS_BACKFILL_SQL } from "./fts-schema.js";
+import { ensureFtsSchema } from "./fts-sync.js";
 
 /**
  * Idempotent DDL — every statement starts with CREATE TABLE IF NOT EXISTS so
@@ -188,6 +189,49 @@ CREATE TABLE IF NOT EXISTS generated_history (
 );
 CREATE INDEX IF NOT EXISTS idx_generated_history_created_at ON generated_history(created_at);
 CREATE INDEX IF NOT EXISTS idx_generated_history_archived ON generated_history(archived);
+
+CREATE TABLE IF NOT EXISTS collections (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  parent_id TEXT REFERENCES collections(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL DEFAULT 'folder',
+  llm_generated INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_collections_parent ON collections(parent_id);
+
+CREATE TABLE IF NOT EXISTS content_items (
+  id TEXT PRIMARY KEY,
+  content_type TEXT NOT NULL CHECK (content_type IN ('article','summary','keyword-search','ai-ask')),
+  note TEXT,
+  collection_id TEXT REFERENCES collections(id) ON DELETE SET NULL,
+  archived_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_content_items_collection ON content_items(collection_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_type ON content_items(content_type);
+CREATE INDEX IF NOT EXISTS idx_content_items_created ON content_items(created_at);
+
+CREATE TABLE IF NOT EXISTS tags (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+CREATE TABLE IF NOT EXISTS content_item_tags (
+  content_item_id TEXT NOT NULL REFERENCES content_items(id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (content_item_id, tag_id)
+);
+
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id TEXT PRIMARY KEY,
+  content_item_id TEXT NOT NULL UNIQUE REFERENCES content_items(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
 `;
 
 /**
@@ -204,6 +248,22 @@ export const ADDITIVE_DDLS = [
 	"ALTER TABLE user_profile ADD COLUMN behavior_summary TEXT NOT NULL DEFAULT ''",
 	"ALTER TABLE user_profile ADD COLUMN summary_generated_at INTEGER",
 	"ALTER TABLE article_media ADD COLUMN updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)",
+	"ALTER TABLE articles ADD COLUMN original_title TEXT",
+	// v1.6.0 — archive spine. Origin tables gain a nullable content_item_id FK
+	// (UNIQUE via the indexes below). NOT NULL is enforced at the service
+	// layer (R-A01: additive only — no shipped-table rebuild); `ensureSpines`
+	// backfills existing rows and repairs gaps on every startup.
+	"ALTER TABLE articles ADD COLUMN content_item_id TEXT",
+	"ALTER TABLE search_history ADD COLUMN content_item_id TEXT",
+	"ALTER TABLE brief_history ADD COLUMN content_item_id TEXT",
+	"ALTER TABLE generated_history ADD COLUMN content_item_id TEXT",
+	"CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_content_item ON articles(content_item_id)",
+	"CREATE UNIQUE INDEX IF NOT EXISTS idx_search_history_content_item ON search_history(content_item_id)",
+	"CREATE UNIQUE INDEX IF NOT EXISTS idx_brief_history_content_item ON brief_history(content_item_id)",
+	"CREATE UNIQUE INDEX IF NOT EXISTS idx_generated_history_content_item ON generated_history(content_item_id)",
+	// v1.6.0 — absolute time range per source (fetch window OR from/to dates).
+	"ALTER TABLE sources ADD COLUMN fetch_from INTEGER",
+	"ALTER TABLE sources ADD COLUMN fetch_to INTEGER",
 ];
 
 /** Seed defaults the freshly migrated database needs to operate. */
@@ -225,6 +285,11 @@ export function seedDefaults(db: Database.Database): void {
 		"history.search.recordKeyword": false,
 		"reader.supportAuthorReminder": true,
 		"reader.defaultKeepMediaLocal": false,
+		// v1.6.0 — auto-delete retention. 0 = off; days of age before a story is
+		// removed. Protections default on (R-A10 / collections are user-owned).
+		"retention.autoDeleteDays": 0,
+		"retention.protectBookmarked": true,
+		"retention.protectInCollection": true,
 	};
 	const seedSetting = db.prepare(
 		"INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
@@ -392,21 +457,156 @@ export function seedSources(db: Database.Database): void {
 }
 
 /**
+ * Idempotent archive-spine backfill (v1.6.0).
+ *
+ * Every origin row (article, search history, brief history, generated history)
+ * must have exactly one spine row in `content_items` (R-A09). New rows are
+ * created by their owning services in the same transaction; this pass repairs
+ * any gap — including all pre-1.6.0 rows — and runs on every startup so the
+ * invariant self-heals. Only rows with a NULL content_item_id are touched, so
+ * re-runs are safe. Returns the number of spines created.
+ */
+export function ensureSpines(db: Database.Database): number {
+	const insertSpine = db.prepare(
+		`INSERT INTO content_items (id, content_type, created_at, updated_at)
+		 VALUES (?, ?, ?, ?)`,
+	);
+	const attachArticle = db.prepare(
+		"UPDATE articles SET content_item_id = ? WHERE id = ?",
+	);
+	const attachSearch = db.prepare(
+		"UPDATE search_history SET content_item_id = ? WHERE id = ?",
+	);
+	const attachBrief = db.prepare(
+		"UPDATE brief_history SET content_item_id = ? WHERE id = ?",
+	);
+	const attachGenerated = db.prepare(
+		"UPDATE generated_history SET content_item_id = ? WHERE id = ?",
+	);
+
+	const run = db.transaction(() => {
+		let count = 0;
+
+		const articles = db
+			.prepare(
+				"SELECT id, collected_at FROM articles WHERE content_item_id IS NULL",
+			)
+			.all() as Array<{ id: string; collected_at: number | null }>;
+		for (const a of articles) {
+			const id = randomUUID();
+			const at = a.collected_at ?? Date.now();
+			insertSpine.run(id, "article", at, at);
+			attachArticle.run(id, a.id);
+			count += 1;
+		}
+
+		const searches = db
+			.prepare(
+				"SELECT id, mode, created_at FROM search_history WHERE content_item_id IS NULL",
+			)
+			.all() as Array<{ id: string; mode: string; created_at: number | null }>;
+		for (const s of searches) {
+			const id = randomUUID();
+			const at = s.created_at ?? Date.now();
+			insertSpine.run(
+				id,
+				s.mode === "ai" ? "ai-ask" : "keyword-search",
+				at,
+				at,
+			);
+			attachSearch.run(id, s.id);
+			count += 1;
+		}
+
+		const briefs = db
+			.prepare(
+				"SELECT id, created_at FROM brief_history WHERE content_item_id IS NULL",
+			)
+			.all() as Array<{ id: string; created_at: number | null }>;
+		for (const b of briefs) {
+			const id = randomUUID();
+			const at = b.created_at ?? Date.now();
+			insertSpine.run(id, "summary", at, at);
+			attachBrief.run(id, b.id);
+			count += 1;
+		}
+
+		const generated = db
+			.prepare(
+				"SELECT id, created_at FROM generated_history WHERE content_item_id IS NULL",
+			)
+			.all() as Array<{ id: string; created_at: number | null }>;
+		for (const g of generated) {
+			const id = randomUUID();
+			const at = g.created_at ?? Date.now();
+			insertSpine.run(id, "summary", at, at);
+			attachGenerated.run(id, g.id);
+			count += 1;
+		}
+
+		return count;
+	});
+
+	return run();
+}
+
+/**
+ * v1.6.0 — same-kind sibling name uniqueness on `collections` (R-A11).
+ *
+ * `ArchiveService` is the primary gate (409 on a same-kind duplicate name
+ * under the same parent; a folder and a category with the same name coexist).
+ * These partial unique indexes are the race backstop. They are created only
+ * when no legacy duplicates exist — a dirty DB keeps running (the service
+ * check still enforces going forward) instead of crashing startup on a
+ * failing CREATE UNIQUE INDEX. `COLLATE NOCASE` mirrors the service's
+ * case-insensitive comparison.
+ */
+export function ensureCollectionNameIndex(db: Database.Database): void {
+	const existing = db
+		.prepare(
+			`SELECT COUNT(*) AS c FROM sqlite_master
+			 WHERE type = 'index' AND name IN (
+			   'idx_collections_parent_kind_name',
+			   'idx_collections_root_kind_name'
+			 )`,
+		)
+		.get() as { c: number };
+	if (existing.c === 2) return;
+
+	const legacyDuplicates = db
+		.prepare(
+			`SELECT parent_id, kind, name COLLATE NOCASE AS n
+			 FROM collections
+			 GROUP BY parent_id, kind, n
+			 HAVING COUNT(*) > 1`,
+		)
+		.all();
+	if (legacyDuplicates.length > 0) return;
+
+	db.exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_parent_kind_name
+			ON collections(parent_id, kind, name COLLATE NOCASE)
+			WHERE parent_id IS NOT NULL;
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_root_kind_name
+			ON collections(kind, name COLLATE NOCASE)
+			WHERE parent_id IS NULL;
+	`);
+}
+
+/**
  * Idempotent migration: creates tables, sets up FTS5, applies additive ALTERs,
- * and seeds defaults. Called both on server startup and from the CLI
- * (pnpm db:migrate).
+ * seeds defaults, and links archive spines. Called both on server startup and
+ * from the CLI (pnpm db:migrate).
  */
 export function runMigrations(db: Database.Database): void {
 	db.exec(DDL);
 
-	// ── FTS5 (v1.3.0) ──────────────────────────────────────────────────
+	// ── FTS5 (v1.3.0, author column v1.6.0) ─────────────────────────────
 	db.function("normalize_fts", (text: unknown) => {
 		if (typeof text !== "string" || text.length === 0) return "";
 		return normalizeText(text);
 	});
-	db.exec(FTS_VIRTUAL_DDL);
-	// Backfill existing articles into FTS index (idempotent).
-	const { changes: backfilled } = db.prepare(FTS_BACKFILL_SQL).run();
+	const backfilled = ensureFtsSchema(db);
 	if (backfilled > 0) {
 		console.log(`• Backfilled ${backfilled} articles into FTS index`);
 	}
@@ -423,6 +623,15 @@ export function runMigrations(db: Database.Database): void {
 			}
 		}
 	}
+
+	// Archive spine backfill — links every origin row to a content item.
+	const repaired = ensureSpines(db);
+	if (repaired > 0) {
+		console.log(`• Linked ${repaired} archive spine rows (content_items)`);
+	}
+
+	// Collection sibling-name uniqueness backstop (skipped on dirty legacy DBs).
+	ensureCollectionNameIndex(db);
 
 	seedDefaults(db);
 }

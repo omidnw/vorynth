@@ -5,6 +5,10 @@ description: NEVER commit, push, or otherwise write to git without the user's ex
 
 # No auto-commit — Vorynth
 
+## Purpose
+
+Enforce the always-active trust boundary: never write to git (commit, push, PR) without the user's explicit approval. This is a **rule document** — it backs Critical Rule R-C01 in AGENTS.md, not a loadable workflow.
+
 **I do not commit or push anything without the user explicitly telling me to.**
 
 ## The rule

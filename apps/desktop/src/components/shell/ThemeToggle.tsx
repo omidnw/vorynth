@@ -15,7 +15,7 @@ export function ThemeToggle() {
 			onClick={toggle}
 			aria-label="Toggle theme"
 			title={theme === "light" ? "Switch to dark" : "Switch to light"}
-			className="text-on-surface-variant transition-colors hover:text-primary"
+			className="text-on-surface-variant transition-colors hover:text-on-surface"
 		>
 			<Icon name={theme === "light" ? "dark_mode" : "light_mode"} />
 		</button>

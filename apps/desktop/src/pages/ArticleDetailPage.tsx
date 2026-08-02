@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import type { ArticleMedia } from "@vorynth/types";
 import {
 	fetchArticleDetail,
@@ -13,6 +13,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -28,12 +29,22 @@ import { useTranslation } from "react-i18next";
 export function ArticleDetailPage() {
 	const { id = "" } = useParams();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { t } = useTranslation();
 	const queryClient = useQueryClient();
 
+	// Smart back: return to the page that opened this article (Brief, Archive,
+	// Bookmarks, Search) when there's history to go back to; otherwise fall back
+	// to the Brief. `location.key !== "default"` means react-router has a prior
+	// entry in its history stack.
+	const goBack = () => {
+		if (location.key !== "default") navigate(-1);
+		else navigate("/brief");
+	};
+
 	const [reminderDismissed, setReminderDismissed] = useState(false);
 	const [read, setRead] = useState(false);
-	const [saved, setSaved] = useState(false);
+	const [showOriginal, setShowOriginal] = useState(false);
 	const [zoomed, setZoomed] = useState<ArticleMedia | null>(null);
 
 	const { data: detail, isLoading } = useQuery({
@@ -59,6 +70,9 @@ export function ArticleDetailPage() {
 			queryClient.invalidateQueries({ queryKey: ["article-media", id] }),
 	});
 
+	// Real save — bookmark flag on the article's content item (v1.6.0).
+	const bookmark = useBookmarkToggle(detail?.article.contentItemId);
+
 	if (isLoading) {
 		return (
 			<section className="mx-auto w-full max-w-max-content-width px-gutter py-16">
@@ -80,8 +94,8 @@ export function ArticleDetailPage() {
 					<h2 className="font-headline text-headline-md text-primary">
 						{t("article.notFound")}
 					</h2>
-					<Button variant="secondary" icon="arrow_back">
-						<Link to="/brief">{t("article.backToBrief")}</Link>
+					<Button variant="secondary" icon="arrow_back" onClick={goBack}>
+						{t("article.backToBrief")}
 					</Button>
 				</GhostCard>
 			</section>
@@ -89,6 +103,14 @@ export function ArticleDetailPage() {
 	}
 
 	const { article, sourceName, sourceCategory } = detail;
+	const hasOriginalTitle = Boolean(
+		(article as { originalTitle?: string | null }).originalTitle,
+	);
+	const displayTitle =
+		showOriginal && hasOriginalTitle
+			? (article as { originalTitle?: string | null }).originalTitle ??
+				article.title
+			: article.title;
 	const showReminder = !reminderDismissed;
 	const keptCount = media.filter((m) => m.source === "local").length;
 
@@ -103,13 +125,14 @@ export function ArticleDetailPage() {
 			) : null}
 
 			<header className="mb-12">
-				<Link
-					to="/brief"
+				<button
+					type="button"
+					onClick={goBack}
 					className="mb-6 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
 				>
 					<Icon name="arrow_back" className="text-[18px]" />
 					{t("article.back")}
-				</Link>
+				</button>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
 					{sourceCategory ? <DomainTag>{sourceCategory}</DomainTag> : null}
 					<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
@@ -130,12 +153,27 @@ export function ArticleDetailPage() {
 						</span>
 					) : null}
 				</div>
-				<h1
-					className="mb-6 font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
-					dir="auto"
-				>
-					{article.title}
-				</h1>
+				<div className="mb-6 flex items-start gap-3">
+						<h1
+							className="font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
+							dir="auto"
+						>
+							{displayTitle}
+						</h1>
+						{hasOriginalTitle ? (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setShowOriginal((v) => !v);
+								}}
+								className="mt-2 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+								title={showOriginal ? "Show translated title" : "Show original title"}
+							>
+								{showOriginal ? "Translated" : "Original"}
+							</button>
+						) : null}
+					</div>
 				<div className="mb-4 h-0.5 w-12 bg-primary" />
 				<a
 					href={article.url}
@@ -215,9 +253,9 @@ export function ArticleDetailPage() {
 				/>
 				<div className="mx-2 h-6 w-px bg-outline-variant" />
 				<ActionBtn
-					icon={saved ? "bookmark_added" : "bookmark"}
-					label={saved ? t("article.saved") : t("article.save")}
-					onClick={() => setSaved((v) => !v)}
+				icon={bookmark.saved ? "bookmark_added" : "bookmark"}
+				label={bookmark.saved ? t("article.saved") : t("article.save")}
+				onClick={bookmark.toggle}
 				/>
 				<ActionBtn
 					icon="ios_share"
@@ -244,7 +282,7 @@ export function ArticleDetailPage() {
 				<ActionBtn
 					icon="arrow_back"
 					label={t("article.back")}
-					onClick={() => navigate("/brief")}
+					onClick={goBack}
 				/>
 			</footer>
 

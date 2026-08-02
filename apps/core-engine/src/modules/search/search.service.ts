@@ -12,6 +12,7 @@ import {
 } from "../intelligence/prompts/citations.js";
 import { tokenizeQuery, buildFtsQuery } from "../../search/text-normalizer.js";
 import type {
+	AdvancedSearchQuery,
 	Article,
 	Citation,
 	SearchHit,
@@ -57,7 +58,7 @@ export class SearchService {
 	 */
 	async keyword(
 		q: string,
-		opts: { limit?: number; periodMs?: number } = {},
+		opts: { limit?: number; periodMs?: number; author?: string } = {},
 	): Promise<SearchResult> {
 		const maxResults = Math.min(100, Math.max(1, opts.limit ?? 20));
 		const tokens = tokenizeQuery(q);
@@ -67,11 +68,11 @@ export class SearchService {
 		if (!ftsQuery) return { query: q, hits: [], totalMatches: 0 };
 
 		// Try AND first (implicit AND in FTS5 — just space-separated tokens)
-		let hits = this.runFtsQuery(ftsQuery.andQuery, opts.periodMs);
+		let hits = this.runFtsQuery(ftsQuery.andQuery, opts.periodMs, 100, opts.author);
 
 		// Fall back to OR if AND produces nothing
 		if (hits.length === 0) {
-			hits = this.runFtsQuery(ftsQuery.orQuery, opts.periodMs);
+			hits = this.runFtsQuery(ftsQuery.orQuery, opts.periodMs, 100, opts.author);
 		}
 
 		// Slice to limit (runFtsQuery returns up to maxResults internally)
@@ -106,6 +107,7 @@ export class SearchService {
 		ftsQuery: string,
 		periodMs?: number,
 		limit = 100,
+		author?: string,
 	): SearchHit[] {
 		const since = periodMs ? Date.now() - periodMs : null;
 
@@ -121,16 +123,18 @@ export class SearchService {
 	       a.published_at  AS a_published_at,
 	       a.collected_at  AS a_collected_at,
 	       a.hash          AS a_hash,
+	       a.content_item_id AS a_content_item_id,
 	       fts.rank        AS fts_rank,
 	       snippet(articles_fts, 1, '…', '…', '…', 64) AS fts_highlight
 	FROM articles_fts fts
 	JOIN articles a ON a.id = fts.article_id
 	WHERE articles_fts MATCH ?
 	  AND (? IS NULL OR a.collected_at >= ?)
+	  AND (? IS NULL OR a.author LIKE ?)
 	ORDER BY fts.rank
 	LIMIT ?`,
 			)
-			.all(ftsQuery, since, since, limit) as FtsRow[];
+			.all(ftsQuery, since, since, author ?? null, author ? `%${author}%` : null, limit) as FtsRow[];
 
 		// Deduplicate by article_id: keep the first (highest-ranked) entry
 		// when the same article appears multiple times (force-crawl re-insert).
@@ -142,6 +146,104 @@ export class SearchService {
 			hits.push(toSearchHit(row));
 		}
 		return hits;
+	}
+
+	// ── Structured researcher search (v1.6.0) ────────────────────────────────
+
+	/**
+	 * Advanced structured search for researchers — combines a keyword MATCH
+	 * with filters over domains, sources, authors, importance tiers, collected
+	 * date range, and "has an AI insight". Results are newest-first
+	 * (published_at desc). Deterministic, no LLM involved.
+	 */
+	async advanced(query: AdvancedSearchQuery): Promise<SearchResult> {
+		const limit = Math.min(100, Math.max(1, query.limit ?? 50));
+		const where: string[] = [];
+		const params: unknown[] = [];
+		let sourcesJoin = "";
+
+		if (query.q?.trim()) {
+			const tokens = tokenizeQuery(query.q);
+			const ftsQuery = buildFtsQuery(tokens);
+			if (ftsQuery) {
+				where.push(
+					"a.id IN (SELECT article_id FROM articles_fts WHERE articles_fts MATCH ?)",
+				);
+				params.push(ftsQuery.andQuery);
+			}
+		}
+		if (query.domains?.length) {
+			sourcesJoin = "JOIN sources s ON s.id = a.source_id";
+			where.push(`s.category IN (${query.domains.map(() => "?").join(",")})`);
+			params.push(...query.domains);
+		}
+		if (query.sources?.length) {
+			sourcesJoin = sourcesJoin || "JOIN sources s ON s.id = a.source_id";
+			where.push(`s.id IN (${query.sources.map(() => "?").join(",")})`);
+			params.push(...query.sources);
+		}
+		if (query.authors?.length) {
+			where.push(`a.author IN (${query.authors.map(() => "?").join(",")})`);
+			params.push(...query.authors);
+		}
+		if (query.from) {
+			where.push("a.collected_at >= ?");
+			params.push(new Date(query.from).getTime());
+		}
+		if (query.to) {
+			where.push("a.collected_at <= ?");
+			params.push(new Date(query.to).getTime());
+		}
+		if (query.hasInsight) {
+			where.push(
+				"EXISTS (SELECT 1 FROM ai_insights ai WHERE ai.article_id = a.id)",
+			);
+		}
+		if (query.importance?.length) {
+			where.push(
+				`EXISTS (SELECT 1 FROM ai_insights ai2 WHERE ai2.article_id = a.id AND ai2.importance_tier IN (${query.importance
+					.map(() => "?")
+					.join(",")}))`,
+			);
+			params.push(...query.importance);
+		}
+
+		const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+		const rows = this.db.rawDb
+			.prepare(
+				`\
+	SELECT a.id            AS a_id,
+	       a.source_id     AS a_source_id,
+	       a.title         AS a_title,
+	       a.content       AS a_content,
+	       a.url           AS a_url,
+	       a.author        AS a_author,
+	       a.published_at  AS a_published_at,
+	       a.collected_at  AS a_collected_at,
+	       a.hash          AS a_hash,
+	       a.content_item_id AS a_content_item_id,
+	       0               AS fts_rank,
+	       ''              AS fts_highlight
+	FROM articles a
+	${sourcesJoin}
+	${whereSql}
+	ORDER BY a.published_at DESC, a.collected_at DESC
+	LIMIT ?`,
+			)
+			.all(...params, limit) as FtsRow[];
+
+		const hits = rows.map((r) => toSearchHit(r));
+		const result: SearchResult = {
+			query: query.q ?? "",
+			hits,
+			totalMatches: hits.length,
+		};
+
+		// Structured searches with a keyword are recorded like keyword history.
+		if (query.q?.trim() && this.history.shouldRecordKeyword()) {
+			this.history.recordSearch({ query: query.q, mode: "keyword", result });
+		}
+		return result;
 	}
 
 	// ── AI-assisted search (RAG) ──────────────────────────────────────────
@@ -304,6 +406,7 @@ interface FtsRow {
 	a_published_at: number | null;
 	a_collected_at: number;
 	a_hash: string;
+	a_content_item_id: string | null;
 	fts_rank: number;
 	fts_highlight: string;
 }
@@ -327,6 +430,7 @@ function toArticleDto(row: FtsRow): Article {
 		publishedAt: row.a_published_at ? new Date(row.a_published_at) : null,
 		collectedAt: new Date(row.a_collected_at),
 		hash: row.a_hash,
+		contentItemId: row.a_content_item_id,
 	};
 }
 

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { DatabaseService } from "../../db/database.service.js";
 import { llmProviders as llmProvidersTable } from "../../db/schema.js";
 import { CryptoService } from "../crypto/crypto.service.js";
+import { HistoryService } from "../history/history.service.js";
 import type {
 	AnalyzeInput,
 	GenerateInput,
@@ -58,29 +59,101 @@ export class LlmService implements OnModuleInit {
 		@Inject(CryptoService) private readonly crypto: CryptoService,
 		@Inject(RateLimiter) private readonly limiter: RateLimiter,
 		@Inject(UsageService) private readonly usage: UsageService,
+		@Inject(HistoryService) private readonly history: HistoryService,
 	) {}
 
 	onModuleInit() {
+		// Seed the mode setting on first-ever run so the very first load uses
+		// the correct default (intelligence when a provider is configured).
+		const existing = this.history.getSetting<string | null>(
+			"engine.mode",
+			null,
+		);
+		if (existing === null) {
+			const mode = this.autoMode();
+			this.logger.log(`seeding initial mode: ${mode}`);
+			this.history.setSetting("engine.mode", mode);
+		}
+
 		const active = this.peekActive();
-		if (active) this.logger.log(`active provider on boot: ${active.kind}`);
-		else this.logger.log("no LLM provider configured — running in news mode");
+		const mode = this.getMode();
+		if (active) {
+			this.logger.log(
+				`active provider on boot: ${active.kind} | mode: ${mode} | provider rows: ${this.countProviders()}`,
+			);
+		} else {
+			this.logger.log(
+				`no LLM provider configured — running in news mode (mode=${mode} | provider rows: ${this.countProviders()})`,
+			);
+		}
 		this.logger.log(`rate limit: ${this.limiter.capacity} req/min`);
 	}
 
-	/** True when a provider is wired and (best-effort) reachable. */
+	/**
+	 * True when the engine is in intelligence mode AND a provider is configured
+	 * (key decrypts successfully). Unlike v1.4.x, this does NOT call the live
+	 * verify() endpoint — a stored key that decrypts is enough. The user
+	 * explicitly controls the mode via the Settings UI.
+	 *
+	 * When mode is "news", isAvailable() returns false regardless of providers.
+	 */
 	async isAvailable(): Promise<boolean> {
-		const provider = this.getActive();
-		if (!provider) return false;
-		if (this.verifiedAt && Date.now() - this.verifiedAt < 30_000)
-			return this.lastVerified;
-		const ok = await provider.verify();
-		this.lastVerified = ok;
-		this.verifiedAt = Date.now();
-		return ok;
+		if (this.getMode() === "news") return false;
+		const active = this.getActive();
+		return active !== null;
 	}
 
 	get activeKind(): string {
 		return this.getActive()?.kind ?? "none";
+	}
+
+	// ── mode ───────────────────────────────────────────────────────────────────
+
+	/**
+	 * Read the current mode. Always resolves fresh from the DB so there is no
+	 * stale-cache issue. The user's explicit choice (set via {@link setMode}) is
+	 * stored in `engine.mode`; on first boot the setting is seeded by
+	 * {@link onModuleInit} with {@link autoMode}.
+	 */
+	getMode(): "intelligence" | "news" {
+		const persisted = this.history.getSetting<"intelligence" | "news">(
+			"engine.mode",
+			this.autoMode(),
+		);
+		return persisted;
+	}
+
+	/**
+	 * Persist the user's mode choice. Once set, every {@link getMode} call reads
+	 * this value until the user changes it again.
+	 */
+	setMode(mode: "intelligence" | "news"): void {
+		this.history.setSetting("engine.mode", mode);
+		this.invalidate();
+		this.logger.log(`mode set by user: ${mode}`);
+	}
+
+	/**
+	 * Auto-detected mode: returns "intelligence" if {@link buildActive} can
+	 * resolve a working provider (key decrypts + instantiates), "news" otherwise.
+	 * Used as the fallback when no user preference has ever been stored.
+	 */
+	autoMode(): "intelligence" | "news" {
+		return this.buildActive() ? "intelligence" : "news";
+	}
+
+	/** The ID of the provider the user explicitly selected as active, if any. */
+	getActiveProviderId(): string | null {
+		return this.history.getSetting<string | null>(
+			"engine.activeProviderId",
+			null,
+		);
+	}
+
+	/** Set which provider is active (only one at a time). */
+	setActiveProviderId(id: string | null): void {
+		this.history.setSetting("engine.activeProviderId", id);
+		this.invalidate();
 	}
 
 	/** Live rate-limiter state (for progress UI). */
@@ -177,14 +250,20 @@ export class LlmService implements OnModuleInit {
 		}
 	}
 
-	/** Drop the cache so the next call re-reads configuration from the DB. */
-	invalidate(): void {
-		this.cached = null;
-		this.verifiedAt = 0;
-	}
+		/** Drop the cached provider so the next call re-reads from the DB. */
+		invalidate(): void {
+			this.cached = null;
+		}
 
-	private verifiedAt = 0;
-	private lastVerified = false;
+		/** Count enabled provider rows (for diagnostics). */
+		private countProviders(): number {
+			const row = this.db.rawDb
+				.prepare(
+					`SELECT count(*) AS n FROM llm_providers WHERE enabled = 1`,
+				)
+				.get() as { n: number } | undefined;
+			return row?.n ?? 0;
+		}
 
 	// ── active provider resolution ───────────────────────────────────────────
 
@@ -207,11 +286,12 @@ export class LlmService implements OnModuleInit {
 
 	/**
 	 * Builds the active provider without caching. Priority:
-	 *   1. Most recent enabled DB row with a decryptable secret/baseUrl.
-	 *   2. Env-var fallback (dev convenience).
+	 *   1. DB row matching `engine.activeProviderId` (if set).
+	 *   2. Most recent enabled DB row with a decryptable secret/baseUrl.
+	 *   3. Env-var fallback (dev convenience).
 	 */
 	private buildActive(): { provider: LlmProvider; rowId: string } | null {
-		// 1. DB rows (most recent first).
+		const activeId = this.getActiveProviderId();
 		const rows = this.db.rawDb
 			.prepare(
 				`SELECT * FROM llm_providers WHERE enabled = 1 ORDER BY created_at DESC LIMIT 8`,
@@ -225,30 +305,54 @@ export class LlmService implements OnModuleInit {
 			base_url: string | null;
 		}>;
 
-		for (const row of rows) {
-			const opts: ProviderConstructorOpts = {
-				model: row.default_model ?? undefined,
-				baseUrl: row.base_url ?? undefined,
-			};
-			if (row.encrypted_api_key) {
-				try {
-					opts.apiKey = this.crypto.decrypt(row.encrypted_api_key);
-				} catch {
-					this.logger.warn(`failed to decrypt key for ${row.label} — skipping`);
-					continue;
-				}
+		// 1. Try the user's explicitly selected provider first.
+		if (activeId) {
+			const chosen = rows.find((r) => r.id === activeId);
+			if (chosen) {
+				const built = this.tryBuild(chosen);
+				if (built) return built;
 			}
-			const provider = this.instantiate(row.kind, opts);
-			if (provider) return { provider, rowId: row.id };
 		}
 
-		// 2. Env fallback.
+		// 2. DB rows (most recent first).
+		for (const row of rows) {
+			const built = this.tryBuild(row);
+			if (built) return built;
+		}
+
+		// 3. Env fallback.
 		const env = this.envProvider();
 		if (env) {
 			const provider = this.instantiate(env.kind, env.opts);
 			if (provider) return { provider, rowId: "env" };
 		}
 
+		return null;
+	}
+
+	/** Try to instantiate a provider from a DB row. Returns null on failure. */
+	private tryBuild(row: {
+		id: string;
+		kind: LlmProviderKind;
+		label: string;
+		encrypted_api_key: string | null;
+		default_model: string | null;
+		base_url: string | null;
+	}): { provider: LlmProvider; rowId: string } | null {
+		const opts: ProviderConstructorOpts = {
+			model: row.default_model ?? undefined,
+			baseUrl: row.base_url ?? undefined,
+		};
+		if (row.encrypted_api_key) {
+			try {
+				opts.apiKey = this.crypto.decrypt(row.encrypted_api_key);
+			} catch {
+				this.logger.warn(`failed to decrypt key for ${row.label} — skipping`);
+				return null;
+			}
+		}
+		const provider = this.instantiate(row.kind, opts);
+		if (provider) return { provider, rowId: row.id };
 		return null;
 	}
 

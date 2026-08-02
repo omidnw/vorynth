@@ -5,6 +5,10 @@ description: Prefer well-maintained, standard npm packages over hand-rolled code
 
 # Standard Packages — Vorynth
 
+## Purpose
+
+Decide between a well-maintained npm package and hand-rolled code, and apply the project's quality bar when adding a dependency.
+
 ## Principle
 
 **Don't hand-roll what the community has already built and vetted.** The open-source ecosystem exists so we don't rebuild wheels. Before writing custom logic for anything standardised (language lists, country data, date formatting, text normalisation, MIME types, etc.), check for a well-established package.

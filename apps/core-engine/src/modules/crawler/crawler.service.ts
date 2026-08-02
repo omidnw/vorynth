@@ -1,7 +1,8 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { and, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { DatabaseService } from "../../db/database.service.js";
 import { articles, sources } from "../../db/schema.js";
+import { attachSpine, createSpine, hasSpine } from "../../db/spine.js";
 import { ftsInsertArticle } from "../../db/fts-sync.js";
 import type { Article } from "@vorynth/types";
 import type { SourceAdapter } from "./source-adapter.js";
@@ -82,15 +83,23 @@ export class CrawlerService implements OnModuleInit {
 
 		// Apply the per-source fetch window (default 7 days). Drop anything
 		// older than the window so the local DB only holds what's in scope.
+		// v1.6.0: an absolute time range (fetchFrom set) overrides the relative
+		// window — keep articles published within [fetchFrom, fetchTo].
 		const windowDays = src.fetchWindowDays ?? 7;
-		const inWindow =
-			windowDays > 0 ? filterByWindow(parsed, windowDays) : parsed;
+		const absoluteRange = src.fetchFrom != null;
+		const inWindow = absoluteRange
+			? filterByAbsoluteRange(parsed, src.fetchFrom, src.fetchTo)
+			: windowDays > 0
+				? filterByWindow(parsed, windowDays)
+				: parsed;
 
 		const stored = await this.persistDeduped(inWindow, opts?.force);
 
-		// Prune articles for this source older than the window (keeps the DB
-		// tidy across runs even when sources change their window later).
-		if (windowDays > 0) {
+		// Prune articles outside the source's scope (keeps the DB tidy across
+		// runs even when sources change their window later).
+		if (absoluteRange) {
+			await this.pruneOutsideRange(src.id, src.fetchFrom, src.fetchTo);
+		} else if (windowDays > 0) {
 			await this.pruneOlderThan(src.id, windowDays);
 		}
 
@@ -182,41 +191,52 @@ export class CrawlerService implements OnModuleInit {
 	): Promise<Article[]> {
 		if (items.length === 0) return [];
 
+		const raw = this.db.rawDb;
+
+		// Raw SQL for the write path so the article insert, FTS sync, and spine
+		// link run atomically (R-A09). NOTE: better-sqlite3's `db.transaction(fn)`
+		// RETURNS a function — it must be invoked (`... } )()`); forgetting the
+		// trailing `()` silently discards the whole transaction.
+		const INSERT_ARTICLE = raw.prepare(
+			`INSERT INTO articles (id, source_id, title, content, url, author, published_at, collected_at, hash)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		);
+		const UPSERT_ARTICLE = raw.prepare(
+			`INSERT INTO articles (id, source_id, title, content, url, author, published_at, collected_at, hash)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			 ON CONFLICT(hash) DO UPDATE SET
+			   content = excluded.content,
+			   author = excluded.author,
+			   url = excluded.url,
+			   title = excluded.title,
+			   collected_at = excluded.collected_at`,
+		);
+		const syncArticle = (a: Article) => {
+			ftsInsertArticle(raw, a.id, a.title, a.content, a.author);
+			this.ensureArticleSpine(a);
+		};
+		const articleArgs = (a: Article) => [
+			a.id,
+			a.sourceId,
+			a.title,
+			a.content,
+			a.url,
+			a.author ?? null,
+			a.publishedAt?.getTime() ?? null,
+			a.collectedAt.getTime(),
+			a.hash,
+		];
+
 		if (force) {
-			// Upsert mode: insert or update on hash conflict. The `excluded`
-			// pseudo-table carries the proposed new values.
-			await this.db.db
-				.insert(articles)
-				.values(
-					items.map((a) => ({
-						id: a.id,
-						sourceId: a.sourceId,
-						title: a.title,
-						content: a.content,
-						url: a.url,
-						author: a.author,
-						publishedAt: a.publishedAt,
-						collectedAt: a.collectedAt,
-						hash: a.hash,
-					})),
-				)
-				.onConflictDoUpdate({
-					target: articles.hash,
-					set: {
-						content: sql`excluded.content`,
-						author: sql`excluded.author`,
-						url: sql`excluded.url`,
-						title: sql`excluded.title`,
-						collectedAt: sql`excluded.collected_at`,
-					},
-				});
-
-			// Sync all upserted items into FTS5 (re-insert with new content;
-			// deduplication in the search query handles stale entries).
-			for (const a of items) {
-				ftsInsertArticle(this.db.rawDb, a.id, a.title, a.content);
-			}
-
+			// Upsert mode: insert or update on hash conflict; refresh content,
+			// author, url, title, collectedAt. Spine + FTS sync in the same
+			// transaction (R-A09/R-A10).
+			raw.transaction(() => {
+				for (const a of items) {
+					UPSERT_ARTICLE.run(...articleArgs(a));
+					syncArticle(a);
+				}
+			})();
 			// In force mode, all items were upserted — return all of them.
 			return items;
 		}
@@ -232,43 +252,70 @@ export class CrawlerService implements OnModuleInit {
 		const fresh = items.filter((i) => !seen.has(i.hash));
 		if (fresh.length === 0) return [];
 
-		// Insert; on hash conflict, do nothing (extra safety against races).
-		await this.db.db
-			.insert(articles)
-			.values(
-				fresh.map((a) => ({
-					id: a.id,
-					sourceId: a.sourceId,
-					title: a.title,
-					content: a.content,
-					url: a.url,
-					author: a.author,
-					publishedAt: a.publishedAt,
-					collectedAt: a.collectedAt,
-					hash: a.hash,
-				})),
-			)
-			.onConflictDoNothing({ target: articles.hash });
-
-		// Sync fresh articles into FTS5 index.
-		for (const a of fresh) {
-			ftsInsertArticle(this.db.rawDb, a.id, a.title, a.content);
-		}
+		// Insert + FTS sync + spine link, one transaction (no orphan window).
+		raw.transaction(() => {
+			for (const a of fresh) {
+				INSERT_ARTICLE.run(...articleArgs(a));
+				syncArticle(a);
+			}
+		})();
 
 		return fresh;
 	}
 
-	/** Delete this source's articles older than `windowDays` (by publishedAt). */
-	private async pruneOlderThan(sourceId: string, windowDays: number) {
+	/**
+	 * Attach an archive spine to an article. Idempotent — force re-collects
+	 * keep the existing spine (and anything built on it: bookmarks, notes,
+	 * collections).
+	 */
+	private ensureArticleSpine(a: Article): void {
+		const raw = this.db.rawDb;
+		if (hasSpine(raw, "articles", a.id)) return;
+		const spineId = createSpine(raw, "article", a.collectedAt);
+		attachSpine(raw, "articles", a.id, spineId);
+	}
+
+	/**
+	 * Delete this source's articles older than `windowDays` (by publishedAt).
+	 *
+	 * Retention (R-A10): bookmarked articles are NEVER pruned — a bookmark is
+	 * user ownership of a reference, and silently destroying it is a promise
+	 * broken. Non-bookmarked rows older than the window are removed; FTS5
+	 * entries become invisible via the search query's INNER JOIN.
+	 *
+	 * Public so the domain-invariant tests can exercise the real retention
+	 * path (the rule lives in the SQL, not in a wrapper).
+	 */
+	async pruneOlderThan(sourceId: string, windowDays: number) {
 		const cutoff = new Date(Date.now() - windowDays * 86_400_000);
 		await this.db.db
 			.delete(articles)
 			.where(
-				and(eq(articles.sourceId, sourceId), lt(articles.publishedAt, cutoff)),
+				and(
+					eq(articles.sourceId, sourceId),
+					lt(articles.publishedAt, cutoff),
+					sql`content_item_id NOT IN (SELECT content_item_id FROM bookmarks WHERE content_item_id IS NOT NULL)`,
+				),
 			);
-		// NOTE: FTS5 entries for pruned articles are not explicitly deleted;
-		// they become invisible because the search query INNER JOINs with the
-		// articles table (deleted rows produce no match).
+	}
+
+	/**
+	 * v1.6.0 — absolute time range mode. Deletes this source's articles that
+	 * fall OUTSIDE [fetchFrom, fetchTo] (by publishedAt). Bookmarked articles
+	 * are never pruned (R-A10), exactly like the relative window.
+	 */
+	async pruneOutsideRange(
+		sourceId: string,
+		from: Date | null,
+		to: Date | null,
+	) {
+		const clauses = [eq(articles.sourceId, sourceId)];
+		if (from) clauses.push(lt(articles.publishedAt, from));
+		if (to) clauses.push(gt(articles.publishedAt, to));
+		clauses.push(
+			sql`content_item_id NOT IN (SELECT content_item_id FROM bookmarks WHERE content_item_id IS NOT NULL)`,
+		);
+		await this.db.db.delete(articles).where(and(...clauses));
 	}
 }
 
@@ -279,5 +326,20 @@ function filterByWindow(items: Article[], windowDays: number): Article[] {
 		// No publishedAt → keep (we can't judge age; let the dedup hash decide).
 		if (!a.publishedAt) return true;
 		return a.publishedAt.getTime() >= cutoff;
+	});
+}
+
+/** v1.6.0 — keep only articles published within [from, to] (absolute range). */
+function filterByAbsoluteRange(
+	items: Article[],
+	from: Date | null,
+	to: Date | null,
+): Article[] {
+	return items.filter((a) => {
+		if (!a.publishedAt) return true; // no date → keep; hash decides
+		const t = a.publishedAt.getTime();
+		if (from && t < from.getTime()) return false;
+		if (to && t > to.getTime()) return false;
+		return true;
 	});
 }

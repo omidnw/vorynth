@@ -13,7 +13,10 @@
  */
 
 // ── FTS5 virtual table ─────────────────────────────────────────────────────
-// Standalone — stores its own copy of title + content, plus the article UUID.
+// Standalone — stores its own copy of title + content + author, plus the
+// article UUID. `author` was added in v1.6.0 (author search); because FTS5
+// virtual tables cannot be ALTERed, `ensureFtsSchema()` drops + rebuilds the
+// table when the column is missing (derived, rebuildable data — R-A09).
 // Tokenizer options:
 //   remove_diacritics 2  — strip Arabic/Persian diacritics (tashkeel)
 //   prefix '2 3'         — enable fast prefix queries for 2/3-char terms
@@ -23,6 +26,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
   article_id UNINDEXED,
   title,
   content,
+  author,
   tokenize='unicode61 remove_diacritics 2',
   prefix='2 3'
 );
@@ -31,6 +35,6 @@ CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
 // ── Bulk insert (for migration backfill) ───────────────────────────────────
 
 export const FTS_BACKFILL_SQL = `\
-INSERT OR IGNORE INTO articles_fts(article_id, title, content)
-SELECT id, normalize_fts(title), normalize_fts(content) FROM articles;
+INSERT OR IGNORE INTO articles_fts(article_id, title, content, author)
+SELECT id, normalize_fts(title), normalize_fts(content), normalize_fts(author) FROM articles;
 `;

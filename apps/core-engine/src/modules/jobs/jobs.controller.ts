@@ -23,6 +23,8 @@ import { SearchService } from "../search/search.service.js";
  *   POST   /jobs/generate     run the LangGraph workflow (background)
  *   POST   /jobs/summarize    write a period summary (background)
  *   POST   /jobs/ask          AI search (RAG, background, rate-limited)
+ *   POST   /jobs/regenerate-insights  regenerate AI triad for all insights (background)
+ *   POST   /jobs/translate-titles     translate all article titles (background)
  *   POST   /jobs/:id/cancel   cancel a running job
  */
 @Controller("jobs")
@@ -138,29 +140,94 @@ export class JobsController {
 		});
 	}
 
-	@Post("ask")
-	async ask(
-		@Query("q") q: string,
-		@Body() body: { periodDays?: number; budget?: number } = {},
-	) {
-		const question = q ?? "";
-		return this.jobs.start({
-			kind: "summarize" as JobKind, // reuse the "ask LLM" kind for rate-limit dedup
-			label: `Asking AI: "${question.slice(0, 40)}${question.length > 40 ? "…" : ""}"`,
-			run: async ({ update }) => {
-				update({
-					message: "Searching articles + asking the LLM…",
-					fraction: 0.3,
-				});
-				const result = await this.search.ask(question, {
-					periodMs: body.periodDays ? body.periodDays * 86_400_000 : undefined,
-					contextTokenBudget: body.budget,
-				});
-				update({ message: "Done", fraction: 1 });
-				return result;
-			},
-		});
-	}
+		@Post("ask")
+		async ask(
+			@Query("q") q: string,
+			@Body() body: { periodDays?: number; budget?: number } = {},
+		) {
+			const question = q ?? "";
+			return this.jobs.start({
+				kind: "summarize" as JobKind, // reuse the "ask LLM" kind for rate-limit dedup
+				label: `Asking AI: "${question.slice(0, 40)}${question.length > 40 ? "…" : ""}"`,
+				run: async ({ update }) => {
+					update({
+						message: "Searching articles + asking the LLM…",
+						fraction: 0.3,
+					});
+					const result = await this.search.ask(question, {
+						periodMs: body.periodDays ? body.periodDays * 86_400_000 : undefined,
+						contextTokenBudget: body.budget,
+					});
+					update({ message: "Done", fraction: 1 });
+					return result;
+				},
+			});
+		}
+
+		@Post("regenerate-insights")
+		async regenerateInsights(
+			@Body()
+			body: { targetLanguage?: string } = {},
+		) {
+			// First count how many insights exist so the job knows itemsTotal.
+			const countRow = this.intelligence.countInsights();
+			return this.jobs.start({
+				kind: "regenerate",
+				label: "Regenerating all insights",
+				itemsTotal: countRow,
+				run: async ({ update }) => {
+					const total = countRow;
+					const regenerated = await this.intelligence.regenerateAllInsights(
+						(done, totalItems) => {
+							update({
+								message: `Regenerating insight ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						},
+						body.targetLanguage,
+					);
+					update({
+						message: `Regenerated ${regenerated} insights`,
+						fraction: 1,
+						itemsDone: regenerated,
+						itemsTotal: total,
+					});
+					return { regenerated };
+				},
+			});
+		}
+
+		@Post("translate-titles")
+		async translateTitles(
+			@Body()
+			body: { targetLanguage?: string } = {},
+		) {
+			return this.jobs.start({
+				kind: "regenerate",
+				label: "Translating story titles",
+				run: async ({ update }) => {
+					const translated = await this.intelligence.translateAllTitles(
+						(done, totalItems) => {
+							update({
+								message: `Translating title ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						},
+						body.targetLanguage,
+					);
+					update({
+						message: `Translated ${translated} titles`,
+						fraction: 1,
+						itemsDone: translated,
+					});
+					return { translated };
+				},
+			});
+		}
 
 	@Post(":id/cancel")
 	async cancel(@Param("id") id: string) {

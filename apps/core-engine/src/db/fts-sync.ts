@@ -12,20 +12,9 @@
  */
 import type Database from "better-sqlite3";
 import { normalizeText } from "../search/text-normalizer.js";
+import { FTS_BACKFILL_SQL, FTS_VIRTUAL_DDL } from "./fts-schema.js";
 
 const FTS_TABLE = "articles_fts";
-
-// ── DDL ────────────────────────────────────────────────────────────────────
-
-const FTS_DDL = `\
-CREATE VIRTUAL TABLE IF NOT EXISTS ${FTS_TABLE} USING fts5(
-  article_id UNINDEXED,
-  title,
-  content,
-  tokenize='unicode61 remove_diacritics 2',
-  prefix='2 3'
-);
-`;
 
 // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -41,14 +30,16 @@ export function ftsInsertArticle(
 	articleId: string,
 	title: string,
 	content: string,
+	author?: string | null,
 ): void {
 	const nTitle = normalizeText(title);
 	const nContent = normalizeText(content);
+	const nAuthor = normalizeText(author ?? "");
 	rawDb
 		.prepare(
-			"INSERT INTO articles_fts(article_id, title, content) VALUES (?, ?, ?)",
+			"INSERT INTO articles_fts(article_id, title, content, author) VALUES (?, ?, ?, ?)",
 		)
-		.run(articleId, nTitle, nContent);
+		.run(articleId, nTitle, nContent, nAuthor);
 }
 
 /**
@@ -63,14 +54,28 @@ export function ftsInsertArticle(
 export function ftsRebuildIndex(rawDb: Database.Database): number {
 	// Drop and recreate.
 	rawDb.exec(`DROP TABLE IF EXISTS ${FTS_TABLE}`);
-	rawDb.exec(FTS_DDL);
+	rawDb.exec(FTS_VIRTUAL_DDL);
 
 	// Backfill.
-	const { changes } = rawDb
-		.prepare(
-			`INSERT INTO ${FTS_TABLE}(article_id, title, content)
-       SELECT id, normalize_fts(title), normalize_fts(content) FROM articles`,
-		)
-		.run();
+	const { changes } = rawDb.prepare(FTS_BACKFILL_SQL).run();
+	return changes;
+}
+
+/**
+ * Ensure the FTS5 table matches the current schema, rebuilding when needed.
+ *
+ * FTS5 virtual tables cannot be ALTERed. If the table predates the `author`
+ * column (added v1.6.0), drop and recreate + backfill — derived, rebuildable
+ * data (R-A09). Called from `runMigrations` on every startup; idempotent.
+ */
+export function ensureFtsSchema(rawDb: Database.Database): number {
+	const cols = rawDb
+		.prepare(`PRAGMA table_info(${FTS_TABLE})`)
+		.all() as Array<{ name: string }>;
+	if (cols.length > 0 && !cols.some((c) => c.name === "author")) {
+		rawDb.exec(`DROP TABLE IF EXISTS ${FTS_TABLE}`);
+	}
+	rawDb.exec(FTS_VIRTUAL_DDL);
+	const { changes } = rawDb.prepare(FTS_BACKFILL_SQL).run();
 	return changes;
 }

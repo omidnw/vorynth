@@ -23,7 +23,11 @@ export type SourceCategory =
 	| "cloud"
 	| "security"
 	| "open-source"
-	| "other";
+	| "other"
+	// Custom categories the user types in the Add Source form (v1.6.0). The
+	// engine stores any string; this keeps the built-ins typed while allowing
+	// free-form values via the index signature.
+	| (string & {});
 
 /** HTML-crawl selector config (project-details.md §30). */
 export interface HtmlSelectorConfig {
@@ -53,6 +57,13 @@ export interface Source {
 	 * than this. Default 7 (one week); user can override per source. 0 = unlimited.
 	 */
 	fetchWindowDays: number;
+	/**
+	 * Absolute time range (v1.6.0). When `fetchFrom` is set, the source keeps
+	 * articles published within [fetchFrom, fetchTo] instead of the relative
+	 * `fetchWindowDays` window. Both null = relative mode.
+	 */
+	fetchFrom: Date | null;
+	fetchTo: Date | null;
 	lastCheckedAt: Date | null;
 	createdAt: Date;
 }
@@ -73,6 +84,9 @@ export interface UpdateSourceInput {
 	enabled?: boolean;
 	/** 0 = unlimited. */
 	fetchWindowDays?: number;
+	/** Absolute range mode — set `fetchFrom` to switch to from/to dates. */
+	fetchFrom?: Date | null;
+	fetchTo?: Date | null;
 	configuration?: SourceConfiguration;
 }
 
@@ -127,6 +141,8 @@ export interface Article {
 	id: string;
 	sourceId: string;
 	title: string;
+	/** Original title before translation, if the title was translated. */
+	originalTitle?: string | null;
 	content: string;
 	url: string;
 	author: string | null;
@@ -134,6 +150,13 @@ export interface Article {
 	collectedAt: Date;
 	/** SHA-256 of normalized (title + publishedAt + sourceId) for dedup. */
 	hash: string;
+	/**
+	 * Archive spine id (`content_items`). Present once the engine has linked
+	 * this article to its archive item — the frontend bookmark button sends
+	 * this to `POST /bookmarks`. Null for rows created before v1.6.0 migration
+	 * or when the spine has not been attached.
+	 */
+	contentItemId?: string | null;
 }
 
 /**
@@ -329,6 +352,16 @@ export interface BriefEntry {
 	score: number;
 	/** Importance tier derived from `score` when no LLM is configured. */
 	importanceTier: ImportanceTier;
+	/**
+	 * Transparency — the stored signals behind `score` (evidence, never an
+	 * AI-generated explanation of its own reasoning). Same formula the news
+	 * layer uses: `reliability * 0.6 + freshness * 2 + lengthSignal`.
+	 */
+	ranking: {
+		sourceReliability: number;
+		freshnessScore: number;
+		lengthSignal: number;
+	};
 	/** AI-generated intelligence. Present only when an LLM analyzed this article. */
 	insight: Insight | null;
 }
@@ -350,17 +383,18 @@ export interface TodaysBrief {
  * `/status` endpoint, the Settings page, the Changelog) reads this same
  * constant so they never drift.
  */
-export const VORYNTH_VERSION = "1.5.0";
+export const VORYNTH_VERSION = "1.6.0";
 
 /** Engine status surfaced to the UI (e.g. onboarding, settings). */
 export interface EngineStatus {
 	ready: boolean;
 	version: string;
 	llm: {
-		configured: boolean;
-		providerKind: string | null;
-	};
-	sources: {
+			configured: boolean;
+			providerKind: string | null;
+			mode: "intelligence" | "news";
+		};
+		sources: {
 		total: number;
 		enabled: number;
 	};
@@ -498,7 +532,7 @@ export interface WorkflowProgressEvent {
 // survive navigation away from the page that started them)
 // ──────────────────────────────────────────────────────────────────────────
 
-export type JobKind = "collect" | "generate" | "summarize";
+export type JobKind = "collect" | "generate" | "summarize" | "regenerate";
 export type JobStatus = "queued" | "running" | "done" | "error" | "canceled";
 
 export interface JobProgress {
@@ -638,5 +672,187 @@ export type AppSettings = Record<string, unknown> & {
 	 * When true, newly-fetched media is kept locally by default instead of
 	 * being streamed from the source URL each time.
 	 */
-	"reader.defaultKeepMediaLocal"?: boolean;
-};
+		"reader.defaultKeepMediaLocal"?: boolean;
+		/**
+		 * v1.6.0 — auto-delete retention. Days of age (by collected time) after
+		 * which a story is automatically removed. 0 = off (no auto-delete).
+		 */
+		"retention.autoDeleteDays"?: number;
+		/**
+		 * When true, auto-delete never removes bookmarked stories (R-A10).
+		 * Default true.
+		 */
+		"retention.protectBookmarked"?: boolean;
+		/**
+		 * When true, auto-delete never removes stories placed in a collection
+		 * (folders/categories are user organization). Default true.
+		 */
+		"retention.protectInCollection"?: boolean;
+		/**
+		 * User's choice: intelligence mode (LLM on) or news mode (LLM off).
+		 * The user explicitly controls this, regardless of whether providers exist.
+		 */
+		"engine.mode"?: "intelligence" | "news";
+		/**
+		 * The ID of the provider the user explicitly selected as active, when
+		 * multiple providers are configured. If absent or the provider no longer
+		 * exists, the most recent enabled provider is used as fallback.
+		 */
+		"engine.activeProviderId"?: string;
+		/**
+		 * Show confirmation dialog before deleting an LLM provider.
+		 * Default true; the user can disable it with "don't show again".
+		 */
+			"ui.confirmDeleteProvider"?: boolean;
+		};
+
+// ──────────────────────────────────────────────────────────────────────────
+// Archive (v1.6.0) — unified user-owned intelligence space
+// ──────────────────────────────────────────────────────────────────────────
+// The Archive is Vorynth's user-owned organization layer: collected stories,
+// bookmarked items, generated summaries, keyword searches, and Ask-AI answers
+// are all `content_items` (metadata-only spines) whose real data lives in the
+// origin tables (R-A09). Bookmarks are a flag on a content item, not a type
+// (R-A10).
+
+export type ContentItemType =
+	| "article"
+	| "summary"
+	| "keyword-search"
+	| "ai-ask";
+
+export type CollectionKind = "category" | "folder";
+
+/** One row of the Archive list (`GET /archive/items`). */
+export interface ArchiveItem {
+	contentItemId: string;
+	contentType: ContentItemType;
+	/** Free-form user note (searchable in the Archive). */
+	note: string | null;
+	/** Owning collection id, or null = uncategorized. */
+	collectionId: string | null;
+	/** ISO timestamp when the user archived the item, or null. */
+	archivedAt: string | null;
+	bookmarked: boolean;
+	tags: string[];
+	createdAt: string;
+	updatedAt: string;
+	/** Origin-derived display fields (joined per kind — no stored snapshot). */
+	title: string | null;
+	url: string | null;
+	author: string | null;
+	publishedAt: string | null;
+	/** Full origin payload (Article, SearchHistoryEntry, BriefHistoryEntry, …). */
+	origin: unknown;
+}
+
+export interface ArchiveItemList {
+	items: ArchiveItem[];
+	total: number;
+	hasMore: boolean;
+}
+
+/** Body for `PATCH /archive/items/:id`. `archived` toggles the flag. */
+export interface UpdateArchiveItemInput {
+	note?: string | null;
+	tags?: string[];
+	collectionId?: string | null;
+	archived?: boolean;
+}
+
+export interface Collection {
+	id: string;
+	name: string;
+	description: string | null;
+	/** Parent collection id (category → folder → folder/items nesting). */
+	parentId: string | null;
+	kind: CollectionKind;
+	/** True when a future LLM-organization job proposed this collection. */
+	llmGenerated: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface CreateCollectionInput {
+	name: string;
+	kind?: CollectionKind;
+	parentId?: string | null;
+	description?: string;
+}
+
+export interface UpdateCollectionInput {
+	name?: string;
+	description?: string;
+	parentId?: string | null;
+	kind?: CollectionKind;
+}
+
+export interface CollectionList {
+	items: Collection[];
+}
+
+/** One saved content item — the flag that makes it "Saved". */
+export interface Bookmark {
+	id: string;
+	contentItemId: string;
+	createdAt: string;
+}
+
+/** `GET /bookmarks` — bookmarked items, same shape as archive items. */
+export interface BookmarkList {
+	items: ArchiveItem[];
+	total: number;
+	hasMore: boolean;
+}
+
+// ── Sources: per-source article range windows ───────────────────────────────
+// `GET /sources/:id/articles?range=day|week|month|year|from&to=`. Informational
+// over surviving data — articles pruned by the source's retention window are
+// gone from the DB, and `prunedNote` explains why a window comes up empty.
+
+export type SourceRange = "day" | "week" | "month" | "year" | "custom";
+
+export interface SourceArticlesResult {
+	articles: Article[];
+	total: number;
+	/** Human explainer when the requested range predates retention, else null. */
+	prunedNote: string | null;
+}
+
+// ── History unified search ─────────────────────────────────────────────────
+// `GET /history/search?q=` across search/brief/generated tables. `type`
+// selects which existing full-detail page to open for a hit.
+
+export type HistoryType = "search" | "brief" | "generated";
+
+export interface HistorySearchHit {
+	id: string;
+	type: HistoryType;
+	title: string;
+	createdAt: string;
+	archived: boolean;
+	/** Short match snippet for context. */
+	snippet: string;
+}
+
+export interface HistorySearchResult {
+	items: HistorySearchHit[];
+}
+
+// ── Advanced researcher search (Should tier) ────────────────────────────────
+// Structured query over the collected corpus: domains, importance tiers, date
+// range, authors, sources, and whether an AI insight exists. Powers the Brief
+// page's "Advanced search" panel.
+
+export interface AdvancedSearchQuery {
+	q?: string;
+	domains?: SourceCategory[];
+	importance?: ImportanceTier[];
+	/** ISO date (inclusive) — filters on collected_at. */
+	from?: string;
+	to?: string;
+	authors?: string[];
+	sources?: string[];
+	hasInsight?: boolean;
+	limit?: number;
+}

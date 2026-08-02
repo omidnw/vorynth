@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { BriefEntry, BriefPeriod } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -100,10 +102,12 @@ export function BriefPage() {
 		}
 	}, [setPeriod, setSort, setDomainFilter]);
 
-	const { startCollect, startGenerate, isActive, lastError } = useJobsStore();
-	const collectActive = isActive("collect");
-	const generateActive = isActive("generate");
-	const busy = collectActive || generateActive;
+		const { t } = useTranslation();
+		const navigate = useNavigate();
+		const { startCollect, startGenerate, isActive, lastError } = useJobsStore();
+		const collectActive = isActive("collect");
+		const generateActive = isActive("generate");
+		const busy = collectActive || generateActive;
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["reports", "range", period],
@@ -158,18 +162,37 @@ export function BriefPage() {
 						<span className="h-1 w-1 rounded-full bg-outline-variant" />
 						<span>{data ? `${data.totalSources} sources` : "—"}</span>
 						<span className="h-1 w-1 rounded-full bg-outline-variant" />
-						<span
-							className={
-								intelligenceEnabled
-									? "text-secondary"
-									: "text-on-tertiary-container"
-							}
-						>
-							{intelligenceEnabled ? "LLM intelligence on" : "News mode"}
-						</span>
+							<span
+								className={
+									intelligenceEnabled
+										? "text-secondary"
+										: "text-on-tertiary-container"
+								}
+							>
+								{intelligenceEnabled
+									? t("brief.intelligenceOn")
+									: t("brief.newsMode")}
+							</span>
 					</div>
 				</div>
 				<div className="flex gap-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						icon="bookmark"
+						onClick={() => navigate("/bookmarks")}
+						title="Saved stories"
+					>
+						Bookmarks
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						icon="tune"
+						onClick={() => navigate("/archive/search")}
+					>
+						Advanced search
+					</Button>
 					<Button
 						variant="ghost"
 						size="sm"
@@ -322,21 +345,27 @@ export function BriefPage() {
 			) : null}
 
 			{!intelligenceEnabled && allEntries.length > 0 ? (
-				<div className="mt-8 flex items-center gap-3 border-l-2 border-secondary bg-surface-container-low px-5 py-3 rounded">
-					<Icon name="tips_and_updates" className="text-secondary" />
-					<p className="font-body text-body-md text-on-surface-variant">
-						<strong className="text-on-surface">News mode.</strong> Add an LLM
-						provider in Settings to generate the Why-it-matters / Impact /
-						Recommended-Action triad and the Period Briefing.
-					</p>
-				</div>
-			) : null}
-
-			{intelligenceEnabled ? (
-				<div className="mt-4">
-					<DomainTag>LLM Intelligence Active</DomainTag>
-				</div>
-			) : null}
+					<div
+						className="mt-8 flex cursor-pointer items-center gap-3 border-l-2 border-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
+						onClick={() => navigate("/settings")}
+						role="button"
+						tabIndex={0}
+					>
+						<Icon name="tips_and_updates" className="text-secondary" />
+						<p className="font-body text-body-md text-on-surface-variant">
+							<strong className="text-on-surface">News mode.</strong> Switch to
+							Intelligence mode in
+							<span className="underline"> Settings</span> when your provider is
+							ready.
+						</p>
+					</div>
+				) : null}
+	
+				{intelligenceEnabled ? (
+					<div className="mt-4">
+						<DomainTag>Intelligence Mode Active</DomainTag>
+					</div>
+				) : null}
 		</section>
 	);
 }

@@ -7,18 +7,25 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 } from "@nestjs/common";
 import { SourcesService } from "./sources.service.js";
-import type { CreateSourceInput, UpdateSourceInput } from "@vorynth/types";
+import type {
+	CreateSourceInput,
+	SourceRange,
+	UpdateSourceInput,
+} from "@vorynth/types";
 
 /**
  * Source management endpoints (project-details.md §29).
  *
- *   GET    /sources            list
- *   GET    /sources/:id        get one
- *   POST   /sources            create
- *   PATCH  /sources/:id        update enabled flag, fetchWindowDays, name, …
- *   DELETE /sources/:id        remove
+ *   GET    /sources                       list
+ *   GET    /sources/:id                   get one
+ *   GET    /sources/:id/articles          articles within a range window
+ *   POST   /sources                       create
+ *   PATCH  /sources/:id                   update enabled flag, fetchWindowDays, name, …
+ *   DELETE /sources/:id                   remove (409 when bookmarked articles
+ *                                         exist; `?force=true` confirms)
  */
 @Controller("sources")
 export class SourcesController {
@@ -36,6 +43,20 @@ export class SourcesController {
 		return this.sources.get(id);
 	}
 
+	@Get(":id/articles")
+	async articlesInRange(
+		@Param("id") id: string,
+		@Query("range") range?: string,
+		@Query("from") from?: string,
+		@Query("to") to?: string,
+	) {
+		return this.sources.articlesInRange(id, {
+			range: (range as SourceRange) || undefined,
+			from,
+			to,
+		});
+	}
+
 	@Post()
 	async create(@Body() input: CreateSourceInput) {
 		return this.sources.create(input);
@@ -47,8 +68,8 @@ export class SourcesController {
 	}
 
 	@Delete(":id")
-	async remove(@Param("id") id: string) {
-		await this.sources.remove(id);
+	async remove(@Param("id") id: string, @Query("force") force?: string) {
+		await this.sources.remove(id, force === "true");
 		return { id, removed: true };
 	}
 }

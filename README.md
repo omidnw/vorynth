@@ -122,7 +122,7 @@ localization, and report generation.
 | Windows 10+      | ✅ Native (x86_64)      | Full native experience                                                                                                                                                |
 | Linux (x86_64)   | ✅ Native               | deb, rpm, AppImage                                                                                                                                                    |
 | Linux (ARM64)    | ✅ Native               | Raspberry Pi 4+, ARM servers                                                                                                                                          |
-| FreeBSD (x86_64) | ✅ Native               | Native build (FreeBSD VM on CI)                                                                                                                                             |
+| FreeBSD (x86_64) | ✅ Native               | Native build (FreeBSD VM on CI)                                                                                                                                       |
 | Other BSDs       | 🟡 Linux compat         | Linux x86_64 binaries work via FreeBSD Linux ABI                                                                                                                      |
 | Harmony OS       | 🟡 Experimental         | Cross-compiled `.so` + frontend via CI (OpenHarmony 6.0). Raw bundle for DevEco Studio — no `.hap` yet. See [Harmony OS notes](docs/GUIDE.md#harmony-os-openharmony). |
 
@@ -156,7 +156,7 @@ localization, and report generation.
 
 ## Project status
 
-Version **1.5.0** — active development. See the in-app **Settings → Changelog**
+Version **1.6.0** — active development. See the in-app **Settings → Changelog**
 or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 
 ### Roadmap

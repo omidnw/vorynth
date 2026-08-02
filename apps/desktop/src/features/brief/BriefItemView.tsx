@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { BriefEntry } from "@vorynth/types";
 import { Icon } from "@/components/ui/Icon";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
+import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
 
 /**
  * One ranked row in the Brief list — **news-first**.
@@ -17,16 +19,21 @@ import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
  * (`/insights/:id` when intelligence exists, otherwise the native reader
  * `/articles/:id`). A separate "Read source" link opens the ORIGINAL article
  * URL on the source site in a new tab — clicking it stops propagation so the
- * card navigation doesn't also fire.
+ * card navigation doesn't also fire. A bookmark button (v1.6.0) saves the
+ * story to the Archive.
  */
 export function BriefItemView({ entry }: { entry: BriefEntry }) {
-	const navigate = useNavigate();
-	const { article, insight, sourceNames, category, importanceTier } = entry;
-	const rankLabel = String(entry.rank).padStart(2, "0");
-	const hasIntelligence = Boolean(insight);
+		const navigate = useNavigate();
+		const { article, insight, sourceNames, category, importanceTier } = entry;
+		const rankLabel = String(entry.rank).padStart(2, "0");
+		const hasIntelligence = Boolean(insight);
+		const bookmark = useBookmarkToggle(article.contentItemId);
 
-	const headline = insight?.summary?.split("\n")[0] || article.title;
-	const standfirst = insight?.significance || snippet(article.content);
+		const headline = insight?.summary?.split("\n")[0] || article.title;
+		const standfirst = insight?.significance || snippet(article.content);
+	const hasOriginalTitle = Boolean(article.originalTitle);
+	const [showOriginal, setShowOriginal] = useState(false);
+	const displayTitle = showOriginal && article.originalTitle ? article.originalTitle : headline;
 
 	// Clicking the card surface navigates to the focused view. Inner links
 	// (article source, "Read") stopPropagation so they work independently.
@@ -75,12 +82,27 @@ export function BriefItemView({ entry }: { entry: BriefEntry }) {
 						) : null}
 					</div>
 
-					<h3
-						className="mb-4 font-headline text-headline-lg leading-tight text-primary dark:text-primary-fixed"
-						dir="auto"
-					>
-						{headline}
-					</h3>
+						<div className="mb-4 flex items-start gap-3">
+							<h3
+								className="font-headline text-headline-lg leading-tight text-primary dark:text-primary-fixed"
+								dir="auto"
+							>
+								{displayTitle}
+							</h3>
+							{hasOriginalTitle ? (
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setShowOriginal((v) => !v);
+									}}
+									className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+									title={showOriginal ? "Show translated title" : "Show original title"}
+								>
+									{showOriginal ? "Translated" : "Original"}
+								</button>
+							) : null}
+						</div>
 					<div className="mb-6 h-0.5 w-12 bg-primary" />
 
 					<p
@@ -132,6 +154,24 @@ export function BriefItemView({ entry }: { entry: BriefEntry }) {
 							<Icon name="open_in_new" className="text-[14px]" />
 							Read source
 						</a>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								bookmark.toggle();
+							}}
+							disabled={!bookmark.enabled}
+							aria-label={bookmark.saved ? "Remove bookmark" : "Bookmark this story"}
+							aria-pressed={bookmark.saved}
+							className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary disabled:opacity-30"
+						>
+							<Icon
+								name={bookmark.saved ? "bookmark" : "bookmark_border"}
+								fill={bookmark.saved}
+								className="text-[16px]"
+							/>
+							{bookmark.saved ? "Saved" : "Save"}
+						</button>
 						<span className="font-mono text-[11px] text-on-tertiary-container">
 							{sourceNameLabel(sourceNames)}
 						</span>

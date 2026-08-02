@@ -5,6 +5,8 @@ description: Create a timestamped backup of the Vorynth SQLite database. Use BEF
 
 # Backup — Vorynth
 
+## Purpose
+
 Create a timestamped copy of the SQLite database before any operation that could lose data.
 
 ## When to use
@@ -26,7 +28,7 @@ mkdir -p data/backups
 cp data/vorynth.sqlite "data/backups/vorynth-$(date -u +%Y-%m-%dT%H-%M-%SZ).sqlite"
 ```
 
-## Verify
+## Validation
 
 After creating the backup, confirm it's a valid SQLite file:
 
@@ -34,8 +36,9 @@ After creating the backup, confirm it's a valid SQLite file:
 sqlite3 "data/backups/vorynth-<TIMESTAMP>.sqlite" "SELECT COUNT(*) FROM articles; SELECT COUNT(*) FROM sources;"
 ```
 
-## What NOT to do
+## Common mistakes
 
 - Don't try to use the engine's BackupService while the engine is running — it manages its own connections. This skill operates on the file level.
 - Don't overwrite an existing backup — each one gets a unique timestamp.
 - Don't skip the backup even for "small" changes. A typo in a migration can wipe days of data.
+- Don't confuse the two backup flavors: **`.sqlite`** files (this skill — dev safety net) vs **`.vorynth-backup`** files (the engine's `BackupService`, Settings → Export/Restore). They live in the same `data/backups/` directory; never restore a `.vorynth-backup` as if it were a raw DB copy or vice versa.

@@ -6,7 +6,9 @@ import {
 	startAskJob,
 	startCollectJob,
 	startGenerateJob,
+	startRegenerateInsightsJob,
 	startSummarizeJob,
+	startTranslateTitlesJob,
 } from "./jobs-api.js";
 
 /**
@@ -49,6 +51,8 @@ interface JobsState {
 		q: string,
 		opts?: { periodDays?: number; budget?: number },
 	) => Promise<Job | null>;
+	startRegenerateInsights: (opts?: { targetLanguage?: string }) => Promise<Job | null>;
+	startTranslateTitles: (opts?: { targetLanguage?: string }) => Promise<Job | null>;
 	cancel: (id: string) => Promise<void>;
 
 	/** True when any job of the given kind is currently active. */
@@ -141,6 +145,28 @@ export const useJobsStore = create<JobsState>((set, get) => ({
 	startAsk: async (q, opts) => {
 		try {
 			const job = await startAskJob(q, opts);
+			await get().refresh();
+			return job;
+		} catch (err) {
+			set({ lastError: (err as Error).message });
+			return null;
+		}
+	},
+
+	startRegenerateInsights: async (opts) => {
+		try {
+			const job = await startRegenerateInsightsJob(opts);
+			await get().refresh();
+			return job;
+		} catch (err) {
+			set({ lastError: (err as Error).message });
+			return null;
+		}
+	},
+
+	startTranslateTitles: async (opts) => {
+		try {
+			const job = await startTranslateTitlesJob(opts);
 			await get().refresh();
 			return job;
 		} catch (err) {

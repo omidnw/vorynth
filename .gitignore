@@ -1,11 +1,15 @@
 # Dependencies
 node_modules/
 
+# Agent reference material (examples/ = inspiration for the agent, not shipped code)
+examples/
+
 # Build outputs
 dist/
 dist-bundle/
 build/
 out/
+storybook-static/
 *.tsbuildinfo
 
 # Tauri / Rust

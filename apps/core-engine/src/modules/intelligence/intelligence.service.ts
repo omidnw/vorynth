@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { DatabaseService } from "../../db/database.service.js";
-import { aiInsights, articleClusters, userProfile } from "../../db/schema.js";
+import { aiInsights, articleClusters, articles, userProfile } from "../../db/schema.js";
 import type {
 	BriefEntry,
 	BriefPeriod,
@@ -324,7 +324,170 @@ export class IntelligenceService {
 			.from(aiInsights)
 			.where(eq(aiInsights.id, insightId))
 			.limit(1);
-		return row ? toInsightDto(row) : null;
+			return row ? toInsightDto(row) : null;
+	}
+
+	/**
+	 * Count insights that have a valid article reference (used by the job
+	 * system to set itemsTotal for progress reporting).
+	 */
+	countInsights(): number {
+		const row = this.db.rawDb
+			.prepare(
+				`SELECT COUNT(*) AS n FROM ai_insights WHERE article_id IS NOT NULL`,
+			)
+			.get() as { n: number } | undefined;
+		return row?.n ?? 0;
+	}
+
+	/**
+	 * Regenerate ALL existing insights (significance, impact, recommendedAction)
+	 * using the user's current intelligence language. Skips insights whose
+	 * corresponding article no longer exists.
+	 *
+	 * @param onProgress  Optional callback invoked after each insight update
+	 *                    with (done, total) for job progress reporting.
+	 * @param targetLanguage  Override language; when omitted reads from profile.
+	 * @returns  Number of insights regenerated.
+	 */
+	async regenerateAllInsights(
+		onProgress?: (done: number, total: number) => void,
+		targetLanguage?: string,
+	): Promise<number> {
+		const lang =
+			targetLanguage ?? (await this.readIntelligenceLanguage());
+
+		// Fetch all insights that have an associated article, joined so we
+		// can filter to those whose article still exists.
+		const rows = this.db.rawDb
+			.prepare(
+				`SELECT i.id AS insightId, i.article_id AS articleId,
+				        a.title AS articleTitle, a.content AS articleContent,
+				        i.generated_language AS currentLanguage
+				 FROM ai_insights i
+				 INNER JOIN articles a ON a.id = i.article_id
+				 WHERE i.article_id IS NOT NULL`,
+			)
+			.all() as Array<{
+			insightId: string;
+			articleId: string;
+			articleTitle: string;
+			articleContent: string;
+			currentLanguage: string;
+		}>;
+
+		const total = rows.length;
+		let done = 0;
+		let regenerated = 0;
+
+		const updateStmt = this.db.rawDb.prepare(
+			`UPDATE ai_insights
+			 SET significance = ?, impact = ?, recommended_action = ?,
+			     generated_language = ?
+			 WHERE id = ?`,
+		);
+
+		for (const row of rows) {
+			try {
+				const draft = await this.llm.analyze({
+					articleTitle: row.articleTitle,
+					articleContent: row.articleContent,
+					outputLanguage: lang,
+				});
+
+				updateStmt.run(
+					draft.significance,
+					draft.impact,
+					draft.recommendedAction,
+					lang,
+					row.insightId,
+				);
+				regenerated++;
+			} catch (err) {
+				this.logger.warn(
+					`regenerate failed for insight ${row.insightId} (article "${row.articleTitle}"): ${(err as Error).message}`,
+				);
+				// Per-item failure — skip, keep going.
+			}
+
+			done++;
+			onProgress?.(done, total);
+		}
+
+		this.logger.log(
+			`regenerateAllInsights: ${regenerated}/${total} insights updated to "${lang}"`,
+		);
+		return regenerated;
+	}
+
+	/**
+	 * Translate all article titles that haven't been translated yet, storing
+	 * the original in `original_title` and replacing `title` with the
+	 * translation. Skips articles that already have an `original_title` set.
+	 *
+	 * @param onProgress  Optional callback invoked after each translation.
+	 * @param targetLanguage  Override language; when omitted reads from profile.
+	 * @returns  Number of titles translated.
+	 */
+	async translateAllTitles(
+		onProgress?: (done: number, total: number) => void,
+		targetLanguage?: string,
+	): Promise<number> {
+		const lang =
+			targetLanguage ?? (await this.readIntelligenceLanguage());
+
+		const rows = this.db.rawDb
+			.prepare(
+				`SELECT id, title, content
+				 FROM articles
+				 WHERE content != ''
+				   AND (original_title IS NULL OR original_title = '')
+				 ORDER BY collected_at DESC`,
+			)
+			.all() as Array<{
+			id: string;
+			title: string;
+			content: string;
+		}>;
+
+		const total = rows.length;
+		let done = 0;
+		let translated = 0;
+
+		const updateStmt = this.db.rawDb.prepare(
+			`UPDATE articles SET title = ?, original_title = ? WHERE id = ?`,
+		);
+
+		for (const row of rows) {
+			try {
+				// Use generate() to translate — single-shot, free-form.
+				const translatedTitle = await this.llm.generate({
+					system:
+						"You are a professional translator. Translate the given title to the target language. " +
+						"ONLY output the translated title — no quotes, no commentary, no punctuation beyond what the title needs.",
+					user: `Translate this title to ${lang}: "${row.title}"`,
+					outputLanguage: lang,
+				});
+
+				const clean = translatedTitle.replace(/^["']|["']$/g, "").trim();
+				if (clean && clean !== row.title) {
+					updateStmt.run(clean, row.title, row.id);
+					translated++;
+				}
+			} catch (err) {
+				this.logger.warn(
+					`title translation failed for article ${row.id} ("${row.title}"): ${(err as Error).message}`,
+				);
+			}
+
+			done++;
+			onProgress?.(done, total);
+		}
+
+		this.logger.log(
+			`translateAllTitles: ${translated}/${total} titles translated to "${lang}"`,
+		);
+		return translated;
 	}
 
 	/**

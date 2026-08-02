@@ -54,6 +54,7 @@ Update this list when you add a codename to `RELEASES`. One codename per release
 
 | Version | Codename                        | Principle       |
 | ------- | ------------------------------- | --------------- |
+| 1.6.0   | Navigate the Maze               | §2 — name       |
 | 1.5.0   | Knowledge Paths                 | §2 — name       |
 | 1.3.0   | In Your Language                | composition     |
 | 1.2.0   | Richer Briefing, Smarter Search | composition     |
@@ -67,14 +68,9 @@ Update this list when you add a codename to `RELEASES`. One codename per release
 These are good defaults when nothing more specific fits. Mark one as used (move it to the table above) the first time you assign it:
 
 - **Privacy First** — backup/restore, data ownership, key handling, delete-all
-- **Navigate the Maze** — navigation, IA, routing, sidebar/redesign
 - **Minutes Not Hours** — performance, speed, automation, scheduling
 - **Local Engine** — engine lifecycle, sidecar, ports, health checks
 - **Intelligent Filtering** — ranking, fetch windows, sort modes, importance scoring
 - **Discovery** — new sources, new domains, onboarding
-- **Trusted Sources** — provider config, verify flow, source vetting
 - **Knowledge Paths** — clusters, topic grouping, related-article features
-- **Discovery** — new sources, new domains, onboarding
-- **Trusted Sources** — provider config, verify flow, source vetting
 - **Understand Before You Read** — context layering, Why-It-Matters, brief redesigns
-- **Knowledge Paths** — clusters, topic grouping, related-article features

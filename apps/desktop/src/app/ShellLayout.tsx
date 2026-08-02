@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/Icon";
 import { SidebarNavItem } from "@/components/shell/SidebarNav";
+import { DocsNavGroup } from "@/components/shell/DocsNavGroup";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { JobsTray } from "@/features/jobs/JobsTray.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
@@ -51,6 +52,7 @@ export function ShellLayout() {
 			.filter(Boolean)
 			.join(" ") ||
 		"Local User";
+
 	return (
 		<div className="min-h-screen bg-background text-on-surface">
 			{/* Sidebar — 260px, persistent. The `rtl-flip-*` classes mirror the
@@ -65,12 +67,15 @@ export function ShellLayout() {
 					</p>
 				</div>
 
-				<nav className="flex-1 space-y-2 px-2">
+				{/* scrollbar-gutter:stable keeps the content width constant when the
+				    Docs submenu makes the nav overflow — otherwise the scrollbar
+				    appearing shrinks every item and shifts right-anchored icons. */}
+				<nav className="flex-1 space-y-2 overflow-y-auto px-2 [scrollbar-gutter:stable]">
 					<SidebarNavItem to="/brief" icon="today" label="Today's Brief" />
-					<SidebarNavItem to="/search" icon="search" label="Search" />
+					<SidebarNavItem to="/archive" icon="inventory_2" label="Archive" />
 					<SidebarNavItem to="/sources" icon="database" label="Sources" />
 					<SidebarNavItem to="/media" icon="photo_library" label="Media" />
-					<SidebarNavItem to="/settings" icon="settings" label="Settings" />
+					<DocsNavGroup />
 					<SidebarNavItem
 						to="/changelog"
 						icon="change_history"
@@ -79,25 +84,35 @@ export function ShellLayout() {
 				</nav>
 
 				<div className="mt-auto px-6">
-					<button
-						type="button"
-						onClick={() => navigate("/profile")}
-						className="mt-8 flex w-full items-center gap-3 rounded text-left transition-colors hover:bg-surface-container-high"
-						title="Open profile"
-					>
-						<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container font-headline text-label-md text-on-primary-container">
-							{initials(displayName)}
-						</span>
-						<span className="flex min-w-0 flex-col">
-							<span className="truncate font-label text-label-md text-on-surface">
-								{displayName}
-							</span>
-							<span className="font-label text-label-sm text-on-surface-variant">
-								Local Engine
-							</span>
-						</span>
-					</button>
-				</div>
+					<div className="mt-8 flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => navigate("/profile")}
+								className="flex flex-1 items-center gap-3 rounded text-left transition-colors hover:bg-surface-container-high"
+								title="Open profile"
+							>
+								<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container font-headline text-label-md text-on-primary-container">
+									{initials(displayName)}
+								</span>
+								<span className="flex min-w-0 flex-col">
+									<span className="truncate font-label text-label-md text-on-surface">
+										{displayName}
+									</span>
+									<span className="font-label text-label-sm text-on-surface-variant">
+										Local Engine
+									</span>
+								</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => navigate("/settings")}
+								className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+								title="Open settings"
+							>
+								<Icon name="settings" className="text-[20px]" />
+							</button>
+						</div>
+					</div>
 			</aside>
 
 			{/* Top bar — search lives in the sidebar now, so we only keep

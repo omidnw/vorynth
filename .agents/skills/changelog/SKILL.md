@@ -5,7 +5,9 @@ description: How to maintain the Vorynth changelog — bump version, pick a bran
 
 # Changelog — Vorynth
 
-This skill records changes that materially move the project forward. It is not a commit log. Most commits are noise; this changelog is signal.
+## Purpose
+
+Record changes that materially move the project forward — version bump, brand codename, and honest user-facing entries. It is not a commit log.
 
 ## When to log
 
@@ -93,25 +95,21 @@ Rules for the `changes` array:
 - **Categorize honestly.** A redesigned UI is `improved`, not `new`. A regression you're undoing is `fixed`. Key rotation or sandbox tightening is `security`.
 - Aim for **3–10 entries** per release. Fewer is fine if fewer landed; more probably means you're logging noise.
 
+**General vs technical split (v1.6.0+):** `changes` is what a regular reader experiences (shown by default). Releases that ship meaningful engineering may add an optional `technical?: ChangeEntry[]` array — engine/data-model details shown behind the "Show technical details" toggle on the Changelog page. Put schema changes, invariants, and infrastructure there; keep `changes` purely user-facing. Older releases without `technical` render unchanged.
+
 ### 4. Bump the version everywhere
 
-Version strings live in five files and **must stay in sync**. After deciding the new version, update all of them:
+**Delegate to the `/version-sync` skill** — it owns the mechanical workflow (root `package.json` → `pnpm version:sync` → README/docs/codenames → rebuild types → `pnpm version:check`). This skill's job is the *content* (entry + bump level); `/version-sync`'s job is the *mechanics*.
 
-```
-package.json                              (root)
-apps/core-engine/package.json
-apps/desktop/package.json
-apps/desktop/src-tauri/tauri.conf.json     → "version"
-apps/desktop/src-tauri/Cargo.toml          → version = "..."
-```
+One reminder: after syncing, if you touched `@vorynth/types`, rebuild it (`pnpm --filter @vorynth/types build`) — `nest start --watch` does not hot-reload workspace deps, and a stale constant makes the Changelog page point at the wrong release.
 
-All five should carry the same version string (e.g. `1.1.0`). The engine reports its version to the frontend from `package.json`, and the desktop page highlights the matching release as "Current" — so a mismatch makes the Changelog page point at the wrong release.
+### 5. Validation
 
-### 5. Verify
+## Validation (quick check)
 
 After editing:
 
-1. Run `pnpm format` from the repo root — the changelog data file uses tabs and Prettier will normalize it.
+1. Run Prettier on the changelog data file only — `npx prettier --write apps/desktop/src/features/changelog/changelog-data.ts` (NOT `pnpm format` from root: that would reformat `docs/index.html`, which isn't Prettier-clean and produces a ~2500-line diff).
 2. Run `pnpm --filter @vorynth/desktop typecheck` — the `Release` / `ChangeEntry` types are strict; a typo in `type` will fail the build.
 3. Skim the rendered Changelog page mentally: does the newest entry sit at the top? Does the codename match the theme of what actually shipped?
 

@@ -28,8 +28,8 @@ export const en = {
 		timer: "10-minute briefing",
 		stories: "{{count}} stories",
 		sources: "{{count}} sources",
-		intelligenceOn: "LLM intelligence on",
-		newsMode: "News mode",
+			intelligenceOn: "Intelligence mode — AI enrichment active",
+			newsMode: "News mode — ranked by freshness & reliability",
 		domains: "Domains",
 		importance: "Importance",
 		all: "All",
@@ -40,28 +40,36 @@ export const en = {
 			collect: "Collect Now",
 			working: "Working…",
 		},
-		newsHint:
-			"<strong>News mode.</strong> Add an LLM provider in Settings to generate the Why-it-matters / Impact / Recommended-Action triad.",
-		readOn: "Read on {{source}}",
-		intelligenceActive: "LLM Intelligence Active",
+			newsHint:
+				"<strong>News mode.</strong> Switch to Intelligence mode in Settings when your provider is ready — or add a provider first.",
+			readOn: "Read on {{source}}",
+			intelligenceActive: "Intelligence Mode Active",
 	},
 	why: "Why it matters",
 	impact: "Impact",
 	recommendedAction: "Recommended Action",
 	sourcesLabel: "Sources",
-	settings: {
-		title: "Settings",
-		subtitle: "Local-first. Everything on this page runs on your device.",
+		settings: {
+			title: "Settings",
+			subtitle: "Local-first. Everything on this page runs on your device.",
+			profileTipTitle: "Personalization",
+			profileTipBody:
+				"Your identity, custom instruction, language, and reader preferences are on your Profile page.",
 		engine: "Engine Status",
 		version: "Version",
 		sourcesCount: "{{on}}/{{total}} on",
 		articles: "Articles",
-		llm: "LLM",
-		intelligence: "Intelligence Provider",
-		intelligenceHint:
-			"Optional. Without a provider, Vorynth stays in news mode.",
-		verify: "Verify",
-		addProvider: "Add Provider",
+			llm: "LLM",
+			mode: "Mode",
+			modeIntelligence: "Intelligence",
+			modeNews: "News",
+			modeHint:
+				"Intelligence mode uses your provider to generate insights. News mode shows the ranked feed without AI enrichment.",
+			intelligence: "Intelligence Provider",
+			intelligenceHint:
+				"Optional. Without a provider, Vorynth stays in news mode.",
+			verify: "Verify",
+			addProvider: "Add Provider",
 		appearance: "Appearance",
 		theme: "Theme",
 		themeHint: "Light (Precision Minimalism) / Dark (Obsidian Intelligence)",
@@ -87,17 +95,35 @@ export const en = {
 		recollectButton: "Re-collect all",
 		recollectConfirm:
 			"Are you sure? This will re-fetch every enabled source and update existing articles. Related insights and media are preserved.\n\nThis is only recommended if articles have changed at their source or you're testing a new collection feature.",
-		recollectBusy: "Re-collecting…",
-	},
-	provider: {
-		label: "Label",
-		model: "Model",
-		apiKey: "API Key",
-		baseUrl: "Base URL",
-		cancel: "Cancel",
-		save: "Save Provider",
-		saving: "Saving…",
-	},
+			recollectBusy: "Re-collecting…",
+			regenerateInsights: "Regenerate All Insights",
+			regenerateInsightsHint:
+				"Regenerates the AI triad (Why It Matters, Impact, Recommended Action) for every story using your current AI Output Language. Existing insights are updated in place.",
+			regenerateInsightsButton: "Regenerate All Insights",
+			regenerateInsightsConfirm:
+				"Are you sure? This will regenerate AI details for all existing stories using your selected output language. Each story will be sent to your LLM provider for re-analysis.\n\nThis may use a significant number of API tokens depending on how many stories are in your database.",
+			regenerateInsightsBusy: "Regenerating…",
+			translateTitles: "Translate Story Titles",
+			translateTitlesHint:
+				"Translates all article titles to your selected AI Output Language. The original title is preserved and you can toggle between them in the Brief view.",
+			translateTitlesButton: "Translate All Titles",
+			translateTitlesConfirm:
+				"Are you sure? This will translate every article title to your selected output language. The original titles are preserved and can be toggled in the Brief view.\n\nThis may use API tokens depending on how many untranslated titles exist.",
+			translateTitlesBusy: "Translating titles…",
+		},
+		provider: {
+			label: "Label",
+			model: "Model",
+			apiKey: "API Key",
+			baseUrl: "Base URL",
+			cancel: "Cancel",
+			save: "Save Provider",
+			saving: "Saving…",
+			active: "Active",
+			setActive: "Set active",
+			switchToIntelligence: "Switch to Intelligence mode",
+			switchToNews: "Switch to News mode",
+		},
 	onboarding: {
 		welcome: "Establish Clarity",
 		welcomeBody:
@@ -185,11 +211,14 @@ export const en = {
 		dontShowAgain: "Don't show this again —",
 		changeInProfile: "change it later in Profile.",
 	},
-	profile: {
-		title: "Profile",
-		subtitle:
-			"How Vorynth knows you. Your identity, custom instruction, and reading behavior — all local.",
-		loading: "Loading profile…",
+		profile: {
+			title: "Profile",
+			subtitle:
+				"How Vorynth knows you. Your identity, custom instruction, and reading behavior — all local.",
+			settingsTipTitle: "App settings",
+			settingsTipBody:
+				"Engine status, LLM provider, theme, and data management live on the Settings page.",
+			loading: "Loading profile…",
 		localUser: "Local User",
 		localEngine: "Local Engine",
 		identity: "Identity",

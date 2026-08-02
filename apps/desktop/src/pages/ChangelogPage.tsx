@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
@@ -56,6 +57,7 @@ function ReleaseCard({
 	release: Release;
 	isCurrent: boolean;
 }) {
+	const [showTechnical, setShowTechnical] = useState(false);
 	return (
 		<GhostCard>
 			{/* Version header */}
@@ -82,7 +84,7 @@ function ReleaseCard({
 				{release.summary}
 			</p>
 
-			{/* Changes list */}
+			{/* Changes list — user-facing */}
 			<div className="space-y-3">
 				{release.changes.map((change, i) => (
 					<div key={i} className="flex items-start gap-3">
@@ -93,6 +95,41 @@ function ReleaseCard({
 					</div>
 				))}
 			</div>
+
+			{/* Technical details — behind a toggle (v1.6.0) */}
+			{release.technical && release.technical.length > 0 ? (
+				<div className="mt-6 border-t border-outline-variant pt-4">
+					<button
+						type="button"
+						onClick={() => setShowTechnical((v) => !v)}
+						aria-expanded={showTechnical}
+						aria-controls={`technical-${release.version}`}
+						className="flex items-center gap-2 rounded font-label text-label-md text-primary transition-colors hover:text-secondary"
+					>
+						<span className="material-symbols-outlined text-[16px]">
+							{showTechnical ? "expand_less" : "expand_more"}
+						</span>
+						{showTechnical ? "Hide technical details" : "Show technical details"}
+					</button>
+					{showTechnical ? (
+						<div
+							id={`technical-${release.version}`}
+							className="mt-3 space-y-2"
+						>
+							{release.technical.map((change, i) => (
+								<div key={i} className="flex items-start gap-3">
+									<span className="mt-0.5 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-mono-technical uppercase tracking-widest text-on-tertiary-container">
+										{change.type}
+									</span>
+									<p className="flex-1 font-mono text-mono-technical leading-relaxed text-on-surface-variant">
+										{change.text}
+									</p>
+								</div>
+							))}
+						</div>
+					) : null}
+				</div>
+			) : null}
 		</GhostCard>
 	);
 }

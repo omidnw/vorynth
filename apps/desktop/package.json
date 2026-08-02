@@ -1,6 +1,6 @@
 {
 	"name": "@vorynth/desktop",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"private": true,
 	"type": "module",
 	"description": "Vorynth desktop frontend — React + TypeScript + Tauri.",
@@ -11,7 +11,9 @@
 		"typecheck": "tsc --noEmit",
 		"lint": "eslint src",
 		"lint:fix": "eslint src --fix",
-		"test": "vitest run"
+		"test": "vitest run",
+		"storybook": "storybook dev -p 6006",
+		"storybook:build": "storybook build"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^5.80.0",
@@ -27,13 +29,19 @@
 		"zustand": "^5.0.5"
 	},
 	"devDependencies": {
+		"@storybook/react-vite": "^10.5.5",
 		"@tailwindcss/container-queries": "^0.1.1",
+		"@testing-library/jest-dom": "^6.6.3",
+		"@testing-library/react": "^16.1.0",
+		"@testing-library/user-event": "^14.5.2",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",
 		"@vitejs/plugin-react": "^4.3.4",
 		"autoprefixer": "^10.4.20",
 		"eslint": "^9.39.1",
+		"jsdom": "^26.0.0",
 		"postcss": "^8.5.0",
+		"storybook": "^10.5.5",
 		"tailwindcss": "^3.4.17",
 		"typescript": "^5.9.3",
 		"vite": "^6.0.7",

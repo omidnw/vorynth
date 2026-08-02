@@ -4,6 +4,7 @@ import { SchedulerService } from "./scheduler.service.js";
 import { CrawlerService } from "../crawler/crawler.service.js";
 import { IntelligenceService } from "../intelligence/intelligence.service.js";
 import { LlmService } from "../llm/llm.service.js";
+import { RetentionService } from "../retention/retention.service.js";
 
 /**
  * Registers the background jobs (project-details.md §31).
@@ -12,6 +13,7 @@ import { LlmService } from "../llm/llm.service.js";
  *                       via VORYNTH_COLLECT_INTERVAL_MS)
  *   daily at 06:00 UTC  generate the daily intelligence report (only when an
  *                       LLM is configured; otherwise a no-op)
+ *   daily at 06:00 UTC  auto-delete retention sweep (v1.6.0; no-op when off)
  *
  * Lives in its own provider so the SchedulerService itself only owns the
  * clock — no double lifecycle hooks, no duplicate "scheduler started" logs.
@@ -24,6 +26,7 @@ export class SchedulerBootstrap implements OnModuleInit {
 		@Inject(LlmService) private readonly llm: LlmService,
 		@Inject(IntelligenceService)
 		private readonly intelligence: IntelligenceService,
+		@Inject(RetentionService) private readonly retention: RetentionService,
 		@Inject(ConfigService) private readonly config: ConfigService,
 	) {}
 
@@ -43,6 +46,11 @@ export class SchedulerBootstrap implements OnModuleInit {
 			const available = await this.llm.isAvailable();
 			if (!available) return; // news mode — nothing to do
 			await this.intelligence.generate({ cap: 20 });
+		});
+
+		// v1.6.0 — auto-delete retention, once a day alongside the report.
+		this.scheduler.dailyAt(reportHour, "retention-sweep", async () => {
+			this.retention.run();
 		});
 	}
 }

@@ -51,12 +51,12 @@ export async function apiFetch<T>(
 	init?: RequestInit,
 ): Promise<T> {
 	const res = await fetch(`${CORE_BASE_URL}${path}`, {
-		...init,
-		headers: {
-			"Content-Type": "application/json",
-			...(init?.headers ?? {}),
-		},
-	});
+			...init,
+			headers: {
+				...(init?.body ? { "Content-Type": "application/json" } : {}),
+				...(init?.headers ?? {}),
+			},
+		});
 	if (!res.ok) {
 		let body: ApiError | null = null;
 		try {

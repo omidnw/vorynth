@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import type { Insight } from "@vorynth/types";
 import { apiFetch } from "@/lib/api/config";
 import { fetchArticleDetail } from "@/features/reader/reader-api";
@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
 
 /**
  * Intelligence detail view (examples/intelligence-detail.html).
@@ -24,8 +25,16 @@ import { GhostCard } from "@/components/ui/GhostCard";
 export function InsightDetailPage() {
 	const { id = "" } = useParams();
 	const navigate = useNavigate();
-	const [saved, setSaved] = useState(false);
+	const location = useLocation();
 	const [read, setRead] = useState(false);
+
+	// Smart back: return to the page that opened this insight (Brief, Archive,
+	// Bookmarks) when there's history to go back to; otherwise fall back to the
+	// Brief. `location.key !== "default"` means react-router has a prior entry.
+	const goBack = () => {
+		if (location.key !== "default") navigate(-1);
+		else navigate("/brief");
+	};
 	const { data: insight, isLoading } = useQuery({
 		queryKey: ["insight", id],
 		queryFn: () => apiFetch<Insight | null>(`/insights/${id}`),
@@ -41,6 +50,8 @@ export function InsightDetailPage() {
 		enabled: Boolean(insight?.articleId),
 	});
 	const articleUrl = articleDetail?.article.url ?? null;
+	// Real save — bookmark flag on the article's content item (v1.6.0).
+	const bookmark = useBookmarkToggle(articleDetail?.article.contentItemId);
 
 	if (isLoading) {
 		return (
@@ -63,8 +74,8 @@ export function InsightDetailPage() {
 					<h2 className="font-headline text-headline-md text-primary">
 						Insight not found
 					</h2>
-					<Button variant="secondary" icon="arrow_back">
-						<Link to="/brief">Back to Brief</Link>
+					<Button variant="secondary" icon="arrow_back" onClick={goBack}>
+						Back to Brief
 					</Button>
 				</GhostCard>
 			</section>
@@ -74,13 +85,14 @@ export function InsightDetailPage() {
 	return (
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
 			<header className="mb-12">
-				<Link
-					to="/brief"
+				<button
+					type="button"
+					onClick={goBack}
 					className="mb-6 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
 				>
 					<Icon name="arrow_back" className="text-[18px]" />
 					Back
-				</Link>
+				</button>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
 					<ImportanceBadge tier={insight.importanceTier}>
 						{tierLabel(insight.importanceTier)}
@@ -177,11 +189,11 @@ export function InsightDetailPage() {
 					</GhostCard>
 				</section>
 
-				<section className="rounded-lg bg-primary-container p-10 text-on-primary">
-					<h2 className="mb-8 flex items-center gap-3 font-headline text-headline-md">
-						<Icon name="bolt" className="text-primary-fixed" fill />
-						Recommended Action
-					</h2>
+				<section className="rounded-lg bg-primary-container p-10 text-on-primary dark:bg-primary-fixed dark:text-on-primary-fixed">
+						<h2 className="mb-8 flex items-center gap-3 font-headline text-headline-md">
+							<Icon name="bolt" className="text-primary-fixed dark:text-on-primary-fixed" fill />
+							Recommended Action
+						</h2>
 					<p
 						className="font-body text-body-lg italic leading-relaxed"
 						dir="auto"
@@ -191,7 +203,7 @@ export function InsightDetailPage() {
 				</section>
 			</div>
 
-			<footer className="fixed bottom-12 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-primary/20 bg-primary-container px-6 py-3 text-on-primary shadow-2xl">
+			<footer className="fixed bottom-12 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-outline-variant bg-surface-container px-6 py-3 shadow-2xl">
 				<ActionBtn
 					icon={read ? "check" : "check_circle"}
 					label={read ? "Read" : "Mark Read"}
@@ -199,9 +211,9 @@ export function InsightDetailPage() {
 				/>
 				<div className="mx-2 h-6 w-px bg-white/10" />
 				<ActionBtn
-					icon={saved ? "bookmark_added" : "bookmark"}
-					label={saved ? "Saved" : "Save"}
-					onClick={() => setSaved((v) => !v)}
+				icon={bookmark.saved ? "bookmark_added" : "bookmark"}
+				label={bookmark.saved ? "Saved" : "Save"}
+				onClick={bookmark.toggle}
 				/>
 				<ActionBtn
 					icon="ios_share"
@@ -237,7 +249,7 @@ export function InsightDetailPage() {
 				<ActionBtn
 					icon="arrow_back"
 					label="Back"
-					onClick={() => navigate("/brief")}
+					onClick={goBack}
 				/>
 			</footer>
 		</article>
@@ -275,7 +287,7 @@ function ActionBtn({
 	return (
 		<button
 			onClick={onClick}
-			className="flex items-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-white/10"
+			className="flex items-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-surface-container-high"
 		>
 			<Icon name={icon} className="text-[20px]" />
 			<span className="font-label text-label-md uppercase tracking-wide">

@@ -9,7 +9,7 @@ import {
 	Query,
 } from "@nestjs/common";
 import { HistoryService } from "./history.service.js";
-import type { AppSettings, UpdateHistoryEntryInput } from "@vorynth/types";
+import type { AppSettings, HistoryType, UpdateHistoryEntryInput } from "@vorynth/types";
 
 /**
  * History + app-settings endpoints.
@@ -40,8 +40,24 @@ export class HistoryController {
 
 	// ── Search history ────────────────────────────────────────────────────
 
+	/**
+	 * `GET /history/search` — list search-history entries.
+	 * With `?q=` (v1.6.0) it becomes the unified history search across
+	 * search/brief/generated tables; `type` narrows to one family.
+	 */
 	@Get("history/search")
-	async listSearch(@Query("includeArchived") includeArchived?: string) {
+	async listSearch(
+		@Query("q") q?: string,
+		@Query("type") type?: string,
+		@Query("includeArchived") includeArchived?: string,
+	) {
+		if (q && q.trim().length > 0) {
+			return this.history.searchAll(
+				q,
+				(type as HistoryType | undefined) ?? undefined,
+				includeArchived === "true",
+			);
+		}
 		return this.history.listSearch(includeArchived === "true");
 	}
 
