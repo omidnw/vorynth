@@ -1,76 +1,92 @@
 import { Injectable, Logger } from "@nestjs/common";
 
 /**
- * Sliding-window rate limiter for LLM calls.
+ * Evenly-spaced rate limiter for LLM calls.
  *
- * Caps the number of calls per minute (default 5) to stay safely under
- * typical free-tier RPM limits. When the budget is exhausted, `acquire()`
- * resolves AFTER waiting until the next slot frees up — callers block, they
- * never get rate-limit errors from the provider. This keeps the queue moving
- * at exactly the configured pace.
+ * Guarantees at least `intervalMs` between the *start* of consecutive calls —
+ * a leaky bucket. The first call after an idle gap goes through immediately;
+ * a burst of requests is serialized into a steady cadence instead of the old
+ * sliding-window behavior (5 quick calls, then the 6th waits ~55s for the
+ * oldest slot to age out).
+ *
+ * The interval comes from `VORYNTH_LLM_SPACING_MS` when set (direct control,
+ * e.g. `5000` for 5s), otherwise it is derived from the per-minute budget
+ * (`VORYNTH_LLM_RPM`, default 5 → 12s spacing). Raising RPM shortens the
+ * delay — 12/min → 5s, 60/min → 1s — so the 1–10s band is reachable without
+ * fighting the budget.
  *
  * The limiter is global (one provider = one queue), so even when multiple
- * parts of the app ask for analysis at the same time (e.g. a Brief run and a
- * summary), they share the budget and don't blow past the limit.
+ * parts of the app ask for analysis at the same time (a Brief run, a summary,
+ * a regenerate batch) they share the cadence and never blow past the provider.
  */
 @Injectable()
 export class RateLimiter {
 	private readonly logger = new Logger("RateLimiter");
-	/** Timestamps (ms) of recently-acquired slots, newest at the end. */
-	private readonly timestamps: number[] = [];
-	private readonly maxPerMinute: number;
+	/** Earliest ms at which the next call may start. */
+	private nextSlotAt = 0;
+	/** Milliseconds between consecutive call starts. */
+	private readonly intervalMs: number;
+	/** Slot-start times (ms) of granted slots — kept for the `inFlight` view. */
+	private readonly slots: number[] = [];
 	private readonly windowMs = 60_000;
 
 	constructor() {
-		// Override via env so tests/dev can crank it.
-		this.maxPerMinute = Number(process.env.VORYNTH_LLM_RPM ?? 5);
+		// Direct spacing wins; otherwise derive it from the per-minute budget.
+		const spacingOverride = Number(process.env.VORYNTH_LLM_SPACING_MS);
+		const rpm = Number(process.env.VORYNTH_LLM_RPM ?? 5);
+		this.intervalMs =
+			Number.isFinite(spacingOverride) && spacingOverride > 0
+				? spacingOverride
+				: 60_000 / (rpm > 0 ? rpm : 5);
 	}
 
 	/**
-	 * Wait until a slot is available, then record it. Resolves immediately if
-	 * we're under the limit; otherwise waits the minimum time for the oldest
-	 * in-window slot to age out.
+	 * Wait until the next slot, then return. Resolves immediately when we're
+	 * outside the spacing window; otherwise sleeps just until the slot opens —
+	 * callers block, they never get rate-limit errors from the provider.
 	 */
 	async acquire(operation: string): Promise<void> {
-		while (true) {
-			const now = Date.now();
-			// Drop timestamps outside the 1-minute window.
-			while (
-				this.timestamps.length > 0 &&
-				now - (this.timestamps[0] ?? 0) > this.windowMs
-			) {
-				this.timestamps.shift();
-			}
-
-			if (this.timestamps.length < this.maxPerMinute) {
-				this.timestamps.push(now);
-				return;
-			}
-
-			// Compute how long until the oldest slot ages out.
-			const oldest = this.timestamps[0] ?? now;
-			const waitMs = this.windowMs - (now - oldest) + 10; // +10ms grace
+		const now = Date.now();
+		const slot = Math.max(now, this.nextSlotAt);
+		const waitMs = slot - now;
+		if (waitMs > 0) {
 			this.logger.debug(
-				`rate limit hit (${operation}); waiting ${waitMs}ms for a slot`,
+				`rate limit hit (${operation}); waiting ${waitMs}ms for a slot (spacing ${this.intervalMs}ms)`,
 			);
 			await sleep(waitMs);
 		}
+		this.nextSlotAt = slot + this.intervalMs;
+		// Record for the `inFlight` status view (slots granted in the rolling
+		// minute) — display only, the pacing itself uses `nextSlotAt`.
+		this.slots.push(slot);
+		while (
+			this.slots.length > 0 &&
+			slot - (this.slots[0] ?? 0) > this.windowMs
+		) {
+			this.slots.shift();
+		}
 	}
 
-	/** Current slots used in the rolling minute (0..maxPerMinute). */
+	/** Slots granted in the rolling minute (0..capacity; display only). */
 	get inFlight(): number {
 		const now = Date.now();
 		while (
-			this.timestamps.length > 0 &&
-			now - (this.timestamps[0] ?? 0) > this.windowMs
+			this.slots.length > 0 &&
+			now - (this.slots[0] ?? 0) > this.windowMs
 		) {
-			this.timestamps.shift();
+			this.slots.shift();
 		}
-		return this.timestamps.length;
+		return this.slots.length;
 	}
 
+	/** Requests-per-minute budget the spacing was derived from (display only). */
 	get capacity(): number {
-		return this.maxPerMinute;
+		return Math.round(60_000 / this.intervalMs);
+	}
+
+	/** Milliseconds between consecutive call starts. */
+	get spacingMs(): number {
+		return this.intervalMs;
 	}
 }
 

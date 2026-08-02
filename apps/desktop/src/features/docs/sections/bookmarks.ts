@@ -13,6 +13,10 @@ export const bookmarksSection: DocsSection = {
 			text: "Bookmarking an item marks it as yours. Saved items appear both in the Archive (under 'Saved') and on this page.",
 		},
 		{
+			type: "paragraph",
+			text: "What a bookmark means: 'I might need this later' — and Vorynth treats that as a promise. A bookmark is ownership of a reference, not a flag that can be swept away: retention pruning never deletes bookmarked articles, and deleting a source that still has saved stories is refused until you explicitly confirm.",
+		},
+		{
 			type: "bullets",
 			items: [
 				"A bookmark is a promise: retention pruning skips bookmarked articles, and deleting a source with saved stories requires explicit confirmation.",

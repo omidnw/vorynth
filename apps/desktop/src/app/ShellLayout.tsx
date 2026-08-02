@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/Icon";
 import { SidebarNavItem } from "@/components/shell/SidebarNav";
+import { ArchiveNavGroup } from "@/components/shell/ArchiveNavGroup";
 import { DocsNavGroup } from "@/components/shell/DocsNavGroup";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { JobsTray } from "@/features/jobs/JobsTray.js";
@@ -67,13 +68,14 @@ export function ShellLayout() {
 					</p>
 				</div>
 
-				{/* scrollbar-gutter:stable keeps the content width constant when the
-				    Docs submenu makes the nav overflow — otherwise the scrollbar
-				    appearing shrinks every item and shifts right-anchored icons. */}
-				<nav className="flex-1 space-y-2 overflow-y-auto px-2 [scrollbar-gutter:stable]">
-					<SidebarNavItem to="/brief" icon="today" label="Today's Brief" />
-					<SidebarNavItem to="/archive" icon="inventory_2" label="Archive" />
-					<SidebarNavItem to="/sources" icon="database" label="Sources" />
+					{/* scrollbar-gutter:stable keeps the content width constant when the
+					    Docs/Archive submenus make the nav overflow — otherwise the
+					    scrollbar appearing shrinks every item and shifts right-anchored
+					    icons. */}
+					<nav className="flex-1 space-y-2 overflow-y-auto px-2 [scrollbar-gutter:stable]">
+						<SidebarNavItem to="/brief" icon="today" label="Today's Brief" />
+						<ArchiveNavGroup />
+						<SidebarNavItem to="/sources" icon="database" label="Sources" />
 					<SidebarNavItem to="/media" icon="photo_library" label="Media" />
 					<DocsNavGroup />
 					<SidebarNavItem

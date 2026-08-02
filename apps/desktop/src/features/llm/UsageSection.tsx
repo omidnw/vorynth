@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { fetchUsage, resetUsage } from "@/features/llm/usage-api.js";
+import { fetchStatus } from "@/features/llm/llm-api.js";
 
 /**
  * Usage panel (Settings) — token + request spend across the engine's history.
@@ -14,17 +15,21 @@ import { fetchUsage, resetUsage } from "@/features/llm/usage-api.js";
  *   - total requests, including failures
  *   - last-30-day rollup
  *   - per-operation and per-provider breakdowns
- *   - live rate-limit state
+ *   - live rate-limit state (from the engine's own limiter — not a build-time guess)
  */
-export function UsageSection({
-	rateLimit,
-}: {
-	rateLimit: { capacity: number; inFlight: number };
-}) {
+export function UsageSection() {
 	const queryClient = useQueryClient();
 	const { data } = useQuery<UsageSummary>({
 		queryKey: ["llm-usage"],
 		queryFn: fetchUsage,
+		refetchInterval: 5_000,
+	});
+	// Live limiter state straight from the engine (`/llm/status`). This is the
+	// single source of truth for the rate limit — the UI no longer guesses
+	// from a build-time env var, so VITE_LLM_RPM can't drift from VORYNTH_LLM_RPM.
+	const { data: status } = useQuery({
+		queryKey: ["llm-status"],
+		queryFn: fetchStatus,
 		refetchInterval: 5_000,
 	});
 	const reset = useMutation({
@@ -32,6 +37,11 @@ export function UsageSection({
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["llm-usage"] }),
 	});
 
+	const rateLimit = status?.rateLimit ?? {
+		capacity: 0,
+		inFlight: 0,
+		spacingMs: 0,
+	};
 	const u = data ?? {
 		totalRequests: 0,
 		totalTokens: 0,
@@ -81,7 +91,7 @@ export function UsageSection({
 				<Stat
 					label="Rate limit"
 					value={`${rateLimit.inFlight}/${rateLimit.capacity}`}
-					sub="req/min in flight"
+					sub={`${(rateLimit.spacingMs / 1000).toFixed(1)}s between requests`}
 				/>
 			</div>
 

@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/Button";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
-import { useTranslation } from "react-i18next";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
+import { useTranslation, useTextDirection } from "@/i18n";
 
 /**
  * Native article reader (v1.1.0).
@@ -31,6 +32,7 @@ export function ArticleDetailPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { t } = useTranslation();
+	const textDir = useTextDirection();
 	const queryClient = useQueryClient();
 
 	// Smart back: return to the page that opened this article (Brief, Archive,
@@ -44,7 +46,11 @@ export function ArticleDetailPage() {
 
 	const [reminderDismissed, setReminderDismissed] = useState(false);
 	const [read, setRead] = useState(false);
+	// Original/Translated toggles — one for the title, one for the body. Both
+	// default to the translated version when one exists (R-A07: the original is
+	// always one toggle away, never lost).
 	const [showOriginal, setShowOriginal] = useState(false);
+	const [showOriginalBody, setShowOriginalBody] = useState(false);
 	const [zoomed, setZoomed] = useState<ArticleMedia | null>(null);
 
 	const { data: detail, isLoading } = useQuery({
@@ -103,14 +109,18 @@ export function ArticleDetailPage() {
 	}
 
 	const { article, sourceName, sourceCategory } = detail;
-	const hasOriginalTitle = Boolean(
-		(article as { originalTitle?: string | null }).originalTitle,
-	);
+	const hasOriginalTitle = Boolean(article.originalTitle);
+	const hasTranslatedBody = Boolean(article.translatedContent);
 	const displayTitle =
 		showOriginal && hasOriginalTitle
-			? (article as { originalTitle?: string | null }).originalTitle ??
-				article.title
+			? (article.originalTitle ?? article.title)
 			: article.title;
+	// Default shows the translation when present; the toggle reveals the
+	// original `content` (which stays canonical in storage, R-A05).
+	const displayContent =
+		hasTranslatedBody && !showOriginalBody
+			? (article.translatedContent ?? article.content)
+			: article.content;
 	const showReminder = !reminderDismissed;
 	const keptCount = media.filter((m) => m.source === "local").length;
 
@@ -125,14 +135,17 @@ export function ArticleDetailPage() {
 			) : null}
 
 			<header className="mb-12">
-				<button
-					type="button"
-					onClick={goBack}
-					className="mb-6 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
-				>
-					<Icon name="arrow_back" className="text-[18px]" />
-					{t("article.back")}
-				</button>
+				<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+					<button
+						type="button"
+						onClick={goBack}
+						className="inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
+					>
+						<Icon name="arrow_back" className="text-[18px]" />
+						{t("article.back")}
+					</button>
+					<DocsHelpButton sectionId="media" />
+				</div>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
 					{sourceCategory ? <DomainTag>{sourceCategory}</DomainTag> : null}
 					<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
@@ -154,26 +167,30 @@ export function ArticleDetailPage() {
 					) : null}
 				</div>
 				<div className="mb-6 flex items-start gap-3">
-						<h1
-							className="font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
-							dir="auto"
+					<h1
+						className="font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
+						dir={textDir(displayTitle)}
+					>
+						{displayTitle}
+					</h1>
+					{hasOriginalTitle ? (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								setShowOriginal((v) => !v);
+							}}
+							className="mt-2 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+							title={
+								showOriginal
+									? t("article.showTranslatedTitle")
+									: t("article.showOriginalTitle")
+							}
 						>
-							{displayTitle}
-						</h1>
-						{hasOriginalTitle ? (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									setShowOriginal((v) => !v);
-								}}
-								className="mt-2 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
-								title={showOriginal ? "Show translated title" : "Show original title"}
-							>
-								{showOriginal ? "Translated" : "Original"}
-							</button>
-						) : null}
-					</div>
+							{showOriginal ? t("article.translated") : t("article.original")}
+						</button>
+					) : null}
+				</div>
 				<div className="mb-4 h-0.5 w-12 bg-primary" />
 				<a
 					href={article.url}
@@ -186,13 +203,32 @@ export function ArticleDetailPage() {
 				</a>
 			</header>
 
-			{/* Body — stored plain text in a focused reading column. */}
+			{/* Body — stored plain text in a focused reading column. An
+			    Original/Translated toggle sits above it when a translation exists. */}
 			<GhostCard className="mb-12">
+				{hasTranslatedBody ? (
+					<div className="mb-4 flex justify-end">
+						<button
+							type="button"
+							onClick={() => setShowOriginalBody((v) => !v)}
+							className="rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+							title={
+								showOriginalBody
+									? t("article.showTranslatedBody")
+									: t("article.showOriginalBody")
+							}
+						>
+							{showOriginalBody
+								? t("article.translated")
+								: t("article.original")}
+						</button>
+					</div>
+				) : null}
 				<div
 					className="mx-auto max-w-prose whitespace-pre-wrap font-body text-body-lg leading-relaxed text-on-surface"
-					dir="auto"
+					dir={textDir(displayContent)}
 				>
-					{article.content || t("article.noContent")}
+					{displayContent || t("article.noContent")}
 				</div>
 			</GhostCard>
 
@@ -253,9 +289,9 @@ export function ArticleDetailPage() {
 				/>
 				<div className="mx-2 h-6 w-px bg-outline-variant" />
 				<ActionBtn
-				icon={bookmark.saved ? "bookmark_added" : "bookmark"}
-				label={bookmark.saved ? t("article.saved") : t("article.save")}
-				onClick={bookmark.toggle}
+					icon={bookmark.saved ? "bookmark_added" : "bookmark"}
+					label={bookmark.saved ? t("article.saved") : t("article.save")}
+					onClick={bookmark.toggle}
 				/>
 				<ActionBtn
 					icon="ios_share"

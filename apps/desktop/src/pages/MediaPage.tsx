@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
 	fetchLocalMediaSummary,
 	purgeLocalMedia,
@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -23,6 +24,7 @@ import { useTranslation } from "react-i18next";
  */
 export function MediaPage() {
 	const { t } = useTranslation();
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
 
@@ -45,18 +47,25 @@ export function MediaPage() {
 	return (
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
 			<header className="mb-10">
-				<Link
-					to="/brief"
-					className="mb-4 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
+				{/* Back sits on its own line at the top — goes back where you came
+				    from (browser history), not to a hardcoded page. */}
+				<button
+					type="button"
+					onClick={() => navigate(-1)}
+					className="mb-4 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant transition-colors hover:text-primary"
 				>
 					<Icon name="arrow_back" className="text-[18px]" />
 					{t("media.back")}
-				</Link>
-				<h1 className="mb-2 flex items-center gap-3 font-headline text-display-md text-primary dark:text-primary-fixed">
-					<Icon name="photo_library" className="text-[32px]" />
-					{t("media.title")}
-				</h1>
-				<p className="max-w-prose font-body text-body-md text-on-surface-variant">
+				</button>
+				{/* Title row — the help button sits directly opposite the title. */}
+				<div className="flex flex-wrap items-center justify-between gap-4">
+					<h1 className="flex items-center gap-3 font-headline text-display-md text-primary dark:text-primary-fixed">
+						<Icon name="photo_library" className="text-[32px]" />
+						{t("media.title")}
+					</h1>
+					<DocsHelpButton sectionId="media" />
+				</div>
+				<p className="mt-2 max-w-prose font-body text-body-md text-on-surface-variant">
 					{t("media.subtitle")}
 				</p>
 			</header>
@@ -98,31 +107,31 @@ export function MediaPage() {
 					</p>
 				</GhostCard>
 			) : (
-					<>
-						<div className="mb-6 flex justify-end">
-							<Button
-								variant="ghost"
-								icon="delete_forever"
-								onClick={() => setShowPurgeConfirm(true)}
-							>
-								{t("media.purgeAll")}
-							</Button>
-						</div>
-						<ConfirmDialog
-							open={showPurgeConfirm}
-							title={t("media.purgeAll")}
-							message={t("media.purgeConfirm")}
-							confirmLabel={t("media.purgeAll")}
-							cancelLabel={t("common.cancel")}
+				<>
+					<div className="mb-6 flex justify-end">
+						<Button
+							variant="ghost"
 							icon="delete_forever"
-							danger
-							confirming={purgeAll.isPending}
-							onConfirm={() => {
-								setShowPurgeConfirm(false);
-								purgeAll.mutate();
-							}}
-							onCancel={() => setShowPurgeConfirm(false)}
-						/>
+							onClick={() => setShowPurgeConfirm(true)}
+						>
+							{t("media.purgeAll")}
+						</Button>
+					</div>
+					<ConfirmDialog
+						open={showPurgeConfirm}
+						title={t("media.purgeAll")}
+						message={t("media.purgeConfirm")}
+						confirmLabel={t("media.purgeAll")}
+						cancelLabel={t("common.cancel")}
+						icon="delete_forever"
+						danger
+						confirming={purgeAll.isPending}
+						onConfirm={() => {
+							setShowPurgeConfirm(false);
+							purgeAll.mutate();
+						}}
+						onCancel={() => setShowPurgeConfirm(false)}
+					/>
 					<div className="space-y-3">
 						{summary.articles.map((a) => (
 							<GhostCard

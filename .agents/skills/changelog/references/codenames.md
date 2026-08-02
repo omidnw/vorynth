@@ -54,6 +54,7 @@ Update this list when you add a codename to `RELEASES`. One codename per release
 
 | Version | Codename                        | Principle       |
 | ------- | ------------------------------- | --------------- |
+| 1.7.0   | Organize The Signal             | composition     |
 | 1.6.0   | Navigate the Maze               | §2 — name       |
 | 1.5.0   | Knowledge Paths                 | §2 — name       |
 | 1.3.0   | In Your Language                | composition     |

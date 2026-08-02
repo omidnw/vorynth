@@ -14,6 +14,8 @@ import type {
 export async function fetchArchiveItems(params?: {
 	contentType?: string;
 	collectionId?: string;
+	/** Only the collection's own items — no subtree expansion (Explorer view). */
+	direct?: boolean;
 	tag?: string;
 	q?: string;
 	archived?: boolean;
@@ -24,6 +26,7 @@ export async function fetchArchiveItems(params?: {
 	const qs = new URLSearchParams();
 	if (params?.contentType) qs.set("contentType", params.contentType);
 	if (params?.collectionId) qs.set("collectionId", params.collectionId);
+	if (params?.direct) qs.set("direct", "true");
 	if (params?.tag) qs.set("tag", params.tag);
 	if (params?.q) qs.set("q", params.q);
 	if (params?.archived !== undefined) qs.set("archived", String(params.archived));

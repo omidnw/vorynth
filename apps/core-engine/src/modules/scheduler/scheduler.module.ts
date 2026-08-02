@@ -3,6 +3,7 @@ import { CrawlerModule } from "../crawler/crawler.module.js";
 import { IntelligenceModule } from "../intelligence/intelligence.module.js";
 import { LlmModule } from "../llm/llm.module.js";
 import { RetentionModule } from "../retention/retention.module.js";
+import { TrashModule } from "../trash/trash.module.js";
 import { SchedulerService } from "./scheduler.service.js";
 import { SchedulerBootstrap } from "./scheduler.bootstrap.js";
 
@@ -14,7 +15,13 @@ import { SchedulerBootstrap } from "./scheduler.bootstrap.js";
  * we don't get duplicate "started" logs from two lifecycle hooks.
  */
 @Module({
-	imports: [CrawlerModule, LlmModule, IntelligenceModule, RetentionModule],
+	imports: [
+		CrawlerModule,
+		LlmModule,
+		IntelligenceModule,
+		RetentionModule,
+		TrashModule,
+	],
 	providers: [SchedulerService, SchedulerBootstrap],
 	exports: [SchedulerService],
 })

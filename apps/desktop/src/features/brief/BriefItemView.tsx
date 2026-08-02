@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation, useTextDirection, type TextDirection } from "@/i18n";
 import type { BriefEntry } from "@vorynth/types";
 import { Icon } from "@/components/ui/Icon";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
@@ -23,17 +24,32 @@ import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
  * story to the Archive.
  */
 export function BriefItemView({ entry }: { entry: BriefEntry }) {
-		const navigate = useNavigate();
-		const { article, insight, sourceNames, category, importanceTier } = entry;
-		const rankLabel = String(entry.rank).padStart(2, "0");
-		const hasIntelligence = Boolean(insight);
-		const bookmark = useBookmarkToggle(article.contentItemId);
+	const navigate = useNavigate();
+	const { t } = useTranslation();
+	const textDir = useTextDirection();
+	const { article, insight, sourceNames, category, importanceTier } = entry;
+	const rankLabel = String(entry.rank).padStart(2, "0");
+	const hasIntelligence = Boolean(insight);
+	const bookmark = useBookmarkToggle(article.contentItemId);
 
-		const headline = insight?.summary?.split("\n")[0] || article.title;
-		const standfirst = insight?.significance || snippet(article.content);
+	const headline = insight?.summary?.split("\n")[0] || article.title;
 	const hasOriginalTitle = Boolean(article.originalTitle);
+	const hasTranslatedBody = Boolean(article.translatedContent);
 	const [showOriginal, setShowOriginal] = useState(false);
-	const displayTitle = showOriginal && article.originalTitle ? article.originalTitle : headline;
+	const [showOriginalBody, setShowOriginalBody] = useState(false);
+	const displayTitle =
+		showOriginal && article.originalTitle ? article.originalTitle : headline;
+	// The story-text snippet defaults to the translated body when one exists
+	// (mirroring the reader) — the original stays one toggle away.
+	const rawSnippet = snippet(
+		hasTranslatedBody && !showOriginalBody
+			? (article.translatedContent ?? article.content)
+			: article.content,
+	);
+	const standfirst = insight?.significance || rawSnippet;
+	// The body pill only makes sense when the raw story text is what's shown
+	// (an AI significance paragraph is not translated source text).
+	const showBodyToggle = !insight?.significance && hasTranslatedBody;
 
 	// Clicking the card surface navigates to the focused view. Inner links
 	// (article source, "Read") stopPropagation so they work independently.
@@ -82,45 +98,77 @@ export function BriefItemView({ entry }: { entry: BriefEntry }) {
 						) : null}
 					</div>
 
-						<div className="mb-4 flex items-start gap-3">
-							<h3
-								className="font-headline text-headline-lg leading-tight text-primary dark:text-primary-fixed"
-								dir="auto"
+					<div className="mb-4 flex items-start gap-3">
+						<h3
+							className="font-headline text-headline-lg leading-tight text-primary dark:text-primary-fixed"
+							dir={textDir(displayTitle)}
+						>
+							{displayTitle}
+						</h3>
+						{hasOriginalTitle ? (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setShowOriginal((v) => !v);
+								}}
+								className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+								title={
+									showOriginal
+										? t("article.showTranslatedTitle")
+										: t("article.showOriginalTitle")
+								}
 							>
-								{displayTitle}
-							</h3>
-							{hasOriginalTitle ? (
-								<button
-									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
-										setShowOriginal((v) => !v);
-									}}
-									className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
-									title={showOriginal ? "Show translated title" : "Show original title"}
-								>
-									{showOriginal ? "Translated" : "Original"}
-								</button>
-							) : null}
-						</div>
+								{showOriginal ? t("article.translated") : t("article.original")}
+							</button>
+						) : null}
+					</div>
 					<div className="mb-6 h-0.5 w-12 bg-primary" />
 
-					<p
-						className="mb-8 font-body text-body-lg leading-relaxed text-on-surface"
-						dir="auto"
-					>
-						{standfirst}
-					</p>
+					<div className="mb-8 flex items-start gap-3">
+						<p
+							className="flex-1 font-body text-body-lg leading-relaxed text-on-surface"
+							dir={textDir(standfirst)}
+						>
+							{standfirst}
+						</p>
+						{showBodyToggle ? (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setShowOriginalBody((v) => !v);
+								}}
+								className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+								title={
+									showOriginalBody
+										? t("article.showTranslatedBody")
+										: t("article.showOriginalBody")
+								}
+							>
+								{showOriginalBody
+									? t("article.translated")
+									: t("article.original")}
+							</button>
+						) : null}
+					</div>
 
 					{hasIntelligence && insight ? (
 						<div className="grid grid-cols-1 gap-8 font-body text-body-md md:grid-cols-2">
 							<div className="space-y-4">
-								<Field label="Why it matters">
+								<Field
+									label="Why it matters"
+									dir={textDir(insight.significance || "")}
+								>
 									{insight.significance || "—"}
 								</Field>
-								<Field label="Impact">{insight.impact || "—"}</Field>
+								<Field label="Impact" dir={textDir(insight.impact || "")}>
+									{insight.impact || "—"}
+								</Field>
 								{sourceNames.length > 0 ? (
-									<Field label="Sources">{sourceNames.join(" · ")}</Field>
+									<Field label="Sources" dir={textDir(sourceNames.join(" · "))}>
+										{sourceNames.join(" · ")}
+									</Field>
 								) : null}
 							</div>
 							<div className="border-l-2 border-primary bg-surface-container-low p-6 rounded">
@@ -128,7 +176,10 @@ export function BriefItemView({ entry }: { entry: BriefEntry }) {
 									<Icon name="lightbulb" fill className="text-[16px]" />
 									Recommended Action
 								</h4>
-								<p className="italic text-on-surface" dir="auto">
+								<p
+									className="italic text-on-surface"
+									dir={textDir(insight.recommendedAction || "")}
+								>
 									{insight.recommendedAction || "—"}
 								</p>
 							</div>
@@ -161,7 +212,9 @@ export function BriefItemView({ entry }: { entry: BriefEntry }) {
 								bookmark.toggle();
 							}}
 							disabled={!bookmark.enabled}
-							aria-label={bookmark.saved ? "Remove bookmark" : "Bookmark this story"}
+							aria-label={
+								bookmark.saved ? "Remove bookmark" : "Bookmark this story"
+							}
 							aria-pressed={bookmark.saved}
 							className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary disabled:opacity-30"
 						>
@@ -185,16 +238,18 @@ export function BriefItemView({ entry }: { entry: BriefEntry }) {
 function Field({
 	label,
 	children,
+	dir,
 }: {
 	label: string;
 	children: React.ReactNode;
+	dir?: TextDirection;
 }) {
 	return (
 		<div className="space-y-1">
 			<h4 className="font-label text-label-md uppercase tracking-wide text-on-surface-variant">
 				{label}
 			</h4>
-			<p className="text-on-surface" dir="auto">
+			<p className="text-on-surface" dir={dir ?? "auto"}>
 				{children}
 			</p>
 		</div>

@@ -272,7 +272,7 @@ describe("domain invariants: collection tree (R-A11)", () => {
 		}
 	});
 
-	it("deleting a collection moves items to uncategorized, never deletes them", async () => {
+	it("soft-deleting a collection keeps items linked; purging moves them to uncategorized", async () => {
 		const db = createTestDb();
 		try {
 			seedSource(db);
@@ -284,14 +284,25 @@ describe("domain invariants: collection tree (R-A11)", () => {
 			const { spineId } = seedArticle(db, "src-test");
 
 			await archive.updateItem(spineId, { collectionId: cat.id });
-			await archive.deleteCollection(cat.id);
 
+			// v1.7.0 — delete is a soft delete: the item keeps its hidden folder
+			// link (that is what makes restore exact), the collection leaves the
+			// live tree, and the item still exists.
+			await archive.deleteCollection(cat.id);
 			const raw = db.service.rawDb;
-			// Item survived, collection_id nulled (uncategorized).
 			const item = raw
 				.prepare("SELECT collection_id FROM content_items WHERE id = ?")
 				.get(spineId) as { collection_id: string | null };
-			expect(item.collection_id).toBeNull();
+			expect(item.collection_id).toBe(cat.id);
+			expect((await archive.listCollections()).items).toHaveLength(0);
+
+			// Permanently purging the trashed collection moves items to
+			// uncategorized — never deletes content (R-A11).
+			await archive.purgeCollection(cat.id);
+			const afterPurge = raw
+				.prepare("SELECT collection_id FROM content_items WHERE id = ?")
+				.get(spineId) as { collection_id: string | null };
+			expect(afterPurge.collection_id).toBeNull();
 			expect(
 				(raw.prepare("SELECT COUNT(*) AS c FROM content_items WHERE id = ?").get(spineId) as { c: number }).c,
 			).toBe(1);
@@ -366,6 +377,95 @@ describe("archive + bookmarks services", () => {
 			expect(byNote.items[0].contentItemId).toBe(spineId);
 			const byTag = await archive.listItems({ tag: "security", archived: true });
 			expect(byTag.items[0].contentItemId).toBe(spineId);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("selecting a collection lists items in its whole subtree", async () => {
+		const db = createTestDb();
+		try {
+			seedSource(db);
+			const archive = new ArchiveService(db.service);
+			const cat = await archive.createCollection({
+				name: "Research",
+				kind: "category",
+			});
+			const folder = await archive.createCollection({
+				name: "Papers",
+				kind: "folder",
+				parentId: cat.id,
+			});
+
+			// One item directly in the category, one in a descendant folder.
+			const inCategory = await archive.updateItem(
+				seedArticle(db, "src-test").spineId,
+				{ collectionId: cat.id },
+			);
+			const inFolder = await archive.updateItem(
+				seedArticle(db, "src-test").spineId,
+				{ collectionId: folder.id },
+			);
+
+			// A leaf folder lists only its own items…
+			const direct = await archive.listItems({ collectionId: folder.id });
+			expect(direct.items.map((i) => i.contentItemId)).toEqual([
+				inFolder.contentItemId,
+			]);
+
+			// …while a category includes everything in its subtree (items live at
+			// leaves, R-A11 — selecting a root must not appear empty).
+			const subtree = await archive.listItems({ collectionId: cat.id });
+			expect(subtree.items.map((i) => i.contentItemId)).toEqual(
+				expect.arrayContaining([inCategory.contentItemId, inFolder.contentItemId]),
+			);
+			expect(subtree.items).toHaveLength(2);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("direct mode lists only the collection's own items (Explorer view)", async () => {
+		const db = createTestDb();
+		try {
+			seedSource(db);
+			const archive = new ArchiveService(db.service);
+			const cat = await archive.createCollection({
+				name: "Research",
+				kind: "category",
+			});
+			const folder = await archive.createCollection({
+				name: "Papers",
+				kind: "folder",
+				parentId: cat.id,
+			});
+
+			const inCategory = await archive.updateItem(
+				seedArticle(db, "src-test").spineId,
+				{ collectionId: cat.id },
+			);
+			const inFolder = await archive.updateItem(
+				seedArticle(db, "src-test").spineId,
+				{ collectionId: folder.id },
+			);
+
+			// Direct mode: the category lists ONLY its own item — the folder's
+			// item belongs to the folder, not the parent.
+			const direct = await archive.listItems({
+				collectionId: cat.id,
+				direct: true,
+			});
+			expect(direct.items.map((i) => i.contentItemId)).toEqual([
+				inCategory.contentItemId,
+			]);
+			// The folder still lists its own item.
+			const folderDirect = await archive.listItems({
+				collectionId: folder.id,
+				direct: true,
+			});
+			expect(folderDirect.items.map((i) => i.contentItemId)).toEqual([
+				inFolder.contentItemId,
+			]);
 		} finally {
 			db.close();
 		}

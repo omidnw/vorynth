@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useTextDirection } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
@@ -63,6 +64,7 @@ export function ConfirmDialog({
 	dontShowAgain = false,
 }: ConfirmDialogProps) {
 	const [dontShow, setDontShow] = useState(false);
+	const textDir = useTextDirection();
 
 	useEffect(() => {
 		if (!open) return;
@@ -128,7 +130,7 @@ export function ConfirmDialog({
 				<p
 					id="confirm-dialog-message"
 					className="mb-6 font-body text-body-md leading-relaxed text-on-surface-variant"
-					dir="auto"
+					dir={typeof message === "string" ? textDir(message) : "auto"}
 				>
 					{message}
 				</p>
@@ -156,14 +158,16 @@ export function ConfirmDialog({
 						icon={danger ? "delete" : "check"}
 						onClick={handleConfirm}
 						disabled={confirming}
-						className={danger ? "bg-error text-on-error hover:brightness-105" : ""}
+						className={
+							danger ? "bg-error text-on-error hover:brightness-105" : ""
+						}
 					>
 						{confirming ? (confirmingLabel ?? "Working…") : confirmLabel}
 					</Button>
 				</div>
-				</div>
 			</div>
-		);
+		</div>
+	);
 }
 
 // ── PromptDialog (replaces window.prompt) ───────────────────────────────────
@@ -274,7 +278,12 @@ export function PromptDialog({
 					<Button variant="ghost" size="sm" onClick={onCancel}>
 						{cancelLabel}
 					</Button>
-					<Button size="sm" icon="check" onClick={handleSubmit} disabled={!value.trim()}>
+					<Button
+						size="sm"
+						icon="check"
+						onClick={handleSubmit}
+						disabled={!value.trim()}
+					>
 						{saveLabel}
 					</Button>
 				</div>

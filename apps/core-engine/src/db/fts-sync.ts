@@ -43,6 +43,33 @@ export function ftsInsertArticle(
 }
 
 /**
+ * Update an existing article's FTS5 row in place (title/content/author).
+ *
+ * Used when a job rewrites an article's title or content (e.g. Translate
+ * Stories changes `title`) so keyword search keeps matching what the live
+ * table displays. `content` is passed by the caller — unchanged fields are
+ * simply written back with their current values.
+ */
+export function ftsUpdateArticle(
+	rawDb: Database.Database,
+	articleId: string,
+	title: string,
+	content: string,
+	author?: string | null,
+): void {
+	rawDb
+		.prepare(
+			"UPDATE articles_fts SET title = ?, content = ?, author = ? WHERE article_id = ?",
+		)
+		.run(
+			normalizeText(title),
+			normalizeText(content),
+			normalizeText(author ?? ""),
+			articleId,
+		);
+}
+
+/**
  * Rebuild the FTS5 index from scratch.
  *
  * Drops the virtual table, recreates it, and backfills all articles from

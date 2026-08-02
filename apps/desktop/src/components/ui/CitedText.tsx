@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { Citation } from "@vorynth/types";
+import { useTextDirection } from "@/i18n";
 import { Icon } from "./Icon";
 
 /**
@@ -24,9 +25,10 @@ export function CitedText({
 }) {
 	const byN = new Map(citations.map((c) => [c.n, c]));
 	const parts = parseCitedText(text, byN);
+	const textDir = useTextDirection();
 
 	return (
-		<span className={className} dir="auto">
+		<span className={className} dir={textDir(text)}>
 			{parts.map((part, i) => {
 				if (part.kind === "text") {
 					return <span key={i}>{part.value}</span>;

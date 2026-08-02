@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { AskResult, SearchResult } from "@vorynth/types";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { CitedText, CitationList } from "@/components/ui/CitedText.js";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { fetchSearchEntry } from "@/features/history/history-api.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
+import { useTextDirection } from "@/i18n";
 import { cn } from "@/lib/cn";
 import type { SearchMode } from "@vorynth/types";
 
@@ -19,7 +21,19 @@ import type { SearchMode } from "@vorynth/types";
 export function HistorySearchDetailPage() {
 	const { id = "" } = useParams();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const closeDrawer = useHistoryStore((s) => s.closeDrawer);
+	const textDir = useTextDirection();
+
+	// Smart back: return to whatever opened this page (Archive, Search, the
+	// drawer…) when there's history to go back to; otherwise fall back to the
+	// search page. `location.key !== "default"` means react-router has a prior
+	// entry in its history stack (same idiom as ArticleDetailPage).
+	const goBack = () => {
+		closeDrawer();
+		if (location.key !== "default") navigate(-1);
+		else navigate("/search");
+	};
 
 	const { data: entry, isLoading } = useQuery({
 		queryKey: ["history", "search", "single", id],
@@ -57,9 +71,9 @@ export function HistorySearchDetailPage() {
 					<Button
 						variant="secondary"
 						icon="arrow_back"
-						onClick={() => navigate("/brief")}
+						onClick={() => navigate("/search")}
 					>
-						Back to Brief
+						Back to Search
 					</Button>
 				</GhostCard>
 			</section>
@@ -75,14 +89,17 @@ export function HistorySearchDetailPage() {
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
 			{/* Header */}
 			<header className="mb-12">
-				<Link
-					to="/search"
-					onClick={() => closeDrawer()}
-					className="mb-6 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
-				>
-					<Icon name="arrow_back" className="text-[18px]" />
-					Back to Search
-				</Link>
+				<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+					<button
+						type="button"
+						onClick={goBack}
+						className="inline-flex cursor-pointer items-center gap-2 font-label text-label-md uppercase text-on-surface-variant transition-colors hover:text-primary"
+					>
+						<Icon name="arrow_back" className="text-[18px]" />
+						Back to Search
+					</button>
+					<DocsHelpButton sectionId="history" />
+				</div>
 
 				<div className="mb-4 flex flex-wrap items-center gap-3">
 					<ModeBadge mode={entry.mode} />
@@ -139,7 +156,7 @@ export function HistorySearchDetailPage() {
 					</h3>
 					<p
 						className="whitespace-pre-wrap font-body text-body-lg leading-relaxed text-on-surface"
-						dir="auto"
+						dir={textDir(ai.answer)}
 					>
 						<CitedText text={ai.answer} citations={ai.citations} />
 					</p>
@@ -184,7 +201,7 @@ export function HistorySearchDetailPage() {
 										</div>
 										<h4
 											className="font-headline text-headline-md text-primary dark:text-primary-fixed group-hover:underline"
-											dir="auto"
+											dir={textDir(h.article.title)}
 										>
 											<Link
 												to={`/articles/${h.article.id}`}
@@ -196,7 +213,7 @@ export function HistorySearchDetailPage() {
 										{h.highlight ? (
 											<p
 												className="mt-2 font-body text-body-md text-on-surface-variant line-clamp-3"
-												dir="auto"
+												dir={textDir(h.highlight)}
 											>
 												{h.highlight}
 											</p>
@@ -239,14 +256,7 @@ export function HistorySearchDetailPage() {
 					}}
 				/>
 				<div className="mx-2 h-6 w-px bg-outline-variant" />
-				<ActionBtn
-					icon="arrow_back"
-					label="Back"
-					onClick={() => {
-						closeDrawer();
-						navigate("/search");
-					}}
-				/>
+				<ActionBtn icon="arrow_back" label="Back" onClick={goBack} />
 			</footer>
 		</article>
 	);

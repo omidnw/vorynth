@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { and, desc, eq, inArray, like, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { DatabaseService } from "../../db/database.service.js";
 import { attachSpine, createSpine } from "../../db/spine.js";
@@ -162,21 +162,17 @@ export class HistoryService {
 	}
 
 	listSearch(includeArchived = false): SearchHistoryList {
-		const where = includeArchived
-			? undefined
-			: eq(searchHistory.archived, false);
-		const rows = where
-			? this.db.db
-					.select()
-					.from(searchHistory)
-					.where(where)
-					.orderBy(desc(searchHistory.createdAt))
-					.all()
-			: this.db.db
-					.select()
-					.from(searchHistory)
-					.orderBy(desc(searchHistory.createdAt))
-					.all();
+		// v1.7.0 — trashed (soft-deleted) entries never appear in the live list.
+		const where = and(
+			isNull(searchHistory.deletedAt),
+			includeArchived ? undefined : eq(searchHistory.archived, false),
+		);
+		const rows = this.db.db
+			.select()
+			.from(searchHistory)
+			.where(where)
+			.orderBy(desc(searchHistory.createdAt))
+			.all();
 		return { items: rows.map((r) => this.toSearchEntry(r)) };
 	}
 
@@ -209,17 +205,59 @@ export class HistoryService {
 		return row ? this.toSearchEntry(row) : null;
 	}
 
+	// v1.7.0 — deletion is soft (goes to Trash, restorable); the linked spine is
+	// untouched so no orphan appears while trashed. Permanent delete (purge*)
+	// removes origin + spine (+ bookmark) in one transaction.
+
 	deleteSearch(ids: string[]): number {
 		if (ids.length === 0) return 0;
 		const res = this.db.db
-			.delete(searchHistory)
+			.update(searchHistory)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
 			.where(inArray(searchHistory.id, ids))
 			.run();
 		return res.changes;
 	}
 
+	restoreSearch(id: string): void {
+		this.db.db
+			.update(searchHistory)
+			.set({ deletedAt: null, updatedAt: new Date() })
+			.where(eq(searchHistory.id, id))
+			.run();
+	}
+
+	purgeSearch(ids: string[]): number {
+		if (ids.length === 0) return 0;
+		const raw = this.db.rawDb;
+		return raw.transaction(() => {
+			const placeholders = ids.map(() => "?").join(", ");
+			const spines = raw
+				.prepare(
+					`SELECT content_item_id FROM search_history
+					 WHERE id IN (${placeholders}) AND content_item_id IS NOT NULL`,
+				)
+				.all(...ids) as Array<{ content_item_id: string }>;
+			const res = raw
+				.prepare(`DELETE FROM search_history WHERE id IN (${placeholders})`)
+				.run(...ids);
+			for (const s of spines) {
+				raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
+					s.content_item_id,
+				);
+				raw.prepare("DELETE FROM content_items WHERE id = ?").run(
+					s.content_item_id,
+				);
+			}
+			return res.changes;
+		})();
+	}
+
 	clearSearch(): number {
-		const res = this.db.db.delete(searchHistory).run();
+		const res = this.db.db
+			.update(searchHistory)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
+			.run();
 		return res.changes;
 	}
 
@@ -271,21 +309,16 @@ export class HistoryService {
 	}
 
 	listBrief(includeArchived = false): BriefHistoryList {
-		const where = includeArchived
-			? undefined
-			: eq(briefHistory.archived, false);
-		const rows = where
-			? this.db.db
-					.select()
-					.from(briefHistory)
-					.where(where)
-					.orderBy(desc(briefHistory.createdAt))
-					.all()
-			: this.db.db
-					.select()
-					.from(briefHistory)
-					.orderBy(desc(briefHistory.createdAt))
-					.all();
+		const where = and(
+			isNull(briefHistory.deletedAt),
+			includeArchived ? undefined : eq(briefHistory.archived, false),
+		);
+		const rows = this.db.db
+			.select()
+			.from(briefHistory)
+			.where(where)
+			.orderBy(desc(briefHistory.createdAt))
+			.all();
 		return { items: rows.map((r) => this.toBriefEntry(r)) };
 	}
 
@@ -321,14 +354,52 @@ export class HistoryService {
 	deleteBrief(ids: string[]): number {
 		if (ids.length === 0) return 0;
 		const res = this.db.db
-			.delete(briefHistory)
+			.update(briefHistory)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
 			.where(inArray(briefHistory.id, ids))
 			.run();
 		return res.changes;
 	}
 
+	restoreBrief(id: string): void {
+		this.db.db
+			.update(briefHistory)
+			.set({ deletedAt: null, updatedAt: new Date() })
+			.where(eq(briefHistory.id, id))
+			.run();
+	}
+
+	purgeBrief(ids: string[]): number {
+		if (ids.length === 0) return 0;
+		const raw = this.db.rawDb;
+		return raw.transaction(() => {
+			const placeholders = ids.map(() => "?").join(", ");
+			const spines = raw
+				.prepare(
+					`SELECT content_item_id FROM brief_history
+					 WHERE id IN (${placeholders}) AND content_item_id IS NOT NULL`,
+				)
+				.all(...ids) as Array<{ content_item_id: string }>;
+			const res = raw
+				.prepare(`DELETE FROM brief_history WHERE id IN (${placeholders})`)
+				.run(...ids);
+			for (const s of spines) {
+				raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
+					s.content_item_id,
+				);
+				raw.prepare("DELETE FROM content_items WHERE id = ?").run(
+					s.content_item_id,
+				);
+			}
+			return res.changes;
+		})();
+	}
+
 	clearBrief(): number {
-		const res = this.db.db.delete(briefHistory).run();
+		const res = this.db.db
+			.update(briefHistory)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
+			.run();
 		return res.changes;
 	}
 
@@ -378,21 +449,16 @@ export class HistoryService {
 	}
 
 	listGenerated(includeArchived = false): GeneratedHistoryList {
-		const where = includeArchived
-			? undefined
-			: eq(generatedHistory.archived, false);
-		const rows = where
-			? this.db.db
-					.select()
-					.from(generatedHistory)
-					.where(where)
-					.orderBy(desc(generatedHistory.createdAt))
-					.all()
-			: this.db.db
-					.select()
-					.from(generatedHistory)
-					.orderBy(desc(generatedHistory.createdAt))
-					.all();
+		const where = and(
+			isNull(generatedHistory.deletedAt),
+			includeArchived ? undefined : eq(generatedHistory.archived, false),
+		);
+		const rows = this.db.db
+			.select()
+			.from(generatedHistory)
+			.where(where)
+			.orderBy(desc(generatedHistory.createdAt))
+			.all();
 		return { items: rows.map((r) => this.toGeneratedEntry(r)) };
 	}
 
@@ -428,14 +494,52 @@ export class HistoryService {
 	deleteGenerated(ids: string[]): number {
 		if (ids.length === 0) return 0;
 		const res = this.db.db
-			.delete(generatedHistory)
+			.update(generatedHistory)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
 			.where(inArray(generatedHistory.id, ids))
 			.run();
 		return res.changes;
 	}
 
+	restoreGenerated(id: string): void {
+		this.db.db
+			.update(generatedHistory)
+			.set({ deletedAt: null, updatedAt: new Date() })
+			.where(eq(generatedHistory.id, id))
+			.run();
+	}
+
+	purgeGenerated(ids: string[]): number {
+		if (ids.length === 0) return 0;
+		const raw = this.db.rawDb;
+		return raw.transaction(() => {
+			const placeholders = ids.map(() => "?").join(", ");
+			const spines = raw
+				.prepare(
+					`SELECT content_item_id FROM generated_history
+					 WHERE id IN (${placeholders}) AND content_item_id IS NOT NULL`,
+				)
+				.all(...ids) as Array<{ content_item_id: string }>;
+			const res = raw
+				.prepare(`DELETE FROM generated_history WHERE id IN (${placeholders})`)
+				.run(...ids);
+			for (const s of spines) {
+				raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
+					s.content_item_id,
+				);
+				raw.prepare("DELETE FROM content_items WHERE id = ?").run(
+					s.content_item_id,
+				);
+			}
+			return res.changes;
+		})();
+	}
+
 	clearGenerated(): number {
-		const res = this.db.db.delete(generatedHistory).run();
+		const res = this.db.db
+			.update(generatedHistory)
+			.set({ deletedAt: new Date(), updatedAt: new Date() })
+			.run();
 		return res.changes;
 	}
 
@@ -461,6 +565,7 @@ export class HistoryService {
 				.from(searchHistory)
 				.where(
 					and(
+						isNull(searchHistory.deletedAt),
 						includeArchived ? undefined : eq(searchHistory.archived, false),
 						or(
 							like(searchHistory.title, needle),
@@ -489,6 +594,7 @@ export class HistoryService {
 				.from(briefHistory)
 				.where(
 					and(
+						isNull(briefHistory.deletedAt),
 						includeArchived ? undefined : eq(briefHistory.archived, false),
 						like(briefHistory.title, needle),
 					),
@@ -514,6 +620,7 @@ export class HistoryService {
 				.from(generatedHistory)
 				.where(
 					and(
+						isNull(generatedHistory.deletedAt),
 						includeArchived ? undefined : eq(generatedHistory.archived, false),
 						like(generatedHistory.title, needle),
 					),

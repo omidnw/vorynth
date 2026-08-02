@@ -18,7 +18,13 @@ import {
 	buildSummaryPrompt,
 	parseSummaryDraft,
 } from "./prompts/summary.prompt.js";
+import {
+	buildTranslationPrompt,
+	parseTranslationBatch,
+	type ParsedTranslation,
+} from "./prompts/translation.prompt.js";
 import { extractCitedNumbers, resolveCitations } from "./prompts/citations.js";
+import { ftsUpdateArticle } from "../../db/fts-sync.js";
 
 /**
  * Orchestrates intelligence runs.
@@ -348,11 +354,18 @@ export class IntelligenceService {
 	 * @param onProgress  Optional callback invoked after each insight update
 	 *                    with (done, total) for job progress reporting.
 	 * @param targetLanguage  Override language; when omitted reads from profile.
+	 * @param resumeFrom  How many insights were already done before a restart
+	 *                    resumed this job — the loop starts past them (the row
+	 *                    list is stable, so an index offset is safe).
+	 * @param throwIfCanceled  Optional; throws "job canceled" between items so a
+	 *                         canceled job actually stops.
 	 * @returns  Number of insights regenerated.
 	 */
 	async regenerateAllInsights(
 		onProgress?: (done: number, total: number) => void,
 		targetLanguage?: string,
+		resumeFrom = 0,
+		throwIfCanceled?: () => void,
 	): Promise<number> {
 		const lang =
 			targetLanguage ?? (await this.readIntelligenceLanguage());
@@ -377,6 +390,9 @@ export class IntelligenceService {
 		}>;
 
 		const total = rows.length;
+		// Skip insights whose LLM call already completed before a restart
+		// resumed this job — progress continues from the checkpoint.
+		const start = Math.min(Math.max(resumeFrom, 0), total);
 		let done = 0;
 		let regenerated = 0;
 
@@ -388,6 +404,11 @@ export class IntelligenceService {
 		);
 
 		for (const row of rows) {
+			if (done < start) {
+				done++;
+				continue;
+			}
+			throwIfCanceled?.();
 			try {
 				const draft = await this.llm.analyze({
 					articleTitle: row.articleTitle,
@@ -421,33 +442,49 @@ export class IntelligenceService {
 	}
 
 	/**
-	 * Translate all article titles that haven't been translated yet, storing
-	 * the original in `original_title` and replacing `title` with the
-	 * translation. Skips articles that already have an `original_title` set.
+	 * Translate all stories' titles AND bodies into the user's intelligence
+	 * language, batching several stories per LLM request (JSON output) so a
+	 * large collection needs far fewer calls.
 	 *
-	 * @param onProgress  Optional callback invoked after each translation.
+	 * The body translation is stored in `translated_content`; `content` stays
+	 * the canonical original so search and AI analysis keep operating on source
+	 * text (R-A05). Titles follow the existing pattern: `title` becomes the
+	 * translation and `original_title` keeps the FIRST original forever.
+	 *
+	 * Idempotent via its WHERE clause (rows with a translated body are
+	 * excluded), so a restart needs no resume offset — the query itself is the
+	 * checkpoint, matching the previous title-only job.
+	 *
+	 * @param onProgress  Invoked after each batch with (done, total).
 	 * @param targetLanguage  Override language; when omitted reads from profile.
-	 * @returns  Number of titles translated.
+	 * @param _resumeFrom  Ignored on purpose: the WHERE clause already excludes
+	 *                     translated stories, so a restarted job naturally picks
+	 *                     up where it left off.
+	 * @param throwIfCanceled  Optional; throws "job canceled" between batches so a
+	 *                         canceled job actually stops.
+	 * @returns  Number of stories successfully translated.
 	 */
-	async translateAllTitles(
+	async translateAllStories(
 		onProgress?: (done: number, total: number) => void,
 		targetLanguage?: string,
+		_resumeFrom = 0,
+		throwIfCanceled?: () => void,
 	): Promise<number> {
-		const lang =
-			targetLanguage ?? (await this.readIntelligenceLanguage());
+		const lang = targetLanguage ?? (await this.readIntelligenceLanguage());
 
 		const rows = this.db.rawDb
 			.prepare(
-				`SELECT id, title, content
+				`SELECT id, title, content, author
 				 FROM articles
 				 WHERE content != ''
-				   AND (original_title IS NULL OR original_title = '')
+				   AND (translated_content IS NULL OR translated_content = '')
 				 ORDER BY collected_at DESC`,
 			)
 			.all() as Array<{
 			id: string;
 			title: string;
 			content: string;
+			author: string | null;
 		}>;
 
 		const total = rows.length;
@@ -455,37 +492,62 @@ export class IntelligenceService {
 		let translated = 0;
 
 		const updateStmt = this.db.rawDb.prepare(
-			`UPDATE articles SET title = ?, original_title = ? WHERE id = ?`,
+			`UPDATE articles SET
+			   title = ?,
+			   original_title = CASE
+			     WHEN original_title IS NULL OR original_title = '' THEN ?
+			     ELSE original_title
+			   END,
+			   translated_content = ?
+			 WHERE id = ?`,
 		);
 
-		for (const row of rows) {
+		for (const batch of chunkForTranslation(rows)) {
+			throwIfCanceled?.();
+
+			let parsed: ParsedTranslation[] = [];
 			try {
-				// Use generate() to translate — single-shot, free-form.
-				const translatedTitle = await this.llm.generate({
-					system:
-						"You are a professional translator. Translate the given title to the target language. " +
-						"ONLY output the translated title — no quotes, no commentary, no punctuation beyond what the title needs.",
-					user: `Translate this title to ${lang}: "${row.title}"`,
+				const { system, user } = buildTranslationPrompt({
+					targetLanguage: lang,
+					items: batch,
+				});
+				const raw = await this.llm.generate({
+					system,
+					user,
 					outputLanguage: lang,
 				});
-
-				const clean = translatedTitle.replace(/^["']|["']$/g, "").trim();
-				if (clean && clean !== row.title) {
-					updateStmt.run(clean, row.title, row.id);
-					translated++;
-				}
+				parsed = parseTranslationBatch(raw);
 			} catch (err) {
 				this.logger.warn(
-					`title translation failed for article ${row.id} ("${row.title}"): ${(err as Error).message}`,
+					`translation batch failed for ${batch.length} stories (${(err as Error).message}) — skipping`,
 				);
 			}
 
-			done++;
+			// Match by id so a mis-ordered or partially-valid response still
+			// applies safely; missing entries stay pending for the next run.
+			const byId = new Map(parsed.map((p) => [p.id, p]));
+			for (const row of batch) {
+				const hit = byId.get(row.id);
+				if (!hit) continue;
+				updateStmt.run(hit.title, row.title, hit.content, row.id);
+				// Keep the FTS index in sync with the rewritten title (content
+				// is unchanged by this job).
+				ftsUpdateArticle(
+					this.db.rawDb,
+					row.id,
+					hit.title,
+					row.content,
+					row.author,
+				);
+				translated++;
+			}
+
+			done += batch.length;
 			onProgress?.(done, total);
 		}
 
 		this.logger.log(
-			`translateAllTitles: ${translated}/${total} titles translated to "${lang}"`,
+			`translateAllStories: ${translated}/${total} stories translated to "${lang}"`,
 		);
 		return translated;
 	}
@@ -591,6 +653,46 @@ function toInsightDto(row: {
 
 /** Keep BriefEntry happy when re-imported for typing in attach step. */
 export type { BriefEntry };
+
+// ── Translate Stories batching ───────────────────────────────────────────────
+
+/** Stories per LLM request (user preference — 5 is the sweet spot). */
+const BATCH_MAX_ITEMS = 5;
+/**
+ * Combined-content guard: a batch never carries more than this many characters
+ * so very long articles can't blow the model's context. A single oversized
+ * story still gets its own batch (full fidelity beats truncation).
+ */
+const BATCH_CHAR_CAP = 12_000;
+
+interface TranslationRow {
+	id: string;
+	title: string;
+	content: string;
+	author: string | null;
+}
+
+/** Greedy chunking: at most `BATCH_MAX_ITEMS` stories and `BATCH_CHAR_CAP` chars per batch. */
+function chunkForTranslation(rows: TranslationRow[]): TranslationRow[][] {
+	const batches: TranslationRow[][] = [];
+	let current: TranslationRow[] = [];
+	let chars = 0;
+	for (const row of rows) {
+		const rowChars = row.title.length + row.content.length;
+		if (
+			current.length > 0 &&
+			(current.length >= BATCH_MAX_ITEMS || chars + rowChars > BATCH_CHAR_CAP)
+		) {
+			batches.push(current);
+			current = [];
+			chars = 0;
+		}
+		current.push(row);
+		chars += rowChars;
+	}
+	if (current.length > 0) batches.push(current);
+	return batches;
+}
 
 /** Inclusive [start, end] timestamp window a BriefPeriod covers, or nulls. */
 function periodBounds(period: BriefPeriod): {

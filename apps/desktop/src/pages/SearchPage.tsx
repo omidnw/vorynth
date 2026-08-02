@@ -14,10 +14,12 @@ import {
 } from "@/features/search/search-api.js";
 import { fetchSources } from "@/features/sources/sources-api.js";
 import { fetchEngineStatus } from "@/features/brief/brief-api.js";
+import { ArchiveLayout } from "@/components/shell/ArchiveLayout.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 import { fetchSearchHistory } from "@/features/history/history-api.js";
 import { findSearchEntryId } from "@/features/history/use-history-id.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
+import { useTextDirection } from "@/i18n";
 import type {
 	AdvancedSearchQuery,
 	ImportanceTier,
@@ -55,7 +57,9 @@ export function SearchPage() {
 	const [keywordResult, setKeywordResult] = useState<SearchResult | null>(null);
 	const [aiResult, setAiResult] = useState<AskResult | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
-	const [advancedResult, setAdvancedResult] = useState<SearchResult | null>(null);
+	const [advancedResult, setAdvancedResult] = useState<SearchResult | null>(
+		null,
+	);
 
 	const { data: status } = useQuery({
 		queryKey: ["engine-status"],
@@ -130,18 +134,11 @@ export function SearchPage() {
 	};
 
 	return (
-		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
-			{/* Header */}
-			<header className="mb-8">
-				<h1 className="mb-2 font-headline text-headline-lg text-primary dark:text-primary-fixed">
-					Search
-				</h1>
-				<p className="font-body text-body-md text-on-surface-variant">
-					Search across everything Vorynth has collected. Keyword is always
-					available; Ask AI uses RAG over your stories.
-				</p>
-			</header>
-
+		<ArchiveLayout
+			title="Search"
+			subtitle="Search across everything Vorynth has collected. Keyword is always available; Ask AI uses RAG over your stories."
+			docsSectionId="search"
+		>
 			{/* Hero search */}
 			<SearchHero
 				q={q}
@@ -237,7 +234,7 @@ export function SearchPage() {
 					/>
 				) : null}
 			</div>
-		</section>
+		</ArchiveLayout>
 	);
 }
 
@@ -365,6 +362,7 @@ function AiAnswerCard({
 	onViewFull: () => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
+	const textDir = useTextDirection();
 	return (
 		<GhostCard className="border-l-2 border-l-primary">
 			<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -391,7 +389,7 @@ function AiAnswerCard({
 					"whitespace-pre-wrap font-body text-body-lg leading-relaxed text-on-surface",
 					!expanded && "line-clamp-6",
 				)}
-				dir="auto"
+				dir={textDir(result.answer)}
 			>
 				<CitedText text={result.answer} citations={result.citations} />
 			</p>
@@ -515,6 +513,7 @@ function KeywordResults({
 }
 
 function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
+	const textDir = useTextDirection();
 	return (
 		<GhostCard
 			interactive
@@ -539,7 +538,7 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 
 			<h3
 				className="mb-1.5 font-headline text-headline-md leading-snug text-primary transition-colors dark:text-primary-fixed group-hover:underline"
-				dir="auto"
+				dir={textDir(hit.article.title)}
 			>
 				<Link to={`/articles/${hit.article.id}`}>{hit.article.title}</Link>
 			</h3>
@@ -547,7 +546,7 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 			{hit.highlight ? (
 				<p
 					className="mt-2 font-body text-body-md text-on-surface-variant line-clamp-3"
-					dir="auto"
+					dir={textDir(hit.highlight)}
 				>
 					{hit.highlight}
 				</p>
@@ -621,7 +620,9 @@ function AdvancedSearchPanel({
 	});
 
 	const toggle = <T,>(list: T[], setList: (v: T[]) => void, value: T) =>
-		setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+		setList(
+			list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
+		);
 
 	const runSearch = () => {
 		mutation.mutate({
@@ -644,7 +645,8 @@ function AdvancedSearchPanel({
 				Advanced search
 			</h3>
 			<p className="mb-6 font-body text-body-sm text-on-tertiary-container">
-				Structured filters over the collected corpus — for research-grade queries.
+				Structured filters over the collected corpus — for research-grade
+				queries.
 			</p>
 
 			{/* Row 1: keywords + author */}
@@ -790,14 +792,16 @@ function AdvancedSearchPanel({
 
 			{/* Search button */}
 			<div className="flex items-center gap-3">
-				<Button
-					icon="search"
-					onClick={runSearch}
-					disabled={mutation.isPending}
-				>
+				<Button icon="search" onClick={runSearch} disabled={mutation.isPending}>
 					{mutation.isPending ? "Searching…" : "Search with filters"}
 				</Button>
-				{(domains.length > 0 || importance.length > 0 || author || from || to || hasInsight || sourceId) ? (
+				{domains.length > 0 ||
+				importance.length > 0 ||
+				author ||
+				from ||
+				to ||
+				hasInsight ||
+				sourceId ? (
 					<button
 						type="button"
 						onClick={() => {

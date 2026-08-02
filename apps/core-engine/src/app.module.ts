@@ -18,6 +18,7 @@ import { ProfileModule } from "./modules/profile/profile.module.js";
 import { ArchiveModule } from "./modules/archive/archive.module.js";
 import { BookmarksModule } from "./modules/bookmarks/bookmarks.module.js";
 import { RetentionModule } from "./modules/retention/retention.module.js";
+import { TrashModule } from "./modules/trash/trash.module.js";
 
 /**
  * Root application module.
@@ -58,6 +59,8 @@ import { RetentionModule } from "./modules/retention/retention.module.js";
 		BookmarksModule,
 		// v1.6.0 — auto-delete retention (global "delete old stories" policy).
 		RetentionModule,
+		// v1.7.0 — trash / soft-delete (collections + history).
+		TrashModule,
 	],
 })
 export class AppModule {}

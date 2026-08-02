@@ -88,6 +88,7 @@ export function HistoryDrawer() {
 
 function DrawerHeader() {
 	const { scope, closeDrawer } = useHistoryStore();
+	const navigate = useNavigate();
 	// The drawer silently follows the current page: on /brief it shows
 	// briefings, on /profile it shows generated summaries, everywhere else
 	// searches. No toggle — the title makes it obvious which one the user is
@@ -115,14 +116,29 @@ function DrawerHeader() {
 					</p>
 				</div>
 			</div>
-			<button
-				type="button"
-				onClick={closeDrawer}
-				aria-label="Close"
-				className="text-on-surface-variant transition-colors hover:text-primary"
-			>
-				<Icon name="close" />
-			</button>
+			<div className="flex items-center gap-1">
+				<button
+					type="button"
+					onClick={() => {
+						closeDrawer();
+						navigate("/docs#history");
+					}}
+					aria-label="How History works"
+					title="How History works"
+					className="flex items-center gap-1 px-1.5 py-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
+				>
+					<Icon name="menu_book" className="text-[16px]" />
+					<span className="hidden sm:inline">Read docs</span>
+				</button>
+				<button
+					type="button"
+					onClick={closeDrawer}
+					aria-label="Close"
+					className="text-on-surface-variant transition-colors hover:text-primary"
+				>
+					<Icon name="close" />
+				</button>
+			</div>
 		</header>
 	);
 }
@@ -753,7 +769,7 @@ function GeneratedRow({
 	);
 }
 
-	// ── Bulk actions ───────────────────────────────────────────────────────────
+// ── Bulk actions ───────────────────────────────────────────────────────────
 
 function BulkActionBar({ scope }: { scope: HistoryScope }) {
 	const { selectedIds, clearSelection, setSelectMode } = useHistoryStore();
@@ -801,7 +817,12 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 				<Button variant="ghost" size="sm" icon="archive" onClick={doArchive}>
 					Archive
 				</Button>
-				<Button variant="secondary" size="sm" icon="delete" onClick={() => setShowDelete(true)}>
+				<Button
+					variant="secondary"
+					size="sm"
+					icon="delete"
+					onClick={() => setShowDelete(true)}
+				>
 					Delete
 				</Button>
 				<Button variant="ghost" size="sm" onClick={() => setSelectMode(false)}>

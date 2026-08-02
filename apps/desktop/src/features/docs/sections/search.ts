@@ -37,5 +37,9 @@ export const searchSection: DocsSection = {
 				"The 'View full result' button opens the full cached result page.",
 			],
 		},
+		{
+			type: "paragraph",
+			text: "What it's for: finding what you've collected without remembering where it came from. Keyword search is instant and offline — your archive is local. Ask AI goes further: it answers from the actual collected articles and cites them [N], so the AI never fabricates — if it can't support a claim from your data, it won't invent it.",
+		},
 	],
 };

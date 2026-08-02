@@ -37,6 +37,7 @@ export class ArchiveController {
 	async listItems(
 		@Query("contentType") contentType?: string,
 		@Query("collectionId") collectionId?: string,
+		@Query("direct") direct?: string,
 		@Query("tag") tag?: string,
 		@Query("q") q?: string,
 		@Query("archived") archived?: string,
@@ -47,6 +48,7 @@ export class ArchiveController {
 		return this.archive.listItems({
 			contentType: contentType || undefined,
 			collectionId: collectionId || undefined,
+			direct: direct === "true" ? true : undefined,
 			tag: tag || undefined,
 			q: q || undefined,
 			archived:

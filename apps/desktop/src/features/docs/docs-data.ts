@@ -10,21 +10,29 @@
 import { archiveSection } from "./sections/archive.js";
 import { bookmarksSection } from "./sections/bookmarks.js";
 import { briefSection } from "./sections/brief.js";
+import { collectionsSection } from "./sections/collections.js";
 import { docsSection } from "./sections/docs.js";
 import { historySection } from "./sections/history.js";
 import { mediaSection } from "./sections/media.js";
+import { profileSection } from "./sections/profile.js";
 import { searchSection } from "./sections/search.js";
+import { settingsSection } from "./sections/settings.js";
 import { sourcesSection } from "./sections/sources.js";
+import { trashSection } from "./sections/trash.js";
 import { transparencySections } from "./sections/transparency.js";
 
 export const DOCS_SECTIONS = [
 	briefSection,
 	sourcesSection,
 	archiveSection,
+	collectionsSection,
 	bookmarksSection,
 	searchSection,
 	historySection,
+	trashSection,
 	mediaSection,
+	settingsSection,
+	profileSection,
 	docsSection,
 ];
 

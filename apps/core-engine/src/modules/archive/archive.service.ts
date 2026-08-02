@@ -4,7 +4,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from "@nestjs/common";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import { DatabaseService } from "../../db/database.service.js";
@@ -83,6 +83,8 @@ export class ArchiveService {
 	async listItems(opts: {
 		contentType?: string;
 		collectionId?: string;
+		/** Only the collection's own items — no subtree expansion (Explorer view). */
+		direct?: boolean;
 		tag?: string;
 		q?: string;
 		archived?: boolean;
@@ -109,8 +111,24 @@ export class ArchiveService {
 		if (opts.collectionId === "none") {
 			where.push("ci.collection_id IS NULL");
 		} else if (opts.collectionId !== undefined && opts.collectionId !== "") {
-			where.push("ci.collection_id = ?");
-			params.push(opts.collectionId);
+			if (opts.direct === true) {
+				// Explorer view: a collection lists only its own items. Items in
+				// sub-folders belong to those folders — they show when you go
+				// inside them, not under the parent category.
+				where.push("ci.collection_id = ?");
+				params.push(opts.collectionId);
+			} else {
+				// Default: the whole subtree — items live at leaves (R-A11), so a
+				// category includes its descendant folders.
+				const subtreeIds = this.collectionSubtreeIds(opts.collectionId);
+				if (subtreeIds.length === 0) {
+					// Unknown id — match nothing rather than erroring the list.
+					where.push("1 = 0");
+				} else {
+					where.push(`ci.collection_id IN (${subtreeIds.map(() => "?").join(", ")})`);
+					params.push(...subtreeIds);
+				}
+			}
 		}
 		if (opts.tag) {
 			where.push(
@@ -211,7 +229,8 @@ export class ArchiveService {
 			}
 			if (patch.collectionId !== undefined) {
 				if (patch.collectionId !== null) {
-					this.assertCollectionExists(patch.collectionId);
+					// A trashed collection can't be a move target.
+					this.assertCollectionLive(patch.collectionId);
 				}
 				raw.prepare(
 					"UPDATE content_items SET collection_id = ? WHERE id = ?",
@@ -236,7 +255,12 @@ export class ArchiveService {
 	// ── Collections ──────────────────────────────────────────────────────────
 
 	async listCollections(): Promise<CollectionList> {
-		const rows = this.db.db.select().from(collections).all();
+		// v1.7.0 — the live tree excludes soft-deleted (trashed) collections.
+		const rows = this.db.db
+			.select()
+			.from(collections)
+			.where(isNull(collections.deletedAt))
+			.all();
 		return { items: rows.map(toCollectionDto) };
 	}
 
@@ -276,7 +300,8 @@ export class ArchiveService {
 		id: string,
 		patch: UpdateCollectionInput,
 	): Promise<Collection> {
-		this.assertCollectionExists(id);
+		// Trashed collections can't be renamed or moved — restore first.
+		this.assertCollectionLive(id);
 		const set: Record<string, unknown> = { updatedAt: new Date() };
 		if (patch.name !== undefined) set.name = patch.name.trim();
 
@@ -316,13 +341,82 @@ export class ArchiveService {
 	}
 
 	/**
-	 * Delete a collection. Items move to uncategorized and child collections
-	 * re-parent to the deleted collection's parent — both handled by the FK
-	 * ON DELETE SET NULL. Never cascades content deletion (R-A11).
+	 * Soft-delete a collection (v1.7.0 — Trash). The whole subtree gets a
+	 * `deleted_at` timestamp and disappears from the live tree. Items keep
+	 * their `collection_id` (rows are not deleted, so no FK fires) — that is
+	 * what makes restore exact: an item still pointing into the subtree comes
+	 * back with it, while an item the user moved elsewhere stays put.
+	 * Never cascades content deletion (R-A11).
 	 */
 	async deleteCollection(id: string): Promise<void> {
-		this.assertCollectionExists(id);
-		this.db.db.delete(collections).where(eq(collections.id, id)).run();
+		this.assertCollectionLive(id);
+		const now = new Date().getTime();
+		const subtree = this.collectionSubtreeIds(id, { includeTrashed: true });
+		this.db.rawDb
+			.prepare(
+				`UPDATE collections SET deleted_at = ? WHERE id IN (${subtree.map(() => "?").join(", ")})`,
+			)
+			.run(now, ...subtree);
+	}
+
+	/**
+	 * Restore a trashed collection. Clears `deleted_at` on the whole subtree —
+	 * items that still point into it return automatically (R-A10: a soft delete
+	 * never destroys user organization). If a live same-kind sibling took the
+	 * name while this sat in the trash, restore is refused with a 409.
+	 */
+	async restoreCollection(id: string): Promise<void> {
+		const row = this.db.db
+			.select({
+				name: collections.name,
+				kind: collections.kind,
+				parentId: collections.parentId,
+				deletedAt: collections.deletedAt,
+			})
+			.from(collections)
+			.where(eq(collections.id, id))
+			.get();
+		if (!row) throw new NotFoundException(`collection ${id} not found`);
+		if (!row.deletedAt) {
+			throw new ConflictException({
+				code: "COLLECTION_NOT_IN_TRASH",
+				message: `Collection "${row.name}" is not in the trash.`,
+			});
+		}
+		this.assertSiblingNameFree(row.parentId ?? null, row.kind, row.name.trim(), id);
+		const subtree = this.collectionSubtreeIds(id, { includeTrashed: true });
+		this.db.rawDb
+			.prepare(
+				`UPDATE collections SET deleted_at = NULL WHERE id IN (${subtree.map(() => "?").join(", ")})`,
+			)
+			.run(...subtree);
+	}
+
+	/**
+	 * Permanently delete a trashed collection (Trash page → "Delete forever").
+	 * Only the collection rows go away — items are moved to uncategorized by the
+	 * FK ON DELETE SET NULL, content is never touched (R-A11).
+	 */
+	async purgeCollection(id: string): Promise<number> {
+		const row = this.db.db
+			.select({ deletedAt: collections.deletedAt })
+			.from(collections)
+			.where(eq(collections.id, id))
+			.get();
+		if (!row) throw new NotFoundException(`collection ${id} not found`);
+		if (!row.deletedAt) {
+			throw new ConflictException({
+				code: "COLLECTION_NOT_IN_TRASH",
+				message: `Collection ${id} is not in the trash.`,
+			});
+		}
+		const subtree = this.collectionSubtreeIds(id, { includeTrashed: true });
+		const res = this.db.rawDb
+			.prepare(
+				`DELETE FROM collections WHERE id IN (${subtree.map(() => "?").join(", ")})`,
+			)
+			.run(...subtree);
+		return res.changes;
 	}
 
 	// ── internals ────────────────────────────────────────────────────────────
@@ -337,11 +431,65 @@ export class ArchiveService {
 		return toCollectionDto(row);
 	}
 
+	/**
+	 * The collection id itself plus every descendant id (children, grandchildren,
+	 * …). Used by `listItems` so a category selection includes items sitting in
+	 * its sub-folders (items live at leaves, R-A11). The tree is small (local
+	 * personal archive) so a full scan + BFS is fine. A visited set guards
+	 * against any accidental cycle.
+	 *
+	 * v1.7.0: by default trashed (soft-deleted) collections are excluded from
+	 * the scan so a live category's subtree never reaches into a trashed
+	 * folder; `includeTrashed: true` is used by trash operations (mark the
+	 * whole subtree deleted / purge it).
+	 */
+	private collectionSubtreeIds(
+		rootId: string,
+		opts: { includeTrashed?: boolean } = {},
+	): string[] {
+		const rows = this.db.rawDb
+			.prepare(
+				opts.includeTrashed
+					? "SELECT id, parent_id FROM collections"
+					: "SELECT id, parent_id FROM collections WHERE deleted_at IS NULL",
+			)
+			.all() as Array<{ id: string; parent_id: string | null }>;
+		const childrenByParent = new Map<string, string[]>();
+		for (const r of rows) {
+			if (r.parent_id) {
+				const list = childrenByParent.get(r.parent_id) ?? [];
+				list.push(r.id);
+				childrenByParent.set(r.parent_id, list);
+			}
+		}
+		const result: string[] = [];
+		const seen = new Set<string>();
+		const stack = [rootId];
+		while (stack.length > 0) {
+			const id = stack.pop()!;
+			if (seen.has(id)) continue;
+			seen.add(id);
+			result.push(id);
+			for (const child of childrenByParent.get(id) ?? []) stack.push(child);
+		}
+		return result;
+	}
+
 	private assertCollectionExists(id: string): void {
 		const row = this.db.db
 			.select({ id: collections.id })
 			.from(collections)
 			.where(eq(collections.id, id))
+			.get();
+		if (!row) throw new NotFoundException(`collection ${id} not found`);
+	}
+
+	/** The collection exists AND is live (not in the trash) — else 404. */
+	private assertCollectionLive(id: string): void {
+		const row = this.db.db
+			.select({ id: collections.id })
+			.from(collections)
+			.where(and(eq(collections.id, id), isNull(collections.deletedAt)))
 			.get();
 		if (!row) throw new NotFoundException(`collection ${id} not found`);
 	}
@@ -361,7 +509,10 @@ export class ArchiveService {
 		excludeId?: string,
 	): void {
 		const params: unknown[] = [parentId, kind, name];
-		let where = "parent_id IS ? AND kind = ? AND LOWER(name) = LOWER(?)";
+		// v1.7.0 — soft-deleted (trashed) collections don't hold the name: a
+		// same-name collection can be created while the old one sits in the trash.
+		let where =
+			"parent_id IS ? AND kind = ? AND LOWER(name) = LOWER(?) AND deleted_at IS NULL";
 		if (excludeId) {
 			where += " AND id != ?";
 			params.push(excludeId);
@@ -383,10 +534,11 @@ export class ArchiveService {
 	 * folders or items; depth ≤ MAX_COLLECTION_DEPTH.
 	 */
 	private assertValidParent(parentId: string, childKind: CollectionKind): void {
+		// v1.7.0 — a trashed collection can't be a parent either.
 		const parent = this.db.db
 			.select()
 			.from(collections)
-			.where(eq(collections.id, parentId))
+			.where(and(eq(collections.id, parentId), isNull(collections.deletedAt)))
 			.get();
 		if (!parent) throw new NotFoundException(`collection ${parentId} not found`);
 
@@ -597,6 +749,7 @@ function toArticleOrigin(a: {
 	title: string;
 	originalTitle: string | null;
 	content: string;
+	translatedContent: string | null;
 	url: string;
 	author: string | null;
 	publishedAt: Date | null;
@@ -610,6 +763,7 @@ function toArticleOrigin(a: {
 		title: a.title,
 		originalTitle: a.originalTitle,
 		content: a.content,
+		translatedContent: a.translatedContent,
 		url: a.url,
 		author: a.author,
 		publishedAt: a.publishedAt,

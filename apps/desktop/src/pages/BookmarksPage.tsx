@@ -3,13 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Icon } from "@/components/ui/Icon";
-import { DomainTag } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { deleteBookmark, fetchBookmarks } from "@/features/archive/archive-api.js";
+import { detailPath } from "@/features/archive/detail-path.js";
+import { TypeBadge } from "@/features/archive/TypeBadge.js";
+import { ArchiveLayout } from "@/components/shell/ArchiveLayout.js";
 import type { ArchiveItem } from "@vorynth/types";
 
 /**
- * Bookmarks page (v1.6.0) — everything the user saved. A bookmark is user
+ * Bookmarks page (v1.7.0) — everything the user saved. A bookmark is user
  * ownership of a reference: removing it keeps the underlying story/item.
  *
  * Single-column centered layout matching every other Vorynth page.
@@ -34,17 +36,11 @@ export function BookmarksPage() {
 	const items = data?.items ?? [];
 
 	return (
-		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
-			<header className="mb-10">
-				<h2 className="mb-2 font-headline text-headline-lg text-primary dark:text-primary-fixed">
-					Bookmarks
-				</h2>
-				<p className="max-w-prose font-body text-body-md text-on-surface-variant">
-					Stories and items you saved. Removing a bookmark never deletes the
-					item itself.
-				</p>
-			</header>
-
+		<ArchiveLayout
+			title="Bookmarks"
+			subtitle="Stories and items you saved. Removing a bookmark never deletes the item itself."
+			docsSectionId="bookmarks"
+		>
 			<div className="space-y-8">
 				{items.length === 0 ? (
 					<GhostCard className="flex flex-col items-center gap-4 py-16 text-center">
@@ -88,30 +84,30 @@ export function BookmarksPage() {
 					</GhostCard>
 				)}
 
-				{/* Tip: archive */}
-				<GhostCard className="flex items-center justify-between gap-4">
-					<div className="flex items-center gap-3">
-						<Icon name="inventory_2" className="text-[24px] text-on-surface-variant" />
-						<div>
-							<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-								Organize your saved items
-							</h3>
-							<p className="font-body text-body-sm text-on-tertiary-container">
-								Bookmarks also appear in the Archive — tag, note, and folder them
-							</p>
+					{/* Tip: archive */}
+					<GhostCard className="flex items-center justify-between gap-4">
+						<div className="flex items-center gap-3">
+							<Icon name="inventory_2" className="text-[24px] text-on-surface-variant" />
+							<div>
+								<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+									Organize your saved items
+								</h3>
+								<p className="font-body text-body-sm text-on-tertiary-container">
+									Bookmarks also appear in the Archive — tag, note, and folder them
+								</p>
+							</div>
 						</div>
-					</div>
-					<Link
-						to="/archive"
-						className="inline-flex items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
-					>
-						<Icon name="open_in_new" className="text-[16px]" />
-						Archive
-					</Link>
+						<Link
+							to="/archive"
+							className="inline-flex items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
+						>
+							<Icon name="open_in_new" className="text-[16px]" />
+							Archive
+						</Link>
 					</GhostCard>
 				</div>
 
-				{/* Unsave confirmation */}
+			{/* Unsave confirmation */}
 				<ConfirmDialog
 					open={Boolean(unsaveTarget)}
 					title="Remove bookmark?"
@@ -123,18 +119,11 @@ export function BookmarksPage() {
 						if (unsaveTarget) unsave.mutate(unsaveTarget);
 						setUnsaveTarget(null);
 					}}
-					onCancel={() => setUnsaveTarget(null)}
-				/>
-			</section>
+				onCancel={() => setUnsaveTarget(null)}
+			/>
+		</ArchiveLayout>
 		);
 }
-
-const TYPE_LABELS: Record<string, string> = {
-	article: "Story",
-	summary: "Summary",
-	"keyword-search": "Search",
-	"ai-ask": "Ask AI",
-};
 
 function BookmarkRow({
 	item,
@@ -147,10 +136,8 @@ function BookmarkRow({
 }) {
 	return (
 		<div className="flex items-center gap-3 border border-outline-variant rounded bg-surface-container-low p-4 transition-colors hover:bg-surface-container">
-			<DomainTag className="shrink-0">
-				{TYPE_LABELS[item.contentType] ?? item.contentType}
-			</DomainTag>
-			<button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+			<TypeBadge contentType={item.contentType} className="shrink-0" />
+			<button type="button" onClick={onOpen} className="min-w-0 flex-1 cursor-pointer text-left">
 				<span className="block truncate font-body text-body-md font-medium text-on-surface">
 					{item.title ?? "Untitled"}
 				</span>
@@ -186,16 +173,4 @@ function BookmarkRow({
 			</button>
 		</div>
 	);
-}
-
-function detailPath(item: ArchiveItem): string {
-	const origin = item.origin as { id?: string; period?: string } | null;
-	if (!origin?.id) return "/archive";
-	if (item.contentType === "article") return `/articles/${origin.id}`;
-	if (item.contentType === "summary") {
-		return "period" in origin
-			? `/history/brief/${origin.id}`
-			: `/history/generated/${origin.id}`;
-	}
-	return `/history/search/${origin.id}`;
 }

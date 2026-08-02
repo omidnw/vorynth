@@ -75,10 +75,10 @@ export async function startRegenerateInsightsJob(
 	});
 }
 
-export async function startTranslateTitlesJob(
+export async function startTranslateStoriesJob(
 	opts: { targetLanguage?: string } = {},
 ): Promise<Job> {
-	return apiFetch<Job>("/jobs/translate-titles", {
+	return apiFetch<Job>("/jobs/translate-stories", {
 		method: "POST",
 		body: JSON.stringify(opts),
 	});

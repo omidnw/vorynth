@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
+import { useTextDirection } from "@/i18n";
 
 /**
  * Intelligence detail view (examples/intelligence-detail.html).
@@ -27,6 +29,7 @@ export function InsightDetailPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [read, setRead] = useState(false);
+	const textDir = useTextDirection();
 
 	// Smart back: return to the page that opened this insight (Brief, Archive,
 	// Bookmarks) when there's history to go back to; otherwise fall back to the
@@ -85,14 +88,17 @@ export function InsightDetailPage() {
 	return (
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
 			<header className="mb-12">
-				<button
-					type="button"
-					onClick={goBack}
-					className="mb-6 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
-				>
-					<Icon name="arrow_back" className="text-[18px]" />
-					Back
-				</button>
+				<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+					<button
+						type="button"
+						onClick={goBack}
+						className="inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
+					>
+						<Icon name="arrow_back" className="text-[18px]" />
+						Back
+					</button>
+					<DocsHelpButton sectionId="brief" />
+				</div>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
 					<ImportanceBadge tier={insight.importanceTier}>
 						{tierLabel(insight.importanceTier)}
@@ -105,13 +111,13 @@ export function InsightDetailPage() {
 				</div>
 				<h1
 					className="mb-6 font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
-					dir="auto"
+					dir={textDir(insight.summary)}
 				>
 					{insight.summary}
 				</h1>
 				<p
 					className="border-l-2 border-primary-fixed pl-6 font-body text-body-lg italic leading-relaxed text-on-surface-variant"
-					dir="auto"
+					dir={textDir(insight.significance)}
 				>
 					{insight.significance}
 				</p>
@@ -156,7 +162,7 @@ export function InsightDetailPage() {
 					</h2>
 					<p
 						className="font-body text-body-lg leading-relaxed text-on-surface"
-						dir="auto"
+						dir={textDir(insight.impact)}
 					>
 						{insight.impact}
 					</p>
@@ -190,13 +196,17 @@ export function InsightDetailPage() {
 				</section>
 
 				<section className="rounded-lg bg-primary-container p-10 text-on-primary dark:bg-primary-fixed dark:text-on-primary-fixed">
-						<h2 className="mb-8 flex items-center gap-3 font-headline text-headline-md">
-							<Icon name="bolt" className="text-primary-fixed dark:text-on-primary-fixed" fill />
-							Recommended Action
-						</h2>
+					<h2 className="mb-8 flex items-center gap-3 font-headline text-headline-md">
+						<Icon
+							name="bolt"
+							className="text-primary-fixed dark:text-on-primary-fixed"
+							fill
+						/>
+						Recommended Action
+					</h2>
 					<p
 						className="font-body text-body-lg italic leading-relaxed"
-						dir="auto"
+						dir={textDir(insight.recommendedAction)}
 					>
 						{insight.recommendedAction}
 					</p>
@@ -211,9 +221,9 @@ export function InsightDetailPage() {
 				/>
 				<div className="mx-2 h-6 w-px bg-white/10" />
 				<ActionBtn
-				icon={bookmark.saved ? "bookmark_added" : "bookmark"}
-				label={bookmark.saved ? "Saved" : "Save"}
-				onClick={bookmark.toggle}
+					icon={bookmark.saved ? "bookmark_added" : "bookmark"}
+					label={bookmark.saved ? "Saved" : "Save"}
+					onClick={bookmark.toggle}
 				/>
 				<ActionBtn
 					icon="ios_share"
@@ -246,11 +256,7 @@ export function InsightDetailPage() {
 					</>
 				) : null}
 				<div className="mx-2 h-6 w-px bg-white/10" />
-				<ActionBtn
-					icon="arrow_back"
-					label="Back"
-					onClick={goBack}
-				/>
+				<ActionBtn icon="arrow_back" label="Back" onClick={goBack} />
 			</footer>
 		</article>
 	);

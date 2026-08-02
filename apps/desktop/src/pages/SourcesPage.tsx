@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -18,6 +18,8 @@ import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { cn } from "@/lib/cn";
 import { ApiException } from "@/lib/api/config";
+import { useTextDirection } from "@/i18n";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import {
 	createSource,
 	deleteSource,
@@ -121,8 +123,7 @@ export function SourcesPage() {
 		onError: (err, vars) => {
 			if (err instanceof ApiException && err.status === 409 && !vars.force) {
 				const details = err.details as
-					| { code?: string; bookmarkedCount?: number }
-					| undefined;
+					{ code?: string; bookmarkedCount?: number } | undefined;
 				if (details?.code === "BOOKMARKED_ARTICLES_EXIST") {
 					setPendingDelete({
 						id: vars.id,
@@ -136,11 +137,12 @@ export function SourcesPage() {
 	});
 
 	const enabledCount = sources.filter((s) => s.enabled).length;
-	const customRangeSource = sources.find((s) => s.id === customRangeFor) ?? null;
+	const customRangeSource =
+		sources.find((s) => s.id === customRangeFor) ?? null;
 
 	return (
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
-			<header className="mb-10 flex flex-wrap items-end justify-between gap-4">
+			<header className="mb-10 flex flex-wrap items-start justify-between gap-4">
 				<div>
 					<h2 className="mb-2 font-headline text-headline-lg text-primary dark:text-primary-fixed">
 						Sources
@@ -151,7 +153,9 @@ export function SourcesPage() {
 						<span className="text-secondary">{enabledCount} enabled</span>
 					</div>
 				</div>
-				<div className="flex flex-wrap items-center gap-3">
+				<div className="flex flex-col items-end gap-2">
+					{/* Help sits at the top-right, level with the page title. */}
+					<DocsHelpButton sectionId="sources" />
 					<Button icon="add" onClick={() => setShowAdd((v) => !v)}>
 						Add Source
 					</Button>
@@ -167,106 +171,106 @@ export function SourcesPage() {
 			) : (
 				<div className="space-y-4">
 					{sources.map((s) => (
-						<>
-							<GhostCard key={s.id} className="flex items-center gap-4 py-4">
-							<div
-								className={`flex h-10 w-10 items-center justify-center rounded bg-surface-container-high ${s.enabled ? "" : "opacity-40"}`}
-							>
-								<Icon name={typeIcon(s.type)} className="text-primary" />
-							</div>
-							<div className="flex-1">
-								<div className="flex items-center gap-3">
-									<h3
-										className={`font-label text-label-md text-on-surface ${s.enabled ? "" : "line-through opacity-60"}`}
-									>
-										{s.name}
-									</h3>
-									<DomainTag>{s.category}</DomainTag>
+						<Fragment key={s.id}>
+							<GhostCard className="flex items-center gap-4 py-4">
+								<div
+									className={`flex h-10 w-10 items-center justify-center rounded bg-surface-container-high ${s.enabled ? "" : "opacity-40"}`}
+								>
+									<Icon name={typeIcon(s.type)} className="text-primary" />
 								</div>
-								<p className="mt-1 font-mono text-mono-technical text-on-tertiary-container">
-									{s.url}
-								</p>
-								{/* Per-source time range = the advanced fetch window (default 7 days).
+								<div className="flex-1">
+									<div className="flex items-center gap-3">
+										<h3
+											className={`font-label text-label-md text-on-surface ${s.enabled ? "" : "line-through opacity-60"}`}
+										>
+											{s.name}
+										</h3>
+										<DomainTag>{s.category}</DomainTag>
+									</div>
+									<p className="mt-1 font-mono text-mono-technical text-on-tertiary-container">
+										{s.url}
+									</p>
+									{/* Per-source time range = the advanced fetch window (default 7 days).
 									Custom… opens a dialog instead of replacing the select inline. */}
-								<div className="mt-2 flex items-center gap-2">
-									<span className="font-label text-label-sm uppercase tracking-wide text-on-surface-variant">
-										Time range
-									</span>
-									<Select
-										value={rangeValueFor(s)}
-										onChange={(v) => {
-											if (v === "custom") {
-												setCustomRangeFor(s.id);
-											} else {
-												setWindow.mutate({
-													id: s.id,
-													days: Number(v),
-													fetchFrom: null,
-													fetchTo: null,
-												});
-											}
-										}}
-										aria-label={`Time range for ${s.name}`}
-										options={windowOptionsFor(s)}
-										className="w-52"
-									/>
-								</div>
-							</div>
-							{s.lastCheckedAt ? (
-								<span className="hidden font-mono text-mono-technical text-on-tertiary-container sm:block">
-									{s.lastCheckedAt.toLocaleString()}
-								</span>
-							) : null}
-							<div className="flex items-center gap-1">
-								<Tooltip
-									label={s.enabled ? "Disable this source" : "Enable this source"}
-									position="bottom"
-								>
-									<button
-										onClick={() => toggle.mutate(s)}
-										className={`flex h-6 w-11 items-center rounded-full px-0.5 transition-colors ${s.enabled ? "bg-primary" : "bg-outline-variant"}`}
-										aria-label={s.enabled ? "Disable" : "Enable"}
-									>
-										<span
-											className={`h-5 w-5 rounded-full bg-surface-container-lowest shadow transition-transform ${s.enabled ? "translate-x-5" : "translate-x-0"}`}
+									<div className="mt-2 flex items-center gap-2">
+										<span className="font-label text-label-sm uppercase tracking-wide text-on-surface-variant">
+											Time range
+										</span>
+										<Select
+											value={rangeValueFor(s)}
+											onChange={(v) => {
+												if (v === "custom") {
+													setCustomRangeFor(s.id);
+												} else {
+													setWindow.mutate({
+														id: s.id,
+														days: Number(v),
+														fetchFrom: null,
+														fetchTo: null,
+													});
+												}
+											}}
+											aria-label={`Time range for ${s.name}`}
+											options={windowOptionsFor(s)}
+											className="w-52"
 										/>
-									</button>
-								</Tooltip>
-								<Tooltip
-									label={
-										expanded === s.id
-											? "Hide articles in this time range"
-											: "Show articles in this time range"
-									}
-									position="bottom"
-								>
-									<button
-										onClick={() =>
-											setExpanded((cur) => (cur === s.id ? null : s.id))
+									</div>
+								</div>
+								{s.lastCheckedAt ? (
+									<span className="hidden font-mono text-mono-technical text-on-tertiary-container sm:block">
+										{s.lastCheckedAt.toLocaleString()}
+									</span>
+								) : null}
+								<div className="flex items-center gap-1">
+									<Tooltip
+										label={
+											s.enabled ? "Disable this source" : "Enable this source"
 										}
-										className="ml-2 p-2 text-on-surface-variant transition-colors hover:text-primary"
-										aria-label="Toggle articles in time range"
-										aria-expanded={expanded === s.id}
+										position="bottom"
 									>
-										<Icon name="article" className="text-[18px]" />
-									</button>
-								</Tooltip>
-								<Tooltip label="Delete this source" position="bottom">
-									<button
-										onClick={() => setConfirmDeleteId(s.id)}
-										className="ml-2 p-2 text-on-surface-variant transition-colors hover:text-error"
-										aria-label="Remove"
+										<button
+											onClick={() => toggle.mutate(s)}
+											className={`flex h-6 w-11 items-center rounded-full px-0.5 transition-colors ${s.enabled ? "bg-primary" : "bg-outline-variant"}`}
+											aria-label={s.enabled ? "Disable" : "Enable"}
+										>
+											<span
+												className={`h-5 w-5 rounded-full bg-surface-container-lowest shadow transition-transform ${s.enabled ? "translate-x-5" : "translate-x-0"}`}
+											/>
+										</button>
+									</Tooltip>
+									<Tooltip
+										label={
+											expanded === s.id
+												? "Hide articles in this time range"
+												: "Show articles in this time range"
+										}
+										position="bottom"
 									>
-										<Icon name="delete" className="text-[18px]" />
-									</button>
-								</Tooltip>
+										<button
+											onClick={() =>
+												setExpanded((cur) => (cur === s.id ? null : s.id))
+											}
+											className="ml-2 p-2 text-on-surface-variant transition-colors hover:text-primary"
+											aria-label="Toggle articles in time range"
+											aria-expanded={expanded === s.id}
+										>
+											<Icon name="article" className="text-[18px]" />
+										</button>
+									</Tooltip>
+									<Tooltip label="Delete this source" position="bottom">
+										<button
+											onClick={() => setConfirmDeleteId(s.id)}
+											className="ml-2 p-2 text-on-surface-variant transition-colors hover:text-error"
+											aria-label="Remove"
+										>
+											<Icon name="delete" className="text-[18px]" />
+										</button>
+									</Tooltip>
 								</div>
 							</GhostCard>
 
 							{/* Articles within this source's time range (v1.6.0). */}
-							{expanded === s.id ? (
-								<SourceArticles source={s} />
-							) : null}
+							{expanded === s.id ? <SourceArticles source={s} /> : null}
 
 							{/* Delete confirmation — the source owns saved stories. */}
 							{pendingDelete?.id === s.id ? (
@@ -291,82 +295,61 @@ export function SourcesPage() {
 										>
 											Cancel
 										</button>
-										</div>
-									</GhostCard>
+									</div>
+								</GhostCard>
 							) : null}
-						</>
+						</Fragment>
 					))}
-					</div>
-				)}
+				</div>
+			)}
 
-				{/* Tutorial tip — how to add sources */}
-				<GhostCard className="flex items-center justify-between gap-4">
-					<div className="flex items-center gap-3">
-						<Icon name="school" className="text-[24px] text-on-surface-variant" />
-						<div>
-							<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-								How to add sources
-							</h3>
-							<p className="font-body text-body-sm text-on-tertiary-container">
-								RSS, GitHub releases, arXiv — with real examples and categories
-							</p>
-						</div>
-					</div>
-					<Link
-						to="/docs#sources"
-						className="inline-flex items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
-					>
-						<Icon name="open_in_new" className="text-[16px]" />
-						Read tutorial
-					</Link>
-				</GhostCard>
-
-				{/* Delete confirmation — always show before removing a source. */}
-				<ConfirmDialog
-					open={Boolean(confirmDeleteId)}
-					title="Delete source?"
-					message={
-						sources.find((s) => s.id === confirmDeleteId) ? (
-							<>
-								The source{" "}
-								<strong className="text-on-surface">
-									&quot;{sources.find((s) => s.id === confirmDeleteId)?.name}&quot;
-								</strong>{" "}
-								and all its collected stories will be permanently removed. This
-								cannot be undone.
-							</>
-						) : (
-							"This source and all its collected stories will be permanently removed. This cannot be undone."
-						)
-					}
-					confirmLabel="Delete source"
-					icon="delete"
-					danger
-					onConfirm={() => {
-						if (!confirmDeleteId) return;
-						remove.mutate({ id: confirmDeleteId });
-						setConfirmDeleteId(null);
-					}}
-					onCancel={() => setConfirmDeleteId(null)}
-				/>
-				{/* Custom time range — a dialog, not an inline editor (cleaner card). */}
-				<CustomRangeDialog
-					source={customRangeSource}
-					onApply={(range) => {
-						if (!customRangeSource) return;
-						setWindow.mutate({
-							id: customRangeSource.id,
-							days: range.days,
-							fetchFrom: range.fetchFrom,
-							fetchTo: range.fetchTo,
-						});
-						setCustomRangeFor(null);
-					}}
-					onClose={() => setCustomRangeFor(null)}
-				/>
-			</section>
-		);
-	}
+			{/* Delete confirmation — always show before removing a source. */}
+			<ConfirmDialog
+				open={Boolean(confirmDeleteId)}
+				title="Delete source?"
+				message={
+					sources.find((s) => s.id === confirmDeleteId) ? (
+						<>
+							The source{" "}
+							<strong className="text-on-surface">
+								&quot;{sources.find((s) => s.id === confirmDeleteId)?.name}
+								&quot;
+							</strong>{" "}
+							and all its collected stories will be permanently removed. This
+							cannot be undone.
+						</>
+					) : (
+						"This source and all its collected stories will be permanently removed. This cannot be undone."
+					)
+				}
+				confirmLabel="Delete source"
+				icon="delete"
+				danger
+				onConfirm={() => {
+					if (!confirmDeleteId) return;
+					remove.mutate({ id: confirmDeleteId });
+					setConfirmDeleteId(null);
+				}}
+				onCancel={() => setConfirmDeleteId(null)}
+			/>
+			{/* Custom time range — a dialog, not an inline editor (cleaner card). */}
+			<CustomRangeDialog
+				source={customRangeSource}
+				onApply={(range) => {
+					if (!customRangeSource) return;
+					setWindow.mutate({
+						id: customRangeSource.id,
+						days: range.days,
+						fetchFrom: range.fetchFrom,
+						fetchTo: range.fetchTo,
+					});
+					setCustomRangeFor(null);
+				}}
+				onClose={() => setCustomRangeFor(null)}
+			/>
+		</section>
+	);
+}
 
 /**
  * Articles for one source within a time range — informational over surviving
@@ -412,16 +395,24 @@ function rangeValueFor(s: Source): string {
 }
 
 function fmtDate(d: Date | null): string {
-	return d ? d.toLocaleDateString("en-US", { day: "numeric", month: "short" }) : "?";
+	return d
+		? d.toLocaleDateString("en-US", { day: "numeric", month: "short" })
+		: "?";
 }
 
 /** Map a source's fetchWindowDays to the backend range window it represents. */
-function daysToRange(days: number): { range: SourceRange; from?: string; to?: string } {
+function daysToRange(days: number): {
+	range: SourceRange;
+	from?: string;
+	to?: string;
+} {
 	if (days <= 1) return { range: "day" };
 	if (days <= 7) return { range: "week" };
 	if (days <= 30) return { range: "month" };
 	if (days <= 365) return { range: "year" };
-	const from = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+	const from = new Date(Date.now() - days * 86_400_000)
+		.toISOString()
+		.slice(0, 10);
 	return { range: "custom", from };
 }
 
@@ -429,6 +420,7 @@ function daysToRange(days: number): { range: SourceRange; from?: string; to?: st
 const SOURCE_ARTICLES_PAGE = 10;
 
 function SourceArticles({ source }: { source: Source }) {
+	const textDir = useTextDirection();
 	const fromDate = toDate(source.fetchFrom);
 	const toDateValue = toDate(source.fetchTo);
 	const { range, from, to } = fromDate
@@ -499,7 +491,7 @@ function SourceArticles({ source }: { source: Source }) {
 									className="group flex items-center gap-3 rounded px-1.5 py-1.5 transition-colors hover:bg-surface-container"
 								>
 									<span
-										dir="auto"
+										dir={textDir(a.title)}
 										className="min-w-0 flex-1 truncate font-body text-body-sm text-on-surface transition-colors group-hover:text-primary"
 									>
 										{a.title}
@@ -583,11 +575,17 @@ function CustomRangeDialog({
 			}
 			if (e.key !== "Enter") return;
 			const valid =
-				mode === "days" ? days !== "" && Number(days) >= 1 : Boolean(from && to);
+				mode === "days"
+					? days !== "" && Number(days) >= 1
+					: Boolean(from && to);
 			if (!valid) return;
 			e.preventDefault();
 			if (mode === "days") {
-				onApply({ days: Math.floor(Number(days)), fetchFrom: null, fetchTo: null });
+				onApply({
+					days: Math.floor(Number(days)),
+					fetchFrom: null,
+					fetchTo: null,
+				});
 			} else {
 				onApply({ days: 0, fetchFrom: new Date(from), fetchTo: new Date(to) });
 			}
@@ -598,12 +596,17 @@ function CustomRangeDialog({
 
 	if (!source) return null;
 
-	const canApply = mode === "days" ? days !== "" && Number(days) >= 1 : Boolean(from && to);
+	const canApply =
+		mode === "days" ? days !== "" && Number(days) >= 1 : Boolean(from && to);
 
 	const apply = () => {
 		if (!canApply) return;
 		if (mode === "days") {
-			onApply({ days: Math.floor(Number(days)), fetchFrom: null, fetchTo: null });
+			onApply({
+				days: Math.floor(Number(days)),
+				fetchFrom: null,
+				fetchTo: null,
+			});
 		} else {
 			onApply({ days: 0, fetchFrom: new Date(from), fetchTo: new Date(to) });
 		}
@@ -739,7 +742,7 @@ function AddSourceForm({ onDone }: { onDone: () => void }) {
 	const [customCategory, setCustomCategory] = useState("");
 
 	const finalCategory = useCustomCategory
-		? (customCategory.trim().toLowerCase().replace(/\s+/g, "-") || "other")
+		? customCategory.trim().toLowerCase().replace(/\s+/g, "-") || "other"
 		: category;
 
 	const create = useMutation({
@@ -915,7 +918,10 @@ function AddSourceForm({ onDone }: { onDone: () => void }) {
 									value={category}
 									onChange={(v) => setCategory(v as SourceCategory)}
 									aria-label="Source category"
-									options={CATEGORIES.map((c) => ({ value: c, label: c.replace(/-/g, " ") }))}
+									options={CATEGORIES.map((c) => ({
+										value: c,
+										label: c.replace(/-/g, " "),
+									}))}
 									className="min-w-0 flex-1"
 								/>
 								<button

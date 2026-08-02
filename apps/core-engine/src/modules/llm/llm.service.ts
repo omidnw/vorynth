@@ -157,8 +157,12 @@ export class LlmService implements OnModuleInit {
 	}
 
 	/** Live rate-limiter state (for progress UI). */
-	get rateLimit(): { capacity: number; inFlight: number } {
-		return { capacity: this.limiter.capacity, inFlight: this.limiter.inFlight };
+	get rateLimit(): { capacity: number; inFlight: number; spacingMs: number } {
+		return {
+			capacity: this.limiter.capacity,
+			inFlight: this.limiter.inFlight,
+			spacingMs: this.limiter.spacingMs,
+		};
 	}
 
 	/**
@@ -438,6 +442,26 @@ export class LlmService implements OnModuleInit {
 			.select()
 			.from(llmProvidersTable)
 			.orderBy(llmProvidersTable.createdAt);
+	}
+
+	/**
+	 * Health of a provider's stored key, from the client's point of view:
+	 * decryptable ("ok"), never set ("missing"), or present but unreadable
+	 * ("undecryptable" — e.g. the local master salt was lost in a restore or
+	 * data-dir reset). The Settings UI uses this to tell the user a key must be
+	 * re-entered instead of silently reporting "key stored" while the LLM stays
+	 * unreachable.
+	 */
+	keyStatus(
+		encryptedApiKey: string | null,
+	): "ok" | "missing" | "undecryptable" {
+		if (!encryptedApiKey) return "missing";
+		try {
+			this.crypto.decrypt(encryptedApiKey);
+			return "ok";
+		} catch {
+			return "undecryptable";
+		}
 	}
 
 	async saveProvider(input: {

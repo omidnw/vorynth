@@ -57,6 +57,14 @@ export const articles = sqliteTable("articles", {
 		.references(() => sources.id, { onDelete: "cascade" }),
 	title: text("title").notNull(),
 	originalTitle: text("original_title"),
+	/**
+	 * Translated body (Translate Stories job) — the AI translation of `content`
+	 * into the user's intelligence language. `content` stays the canonical
+	 * original so search and AI analysis keep operating on source text (R-A05);
+	 * this column is the translation shown by default in the reader with an
+	 * Original/Translated toggle. Additive migration, nullable.
+	 */
+	translatedContent: text("translated_content"),
 	content: text("content").notNull().default(""),
 	url: text("url").notNull(),
 	author: text("author"),
@@ -260,6 +268,8 @@ export const searchHistory = sqliteTable("search_history", {
 		.default(sql`(unixepoch() * 1000)`),
 	/** Archive spine id — `keyword-search` or `ai-ask` by mode (see contentItems). */
 	contentItemId: text("content_item_id").references(() => contentItems.id),
+	/** Trash (v1.7.0): NULL = live; set = soft-deleted, hidden, restorable. */
+	deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
 });
 
 // ── Brief history (persisted period summaries) ──────────────────────────────
@@ -285,6 +295,8 @@ export const briefHistory = sqliteTable("brief_history", {
 		.default(sql`(unixepoch() * 1000)`),
 	/** Archive spine id — `summary` (one per generation; immutable). */
 	contentItemId: text("content_item_id").references(() => contentItems.id),
+	/** Trash (v1.7.0): NULL = live; set = soft-deleted, hidden, restorable. */
+	deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
 });
 
 // ── App settings (key/value) ────────────────────────────────────────────────
@@ -352,6 +364,8 @@ export const generatedHistory = sqliteTable("generated_history", {
 		.default(sql`(unixepoch() * 1000)`),
 	/** Archive spine id — `summary` (one per generation; immutable). */
 	contentItemId: text("content_item_id").references(() => contentItems.id),
+	/** Trash (v1.7.0): NULL = live; set = soft-deleted, hidden, restorable. */
+	deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
 });
 
 // ── Archive (v1.6.0) ───────────────────────────────────────────────────────
@@ -385,6 +399,8 @@ export const collections = sqliteTable("collections", {
 	llmGenerated: integer("llm_generated", { mode: "boolean" })
 		.notNull()
 		.default(false),
+	/** Trash (v1.7.0): NULL = live; set = soft-deleted, hidden, restorable. */
+	deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
@@ -451,6 +467,41 @@ export const bookmarks = sqliteTable("bookmarks", {
 		.default(sql`(unixepoch() * 1000)`),
 });
 
+// ── Background jobs (v1.7.0) ────────────────────────────────────────────────
+// Persistent record of every background job (collect / generate / summarize /
+// regenerate / translate) so a process restart doesn't lose them: jobs that
+// were running or queued are restored and resumed from their last checkpoint.
+// `input_json` holds the runner input (period, targetLanguage, force, …) needed
+// to rebuild the job after a restart; progress columns mirror JobProgress.
+
+export const jobs = sqliteTable("jobs", {
+	id: text("id").primaryKey(),
+	kind: text("kind").notNull(),
+	label: text("label").notNull(),
+	status: text("status").notNull(),
+	/** Human-readable progress line, e.g. "Translating title 12/40…". */
+	message: text("message").notNull().default(""),
+	/** 0..1; -1 when the work can't be quantified. */
+	fraction: real("fraction").notNull().default(0),
+	itemsDone: integer("items_done"),
+	itemsTotal: integer("items_total"),
+	/** JSON-encoded runner input — what it takes to resume after a restart. */
+	input: text("input_json", { mode: "json" }).$type<unknown>(),
+	/** ISO timestamp when the job started (kept across restarts). */
+	startedAt: text("started_at").notNull(),
+	/** ISO timestamp when the job reached a terminal state, or null. */
+	finishedAt: text("finished_at"),
+	/** Wall-clock duration in ms; only set after a terminal state. */
+	durationMs: integer("duration_ms"),
+	/** Error message when status === "error". */
+	error: text("error"),
+	/** JSON-encoded result payload (kind-dependent). */
+	result: text("result_json", { mode: "json" }).$type<unknown>(),
+	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
 // ── Convenience type re-exports ────────────────────────────────────────────
 
 export type SourceRow = typeof sources.$inferSelect;
@@ -472,3 +523,4 @@ export type ContentItemRow = typeof contentItems.$inferSelect;
 export type TagRow = typeof tags.$inferSelect;
 export type ContentItemTagRow = typeof contentItemTags.$inferSelect;
 export type BookmarkRow = typeof bookmarks.$inferSelect;
+export type JobRow = typeof jobs.$inferSelect;

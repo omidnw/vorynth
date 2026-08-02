@@ -287,7 +287,9 @@ function toArticleDto(row: {
 	id: string;
 	sourceId: string;
 	title: string;
+	originalTitle: string | null;
 	content: string;
+	translatedContent: string | null;
 	url: string;
 	author: string | null;
 	publishedAt: Date | null;
@@ -299,7 +301,9 @@ function toArticleDto(row: {
 		id: row.id,
 		sourceId: row.sourceId,
 		title: row.title,
+		originalTitle: row.originalTitle,
 		content: row.content,
+		translatedContent: row.translatedContent,
 		url: row.url,
 		author: row.author,
 		publishedAt: row.publishedAt,

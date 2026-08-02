@@ -17,7 +17,7 @@ export const transparencySections: DocsSection[] = [
 			},
 			{
 				type: "paragraph",
-				text: "Titles and descriptions come straight from the source — Vorynth doesn't rewrite them. If a title looks different from the article you open, it's usually the source's own summary or a translated title (Translate Story Titles keeps the original one toggle away).",
+				text: "Titles and descriptions come straight from the source — Vorynth doesn't rewrite them. If a title or body looks different from the article you open, it's usually the source's own summary or a translation (Translate Stories keeps the original title and body one toggle away — the original is never overwritten).",
 			},
 		],
 	},

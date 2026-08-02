@@ -50,3 +50,6 @@ coverage/
 
 # Varynth local backups
 *.bak
+
+#.zcode
+.zcode/plans/

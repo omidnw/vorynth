@@ -1,15 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Icon } from "@/components/ui/Icon";
-import { DomainTag } from "@/components/ui/Badge";
+import { TypeBadge } from "@/features/archive/TypeBadge.js";
 import type { ArchiveItem } from "@vorynth/types";
 
 /**
- * Archive item — mock-data render of the Archive card pattern (v1.6.0).
+ * Archive item — mock-data render of the Archive card pattern (v1.7.0).
  *
  * This is the demo the in-app Documentation page reuses: a saved story with
  * tags, a note, and the Save / Note / Archive actions. Real data comes from
- * the engine; stories keep the visual contract stable.
+ * the engine; stories keep the visual contract stable. Each type carries its
+ * own icon badge (TypeBadge).
  */
 const mockItem: ArchiveItem = {
 	contentItemId: "demo-item-1",
@@ -33,7 +34,7 @@ function ArchiveCard({ item }: { item: ArchiveItem }) {
 		<GhostCard className="flex flex-col gap-2">
 			<div className="flex items-start gap-3">
 				<span className="mt-0.5 shrink-0">
-					<DomainTag>Story</DomainTag>
+					<TypeBadge contentType={item.contentType} />
 				</span>
 				<span className="min-w-0 flex-1">
 					<span className="block truncate font-headline text-headline-sm text-on-surface">

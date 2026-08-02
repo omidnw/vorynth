@@ -69,6 +69,7 @@ export class LlmController {
 			kind: r.kind,
 			label: r.label,
 			apiKeyStored: Boolean(r.encryptedApiKey),
+			keyStatus: this.llm.keyStatus(r.encryptedApiKey),
 			defaultModel: r.defaultModel,
 			baseUrl: r.baseUrl,
 			enabled: r.enabled,

@@ -38,6 +38,81 @@ export interface Release {
 
 export const RELEASES: Release[] = [
 	{
+		version: "1.7.0",
+		codename: "Organize The Signal",
+		date: "2026-08-02",
+		summary:
+			"Organizing gets its own home. A new Collections page — a Windows-Explorer style icon view with big folder cards, a breadcrumb, and a ⋯ menu on every folder — turns your archive into folders you can actually browse, while the Archive itself becomes a clean, searchable items list. Every item wears its type on its sleeve, and Back always returns you where you came from.",
+		changes: [
+			{
+				type: "new",
+				text: "Collections page — a file-explorer view of your archive, reachable from the Archive section tabs (Items · Collections · Bookmarks · Search · Trash) shown on every Archive page. Categories and folders render as big folder cards (filled for categories): click to select a folder and see its own items below, double-click to go inside. A breadcrumb traces your path, every card has a ⋯ menu for its actions — Add items, New folder, Rename, and Delete — and a + tile creates a new category or folder. An \"Add items\" button next to the item list fills the folder you're inside. Each folder lists only its own items — a sub-folder's items appear when you enter that sub-folder, while the card's count label shows the whole subtree at a glance.",
+			},
+			{
+				type: "improved",
+				text: "Archive redesign — a clean single-pane items browser: type filters with icons (Stories, Saved, Summaries, Searches, AI asks), a text filter, 'Show archived', and pagination. Each item type has its own icon badge, and every row can be bookmarked, noted, archived, or moved into a collection.",
+			},
+			{
+				type: "new",
+				text: "Collection items are now actionable — click any item inside a folder to open its full detail page (article reader, briefing, or cached search result), or remove it from the collection with a confirmation. Removing never deletes the item — it just moves back to uncategorized.",
+			},
+			{
+				type: "fixed",
+				text: "Back now returns you where you came from. Opening an item from the Archive or a collection and pressing Back lands you back in the same folder you were browsing, with your open folders still expanded — instead of jumping to a different page.",
+			},
+			{
+				type: "improved",
+				text: "Help is one consistent icon away on every page — a header 'How it works' button deep-links to that page's documentation section, replacing the old 'Read docs' tip cards so pages stay clean. Rich guidance lives in the docs; only where a gesture is genuinely non-obvious (double-click to open a folder) does a short inline hint stay. Docs and Profile have their own documentation sections, including the philosophy behind each feature.",
+			},
+			{
+				type: "improved",
+				text: "The five Archive pages (Items · Collections · Bookmarks · Search · Trash) now share one uniform layout — a single header skeleton and a segmented section navigation under the title, with the active section highlighted — so switching between them never shifts your eye. The sidebar's Archive entry is now one clean item: the section tabs own moving between the Archive's sub-pages, the sidebar owns global navigation.",
+			},
+			{
+				type: "new",
+				text: "Trash — deleting a collection, folder, or history entry is now a soft delete: it moves to the Trash (a new page under the Archive) instead of being destroyed, and you can restore it exactly as it was. Restoring a collection returns its whole folder tree — items that still point into it come back, items you filed elsewhere keep their new home. 'Delete forever' and 'Empty trash' are the only permanent actions, and they confirm first (warned when saved items are inside). Settings → Trash sets how long entries stay before they're purged automatically (default 7 days; days, weeks, months, or years; 0 keeps everything until you empty it) — and saved items are never auto-deleted.",
+			},
+			{
+				type: "fixed",
+				text: "Settings now tells you when a provider's stored key can't be decrypted. If the local encryption key was lost — restoring from a backup or cleaning up your data can do that — the LLM used to stop working with no explanation. Now the provider list marks the key as unreadable and tells you to remove and re-add the provider.",
+			},
+			{
+				type: "fixed",
+				text: "Background jobs are never silently dropped anymore. Clicking 'Regenerate all insights' or 'Translate Stories' while a job is already running now creates a visible job that waits its turn and starts automatically when the current one finishes — before, a second click while one was running did nothing at all, and a job with nothing to do finished instantly and looked like it never ran.",
+			},
+			{
+				type: "improved",
+				text: "Jobs survive app restarts. If Vorynth closes while a background job (collect, regenerate insights, translate stories, …) is running, it comes back on the next launch and continues from where it stopped — instead of vanishing and making you start over.",
+			},
+			{
+				type: "improved",
+				text: "LLM requests are now spaced evenly instead of arriving in bursts. Before, several requests fired back-to-back and the next one then waited out a long one-minute pause; now requests are paced at a steady interval, so long jobs run more predictably and your provider's rate limit is never tripped.",
+			},
+			{
+				type: "improved",
+				text: "Translate Stories now translates the full story — title AND body — in one job, sending 5 stories per AI request so large collections finish in a fraction of the calls. Every story keeps its original title and body one toggle away: an Original/Translated toggle sits next to the title in the Brief and next to both the title and the body in the reader. Search and AI analysis keep working on the originals, which are never overwritten.",
+			},
+			{
+				type: "improved",
+				text: "Right-to-left text now reads correctly even when a Persian, Arabic, or Hebrew story opens with a URL, number, or emoji. Every content box — article titles and bodies, translated stories, AI answers, insights, summaries, search results, and history pages — now looks at the whole text and picks the direction its majority of characters are written in, instead of trusting the first character. Neutral text falls back to your app's language direction.",
+			},
+		],
+		technical: [
+			{
+				type: "new",
+				text: "Jobs are now durable — a new `jobs` table persists every background job on each mutation (status, progress, input JSON). On boot, interrupted running/queued jobs are restored as queued and re-run from their last checkpoint via a kind→factory runner registry: regenerate skips already-done insights (offset resume), translate is naturally idempotent, and canceled jobs can never flip back to done.",
+			},
+			{
+				type: "improved",
+				text: "Rate limiter rewritten from a burst-tolerant sliding window to an even-spacing leaky bucket — `VORYNTH_LLM_SPACING_MS` directly controls the gap between requests (default 60s / RPM), so no more long single waits after a burst.",
+			},
+			{
+				type: "new",
+				text: "Translate Stories batches 5 stories per LLM call and parses a validated JSON array back (`parseTranslationBatch` — LLM output validated before storage, R-A06). Body translations land in a new additive `articles.translated_content` column while `content` stays canonical (R-A05); `articles_fts` gains an in-place `ftsUpdateArticle` so translated titles stay searchable. `original_title` is written once and preserved forever.",
+			},
+		],
+	},
+	{
 		version: "1.6.0",
 		codename: "Navigate the Maze",
 		date: "2026-08-01",

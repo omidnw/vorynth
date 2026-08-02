@@ -144,6 +144,12 @@ export interface Article {
 	/** Original title before translation, if the title was translated. */
 	originalTitle?: string | null;
 	content: string;
+	/**
+	 * Translated body (Translate Stories) — AI translation of `content` into the
+	 * user's intelligence language. `content` remains the canonical original;
+	 * this is what the reader shows by default (with an Original toggle) when set.
+	 */
+	translatedContent?: string | null;
 	url: string;
 	author: string | null;
 	publishedAt: Date | null;
@@ -383,7 +389,7 @@ export interface TodaysBrief {
  * `/status` endpoint, the Settings page, the Changelog) reads this same
  * constant so they never drift.
  */
-export const VORYNTH_VERSION = "1.6.0";
+export const VORYNTH_VERSION = "1.7.0";
 
 /** Engine status surfaced to the UI (e.g. onboarding, settings). */
 export interface EngineStatus {
@@ -532,7 +538,13 @@ export interface WorkflowProgressEvent {
 // survive navigation away from the page that started them)
 // ──────────────────────────────────────────────────────────────────────────
 
-export type JobKind = "collect" | "generate" | "summarize" | "regenerate";
+export type JobKind =
+	| "collect"
+	| "generate"
+	| "summarize"
+	| "regenerate"
+	| "translate"
+	| "ask";
 export type JobStatus = "queued" | "running" | "done" | "error" | "canceled";
 
 export interface JobProgress {
@@ -704,6 +716,17 @@ export type AppSettings = Record<string, unknown> & {
 		 * Default true; the user can disable it with "don't show again".
 		 */
 			"ui.confirmDeleteProvider"?: boolean;
+			/**
+			 * v1.7.0 — trash retention value (numeric part). Combined with
+			 * `trash.retentionUnit`. 0 = keep in trash until the user empties it.
+			 * Default 7 (days).
+			 */
+			"trash.retentionValue"?: number;
+			/**
+			 * v1.7.0 — trash retention unit for `trash.retentionValue`.
+			 * months = 30 days, years = 365 days (approximate, retention only).
+			 */
+			"trash.retentionUnit"?: "days" | "weeks" | "months" | "years";
 		};
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -803,6 +826,55 @@ export interface BookmarkList {
 	items: ArchiveItem[];
 	total: number;
 	hasMore: boolean;
+}
+
+// ── Trash (v1.7.0) — soft-deleted collections & history ─────────────────────
+// Deleting a collection or a history entry soft-deletes it (goes to Trash,
+// hidden from the live view, restorable). After `trash.retentionValue` ×
+// `trash.retentionUnit` it is auto-purged (bookmarked history items are never
+// auto-purged — R-A10). Permanent deletion only happens from the Trash page.
+
+export type TrashKind = "collection" | "search" | "brief" | "generated";
+
+/** One row of the unified Trash list (`GET /trash`). */
+export interface TrashEntry {
+	/** Origin id: a collection id, or a search/brief/generated history id. */
+	id: string;
+	kind: TrashKind;
+	/** Collection name, or the history entry's title. */
+	name: string;
+	/** ISO timestamp when it was soft-deleted. */
+	deletedAt: string;
+	/** Human hint, e.g. "Category · 2 folders · 5 items" (collections only). */
+	subtitle?: string;
+	/** How many bookmarked items would be destroyed by a permanent delete. */
+	bookmarkedCount: number;
+}
+
+export interface TrashList {
+	items: TrashEntry[];
+}
+
+/** Body for `POST /trash/restore`. */
+export interface RestoreTrashInput {
+	kind: TrashKind;
+	id: string;
+}
+
+/** Body for `POST /trash/purge` — permanent delete of one entry. */
+export interface PurgeTrashInput {
+	kind: TrashKind;
+	id: string;
+	/**
+	 * Required when the entry contains bookmarked items (else 409
+	 * BOOKMARKED_ITEMS_EXIST) — the UI confirms this explicitly first.
+	 */
+	force?: boolean;
+}
+
+/** Body for `POST /trash/empty` — permanent delete of everything in trash. */
+export interface EmptyTrashInput {
+	force?: boolean;
 }
 
 // ── Sources: per-source article range windows ───────────────────────────────

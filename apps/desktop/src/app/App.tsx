@@ -16,7 +16,9 @@ import { HistorySearchDetailPage } from "@/pages/HistorySearchDetailPage.js";
 import { HistoryBriefDetailPage } from "@/pages/HistoryBriefDetailPage.js";
 import { HistoryGeneratedDetailPage } from "@/pages/HistoryGeneratedDetailPage.js";
 import { ArchivePage } from "@/pages/ArchivePage.js";
+import { CollectionsPage } from "@/pages/CollectionsPage.js";
 import { BookmarksPage } from "@/pages/BookmarksPage.js";
+import { TrashPage } from "@/pages/TrashPage.js";
 import { DocsPage } from "@/pages/DocsPage.js";
 
 /**
@@ -27,8 +29,9 @@ import { DocsPage } from "@/pages/DocsPage.js";
  *   /insights/:id     Focused reading view for one AI insight
  *   /articles/:id     Native article reader (body + on-demand media)
  *   /analyzing        Workflow progress animation
- *   /archive          Unified user-owned space (collections, items, bookmarks)
+ *   /archive          Unified user-owned space (items, bookmarks)
  *   /archive/search   Keyword + Ask-AI search (lives under the Archive)
+ *   /archive/collections  File-explorer page for organizing items into folders
  *   /bookmarks        Saved items
  *   /docs             In-app documentation & tutorial
  *   /sources          Source management (list / add / toggle / range windows)
@@ -54,6 +57,8 @@ export function App() {
 				<Route path="/search" element={<SearchRedirect />} />
 				<Route path="/archive" element={<ArchivePage />} />
 				<Route path="/archive/search" element={<SearchPage />} />
+				<Route path="/archive/collections" element={<CollectionsPage />} />
+				<Route path="/archive/trash" element={<TrashPage />} />
 				<Route path="/bookmarks" element={<BookmarksPage />} />
 				<Route path="/docs" element={<DocsPage />} />
 				<Route path="/sources" element={<SourcesPage />} />

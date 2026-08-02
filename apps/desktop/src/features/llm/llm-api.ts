@@ -1,11 +1,15 @@
 import { apiFetch } from "@/lib/api/config";
 import type { LlmProviderConfig, LlmProviderKind } from "@vorynth/types";
 
+export type ProviderKeyStatus = "ok" | "missing" | "undecryptable";
+
 export interface ProviderRow {
 	id: string;
 	kind: LlmProviderKind;
 	label: string;
 	apiKeyStored: boolean;
+	/** Health of the stored key: decryptable, never set, or unreadable (lost salt). */
+	keyStatus: ProviderKeyStatus;
 	defaultModel: string | null;
 	baseUrl: string | null;
 	enabled: boolean;
@@ -42,6 +46,19 @@ export async function verifyProvider(): Promise<{
 		method: "POST",
 		body: JSON.stringify({}),
 	});
+}
+
+// ── Status ───────────────────────────────────────────────────────────────────
+
+export interface LlmStatus {
+	configured: boolean;
+	providerKind: string | null;
+	/** Live rate-limiter state from the engine (VORYNTH_LLM_RPM / SPACING_MS drive it). */
+	rateLimit: { capacity: number; inFlight: number; spacingMs: number };
+}
+
+export async function fetchStatus(): Promise<LlmStatus> {
+	return apiFetch<LlmStatus>("/llm/status");
 }
 
 // ── Mode ──────────────────────────────────────────────────────────────────────

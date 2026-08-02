@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS search_history (
   archived INTEGER NOT NULL DEFAULT 0,
   tokens_used INTEGER NOT NULL DEFAULT 0,
   hit_count INTEGER NOT NULL DEFAULT 0,
+  deleted_at INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
@@ -149,6 +150,7 @@ CREATE TABLE IF NOT EXISTS brief_history (
   title TEXT NOT NULL,
   archived INTEGER NOT NULL DEFAULT 0,
   story_count INTEGER NOT NULL DEFAULT 0,
+  deleted_at INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
@@ -184,6 +186,7 @@ CREATE TABLE IF NOT EXISTS generated_history (
   result TEXT NOT NULL,
   tokens_used INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0,
+  deleted_at INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
@@ -197,6 +200,7 @@ CREATE TABLE IF NOT EXISTS collections (
   parent_id TEXT REFERENCES collections(id) ON DELETE SET NULL,
   kind TEXT NOT NULL DEFAULT 'folder',
   llm_generated INTEGER NOT NULL DEFAULT 0,
+  deleted_at INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
@@ -232,6 +236,27 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   content_item_id TEXT NOT NULL UNIQUE REFERENCES content_items(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
+
+-- v1.7.0 — background job persistence: jobs survive restarts and resume from
+-- their last checkpoint (status 'running'/'queued' rows are restored on boot).
+CREATE TABLE IF NOT EXISTS jobs (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  label TEXT NOT NULL,
+  status TEXT NOT NULL,
+  message TEXT NOT NULL DEFAULT '',
+  fraction REAL NOT NULL DEFAULT 0,
+  items_done INTEGER,
+  items_total INTEGER,
+  input_json TEXT,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  duration_ms INTEGER,
+  error TEXT,
+  result_json TEXT,
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_updated_at ON jobs(updated_at);
 `;
 
 /**
@@ -264,6 +289,16 @@ export const ADDITIVE_DDLS = [
 	// v1.6.0 — absolute time range per source (fetch window OR from/to dates).
 	"ALTER TABLE sources ADD COLUMN fetch_from INTEGER",
 	"ALTER TABLE sources ADD COLUMN fetch_to INTEGER",
+	// v1.7.0 — trash / soft-delete. Nullable deleted_at columns: NULL = live,
+	// set = soft-deleted (hidden, restorable). History rows keep their spine so
+	// no orphan-sweep is needed while trashed (R-A10).
+	"ALTER TABLE collections ADD COLUMN deleted_at INTEGER",
+	"ALTER TABLE search_history ADD COLUMN deleted_at INTEGER",
+	"ALTER TABLE brief_history ADD COLUMN deleted_at INTEGER",
+	"ALTER TABLE generated_history ADD COLUMN deleted_at INTEGER",
+	// v1.7.0 — Translate Stories. `translated_content` holds the AI translation
+	// of the body; `content` stays the canonical original (R-A05).
+	"ALTER TABLE articles ADD COLUMN translated_content TEXT",
 ];
 
 /** Seed defaults the freshly migrated database needs to operate. */
@@ -290,6 +325,10 @@ export function seedDefaults(db: Database.Database): void {
 		"retention.autoDeleteDays": 0,
 		"retention.protectBookmarked": true,
 		"retention.protectInCollection": true,
+		// v1.7.0 — trash retention. Value + unit (days/weeks/months/years);
+		// 0 = keep in trash until the user empties it. Default 7 days.
+		"trash.retentionValue": 7,
+		"trash.retentionUnit": "days",
 	};
 	const seedSetting = db.prepare(
 		"INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
@@ -562,17 +601,11 @@ export function ensureSpines(db: Database.Database): number {
  * case-insensitive comparison.
  */
 export function ensureCollectionNameIndex(db: Database.Database): void {
-	const existing = db
-		.prepare(
-			`SELECT COUNT(*) AS c FROM sqlite_master
-			 WHERE type = 'index' AND name IN (
-			   'idx_collections_parent_kind_name',
-			   'idx_collections_root_kind_name'
-			 )`,
-		)
-		.get() as { c: number };
-	if (existing.c === 2) return;
-
+	// v1.7.0 — the partial unique indexes now exclude soft-deleted (trashed)
+	// collections, so a same-name collection can be created/restored while the
+	// old one sits in the trash (the service check filters deleted rows too).
+	// Indexes are rebuildable derived structures (R-A09), so DROP + CREATE is
+	// safe and idempotent; still skipped entirely on dirty legacy DBs.
 	const legacyDuplicates = db
 		.prepare(
 			`SELECT parent_id, kind, name COLLATE NOCASE AS n
@@ -584,12 +617,14 @@ export function ensureCollectionNameIndex(db: Database.Database): void {
 	if (legacyDuplicates.length > 0) return;
 
 	db.exec(`
+		DROP INDEX IF EXISTS idx_collections_parent_kind_name;
+		DROP INDEX IF EXISTS idx_collections_root_kind_name;
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_parent_kind_name
 			ON collections(parent_id, kind, name COLLATE NOCASE)
-			WHERE parent_id IS NOT NULL;
+			WHERE parent_id IS NOT NULL AND deleted_at IS NULL;
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_root_kind_name
 			ON collections(kind, name COLLATE NOCASE)
-			WHERE parent_id IS NULL;
+			WHERE parent_id IS NULL AND deleted_at IS NULL;
 	`);
 }
 

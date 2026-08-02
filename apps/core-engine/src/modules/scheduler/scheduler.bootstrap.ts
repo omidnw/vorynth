@@ -5,6 +5,7 @@ import { CrawlerService } from "../crawler/crawler.service.js";
 import { IntelligenceService } from "../intelligence/intelligence.service.js";
 import { LlmService } from "../llm/llm.service.js";
 import { RetentionService } from "../retention/retention.service.js";
+import { TrashService } from "../trash/trash.service.js";
 
 /**
  * Registers the background jobs (project-details.md §31).
@@ -14,6 +15,7 @@ import { RetentionService } from "../retention/retention.service.js";
  *   daily at 06:00 UTC  generate the daily intelligence report (only when an
  *                       LLM is configured; otherwise a no-op)
  *   daily at 06:00 UTC  auto-delete retention sweep (v1.6.0; no-op when off)
+ *   daily at 06:00 UTC  trash purge sweep (v1.7.0; no-op when retention is 0)
  *
  * Lives in its own provider so the SchedulerService itself only owns the
  * clock — no double lifecycle hooks, no duplicate "scheduler started" logs.
@@ -27,6 +29,7 @@ export class SchedulerBootstrap implements OnModuleInit {
 		@Inject(IntelligenceService)
 		private readonly intelligence: IntelligenceService,
 		@Inject(RetentionService) private readonly retention: RetentionService,
+		@Inject(TrashService) private readonly trash: TrashService,
 		@Inject(ConfigService) private readonly config: ConfigService,
 	) {}
 
@@ -51,6 +54,11 @@ export class SchedulerBootstrap implements OnModuleInit {
 		// v1.6.0 — auto-delete retention, once a day alongside the report.
 		this.scheduler.dailyAt(reportHour, "retention-sweep", async () => {
 			this.retention.run();
+		});
+
+		// v1.7.0 — trash auto-purge (expired soft-deletes), once a day.
+		this.scheduler.dailyAt(reportHour, "trash-purge", async () => {
+			this.trash.run();
 		});
 	}
 }

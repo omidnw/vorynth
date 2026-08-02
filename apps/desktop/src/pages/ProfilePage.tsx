@@ -20,7 +20,9 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { useTranslation } from "react-i18next";
+import { useTextDirection } from "@/i18n";
 import ISO6391 from "iso-639-1";
 
 /**
@@ -33,9 +35,9 @@ import ISO6391 from "iso-639-1";
  * Composed of self-contained sections — mirrors the SettingsPage pattern.
  */
 export function ProfilePage() {
-		const { t } = useTranslation();
-		const navigate = useNavigate();
-		const { data: profile, isLoading } = useQuery({
+	const { t } = useTranslation();
+	const navigate = useNavigate();
+	const { data: profile, isLoading } = useQuery({
 		queryKey: ["profile"],
 		queryFn: fetchProfile,
 	});
@@ -54,10 +56,13 @@ export function ProfilePage() {
 	return (
 		<section className="mx-auto w-full max-w-max-content-width space-y-8 px-gutter py-12">
 			<header className="mb-2">
-				<h1 className="mb-2 flex items-center gap-3 font-headline text-display-md text-primary dark:text-primary-fixed">
-					<Icon name="account_circle" className="text-[32px]" />
-					{t("profile.title")}
-				</h1>
+				<div className="flex flex-wrap items-start justify-between gap-4">
+					<h1 className="mb-2 flex items-center gap-3 font-headline text-display-md text-primary dark:text-primary-fixed">
+						<Icon name="account_circle" className="text-[32px]" />
+						{t("profile.title")}
+					</h1>
+					<DocsHelpButton sectionId="profile" />
+				</div>
 				<p className="max-w-prose font-body text-body-md text-on-surface-variant">
 					{t("profile.subtitle")}
 				</p>
@@ -70,41 +75,41 @@ export function ProfilePage() {
 				generatedAt={profile.summaryGeneratedAt}
 			/>
 			<InterestsSection />
-				<LanguageSection
-					onLocaleChange={(code) => patchProfile({ preferredUiLanguage: code })}
-				/>
-				<AiLanguageSection />
-					<ReaderSettingsSection />
+			<LanguageSection
+				onLocaleChange={(code) => patchProfile({ preferredUiLanguage: code })}
+			/>
+			<AiLanguageSection />
+			<ReaderSettingsSection />
 
-					{/* Reset confirmation dialogs */}
-					<ConfirmResetSection />
+			{/* Reset confirmation dialogs */}
+			<ConfirmResetSection />
 
-					{/* Tip: app settings live on the Settings page */}
-				<GhostCard className="flex items-center justify-between gap-4">
-					<div className="flex items-center gap-3">
-						<Icon
-							name="settings"
-							className="text-[24px] text-on-surface-variant"
-						/>
-						<div>
-							<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-								{t("profile.settingsTipTitle")}
-							</h3>
-							<p className="font-body text-body-sm text-on-tertiary-container">
-								{t("profile.settingsTipBody")}
-							</p>
-						</div>
+			{/* Tip: app settings live on the Settings page */}
+			<GhostCard className="flex items-center justify-between gap-4">
+				<div className="flex items-center gap-3">
+					<Icon
+						name="settings"
+						className="text-[24px] text-on-surface-variant"
+					/>
+					<div>
+						<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+							{t("profile.settingsTipTitle")}
+						</h3>
+						<p className="font-body text-body-sm text-on-tertiary-container">
+							{t("profile.settingsTipBody")}
+						</p>
 					</div>
-					<Button
-						variant="secondary"
-						size="sm"
-						icon="settings"
-						onClick={() => navigate("/settings")}
-					>
-						{t("nav.settings")}
-					</Button>
-				</GhostCard>
-			</section>
+				</div>
+				<Button
+					variant="secondary"
+					size="sm"
+					icon="settings"
+					onClick={() => navigate("/settings")}
+				>
+					{t("nav.settings")}
+				</Button>
+			</GhostCard>
+		</section>
 	);
 }
 
@@ -233,6 +238,7 @@ function CustomInstructionSection({
 }) {
 	const { t } = useTranslation();
 	const queryClient = useQueryClient();
+	const textDir = useTextDirection();
 	const [text, setText] = useState(customInstruction);
 	const [improved, setImproved] = useState<string | null>(null);
 	const [originalDraft, setOriginalDraft] = useState<string | null>(null);
@@ -304,7 +310,7 @@ function CustomInstructionSection({
 					</div>
 					<p
 						className="mb-3 whitespace-pre-wrap font-body text-body-md text-on-surface"
-						dir="auto"
+						dir={textDir(improved ?? "")}
 					>
 						{improved}
 					</p>
@@ -380,6 +386,7 @@ function BehaviorSummarySection({
 }) {
 	const { t } = useTranslation();
 	const queryClient = useQueryClient();
+	const textDir = useTextDirection();
 	const generate = useMutation({
 		mutationFn: () => generateSummary(),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
@@ -419,7 +426,7 @@ function BehaviorSummarySection({
 				<>
 					<p
 						className="border-l-2 border-primary pl-6 font-body text-body-lg italic leading-relaxed text-on-surface"
-						dir="auto"
+						dir={textDir(summary)}
 					>
 						{summary}
 					</p>
@@ -616,48 +623,48 @@ function ReaderSettingsSection() {
 			/>
 		</GhostCard>
 	);
-	}
+}
 
-	function ConfirmResetSection() {
-		const queryClient = useQueryClient();
-		const patch = useMutation({
-			mutationFn: (values: Parameters<typeof patchSettings>[0]) =>
-				patchSettings(values),
-			onSuccess: () =>
-				queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
-		});
+function ConfirmResetSection() {
+	const queryClient = useQueryClient();
+	const patch = useMutation({
+		mutationFn: (values: Parameters<typeof patchSettings>[0]) =>
+			patchSettings(values),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
+	});
 
-		return (
-			<GhostCard className="flex items-center justify-between gap-4">
-				<div className="flex items-center gap-3">
-					<Icon
-						name="touch_app"
-						className="text-[24px] text-on-surface-variant"
-					/>
-					<div>
-						<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-							Confirmation dialogs
-						</h3>
-						<p className="font-body text-body-sm text-on-tertiary-container">
-							Reset "don't ask again" choices and show confirmation dialogs.
-						</p>
-					</div>
+	return (
+		<GhostCard className="flex items-center justify-between gap-4">
+			<div className="flex items-center gap-3">
+				<Icon
+					name="touch_app"
+					className="text-[24px] text-on-surface-variant"
+				/>
+				<div>
+					<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+						Confirmation dialogs
+					</h3>
+					<p className="font-body text-body-sm text-on-tertiary-container">
+						Reset "don't ask again" choices and show confirmation dialogs.
+					</p>
 				</div>
-				<Button
-					variant="secondary"
-					size="sm"
-					onClick={() => {
-						patch.mutate({ "ui.confirmDeleteProvider": true });
-					}}
-					disabled={patch.isPending}
-				>
-					{patch.isPending ? "Resetting…" : "Reset all"}
-				</Button>
-			</GhostCard>
-		);
-	}
+			</div>
+			<Button
+				variant="secondary"
+				size="sm"
+				onClick={() => {
+					patch.mutate({ "ui.confirmDeleteProvider": true });
+				}}
+				disabled={patch.isPending}
+			>
+				{patch.isPending ? "Resetting…" : "Reset all"}
+			</Button>
+		</GhostCard>
+	);
+}
 
-	// ── Shared bits ─────────────────────────────────────────────────────────────
+// ── Shared bits ─────────────────────────────────────────────────────────────
 
 function Field({
 	label,

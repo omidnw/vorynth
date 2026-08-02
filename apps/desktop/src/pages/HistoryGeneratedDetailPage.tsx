@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { GeneratedHistoryKind } from "@vorynth/types";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { fetchGeneratedEntry } from "@/features/history/history-api.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
+import { useTextDirection } from "@/i18n";
 
 /**
  * Full-page view for a saved generated history entry (Profile LLM generations).
@@ -16,7 +18,17 @@ import { useHistoryStore } from "@/features/history/history-store.js";
 export function HistoryGeneratedDetailPage() {
 	const { id = "" } = useParams();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const closeDrawer = useHistoryStore((s) => s.closeDrawer);
+	const textDir = useTextDirection();
+
+	// Smart back: return to whatever opened this page (Archive, the drawer…)
+	// when there's history; otherwise fall back to Profile.
+	const goBack = () => {
+		closeDrawer();
+		if (location.key !== "default") navigate(-1);
+		else navigate("/profile");
+	};
 
 	const { data: entry, isLoading } = useQuery({
 		queryKey: ["history", "generated", "single", id],
@@ -70,14 +82,17 @@ export function HistoryGeneratedDetailPage() {
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
 			{/* Header */}
 			<header className="mb-12">
-				<Link
-					to="/profile"
-					onClick={() => closeDrawer()}
-					className="mb-6 inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
-				>
-					<Icon name="arrow_back" className="text-[18px]" />
-					Back to Profile
-				</Link>
+				<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+					<button
+						type="button"
+						onClick={goBack}
+						className="inline-flex cursor-pointer items-center gap-2 font-label text-label-md uppercase text-on-surface-variant transition-colors hover:text-primary"
+					>
+						<Icon name="arrow_back" className="text-[18px]" />
+						Back to Profile
+					</button>
+					<DocsHelpButton sectionId="history" />
+				</div>
 
 				<div className="mb-4 flex flex-wrap items-center gap-3">
 					<KindBadge kind={entry.kind} />
@@ -125,7 +140,7 @@ export function HistoryGeneratedDetailPage() {
 				</h3>
 				<div
 					className="whitespace-pre-wrap font-body text-body-lg leading-relaxed text-on-surface"
-					dir="auto"
+					dir={textDir(entry.result)}
 				>
 					{entry.result}
 				</div>
@@ -156,14 +171,7 @@ export function HistoryGeneratedDetailPage() {
 					}}
 				/>
 				<div className="mx-2 h-6 w-px bg-outline-variant" />
-				<ActionBtn
-					icon="arrow_back"
-					label="Back"
-					onClick={() => {
-						closeDrawer();
-						navigate("/profile");
-					}}
-				/>
+				<ActionBtn icon="arrow_back" label="Back" onClick={goBack} />
 			</footer>
 		</article>
 	);

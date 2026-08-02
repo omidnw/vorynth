@@ -11,4 +11,9 @@ export {
 	type Locale,
 	type TextDirection,
 } from "./types.js";
+export {
+	detectTextDirection,
+	dirForText,
+	useTextDirection,
+} from "./text-direction.js";
 export { useTranslation } from "react-i18next";

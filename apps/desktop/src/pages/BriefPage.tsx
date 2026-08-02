@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import type { BriefEntry, BriefPeriod } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -10,6 +10,7 @@ import { GhostCard } from "@/components/ui/GhostCard";
 import { BriefItemView } from "@/features/brief/BriefItemView.js";
 import { PeriodSummaryPanel } from "@/features/brief/PeriodSummaryPanel.js";
 import { fetchRange } from "@/features/brief/brief-api.js";
+import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 
 // ── Persisted state (survives navigation, clears on explicit reset) ─────────
@@ -102,12 +103,12 @@ export function BriefPage() {
 		}
 	}, [setPeriod, setSort, setDomainFilter]);
 
-		const { t } = useTranslation();
-		const navigate = useNavigate();
-		const { startCollect, startGenerate, isActive, lastError } = useJobsStore();
-		const collectActive = isActive("collect");
-		const generateActive = isActive("generate");
-		const busy = collectActive || generateActive;
+	const { t } = useTranslation();
+	const navigate = useNavigate();
+	const { startCollect, startGenerate, isActive, lastError } = useJobsStore();
+	const collectActive = isActive("collect");
+	const generateActive = isActive("generate");
+	const busy = collectActive || generateActive;
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["reports", "range", period],
@@ -149,33 +150,36 @@ export function BriefPage() {
 
 	return (
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
-			<header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-				<div>
-					<h2 className="mb-2 font-headline text-headline-lg text-primary dark:text-primary-fixed">
+			<header className="mb-8">
+				{/* Title row — the help button sits directly opposite the title,
+				    not next to the mode/stats line below. */}
+				<div className="flex flex-wrap items-start justify-between gap-4">
+					<h2 className="font-headline text-headline-lg text-primary dark:text-primary-fixed">
 						Today's Intelligence Brief
 					</h2>
-					<div className="flex flex-wrap items-center gap-4 font-label text-label-md text-on-tertiary-container">
-						<span className="flex items-center gap-1">
-							<Icon name="timer" className="text-[18px]" />
-							{data ? `${data.totalStories} stories` : "—"}
-						</span>
-						<span className="h-1 w-1 rounded-full bg-outline-variant" />
-						<span>{data ? `${data.totalSources} sources` : "—"}</span>
-						<span className="h-1 w-1 rounded-full bg-outline-variant" />
-							<span
-								className={
-									intelligenceEnabled
-										? "text-secondary"
-										: "text-on-tertiary-container"
-								}
-							>
-								{intelligenceEnabled
-									? t("brief.intelligenceOn")
-									: t("brief.newsMode")}
-							</span>
-					</div>
+					<DocsHelpButton sectionId="brief" />
 				</div>
-				<div className="flex gap-2">
+				<div className="mt-2 flex flex-wrap items-center gap-4 font-label text-label-md text-on-tertiary-container">
+					<span className="flex items-center gap-1">
+						<Icon name="timer" className="text-[18px]" />
+						{data ? `${data.totalStories} stories` : "—"}
+					</span>
+					<span className="h-1 w-1 rounded-full bg-outline-variant" />
+					<span>{data ? `${data.totalSources} sources` : "—"}</span>
+					<span className="h-1 w-1 rounded-full bg-outline-variant" />
+					<span
+						className={
+							intelligenceEnabled
+								? "text-secondary"
+								: "text-on-tertiary-container"
+						}
+					>
+						{intelligenceEnabled
+							? t("brief.intelligenceOn")
+							: t("brief.newsMode")}
+					</span>
+				</div>
+				<div className="mt-6 flex flex-wrap gap-2">
 					<Button
 						variant="ghost"
 						size="sm"
@@ -345,27 +349,26 @@ export function BriefPage() {
 			) : null}
 
 			{!intelligenceEnabled && allEntries.length > 0 ? (
-					<div
-						className="mt-8 flex cursor-pointer items-center gap-3 border-l-2 border-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
-						onClick={() => navigate("/settings")}
-						role="button"
-						tabIndex={0}
-					>
-						<Icon name="tips_and_updates" className="text-secondary" />
-						<p className="font-body text-body-md text-on-surface-variant">
-							<strong className="text-on-surface">News mode.</strong> Switch to
-							Intelligence mode in
-							<span className="underline"> Settings</span> when your provider is
-							ready.
-						</p>
-					</div>
-				) : null}
-	
-				{intelligenceEnabled ? (
-					<div className="mt-4">
-						<DomainTag>Intelligence Mode Active</DomainTag>
-					</div>
-				) : null}
+				<div
+					className="mt-8 flex cursor-pointer items-center gap-3 border-l-2 border-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
+					onClick={() => navigate("/settings")}
+					role="button"
+					tabIndex={0}
+				>
+					<Icon name="tips_and_updates" className="text-secondary" />
+					<p className="font-body text-body-md text-on-surface-variant">
+						<Trans t={t} i18nKey="brief.newsHint">
+							<span className="underline">Settings</span>
+						</Trans>
+					</p>
+				</div>
+			) : null}
+
+			{intelligenceEnabled ? (
+				<div className="mt-4">
+					<DomainTag>Intelligence Mode Active</DomainTag>
+				</div>
+			) : null}
 		</section>
 	);
 }
