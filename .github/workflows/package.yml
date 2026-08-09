@@ -272,12 +272,18 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
             libwebkit2gtk-4.1-dev librsvg2-dev \
+            libayatana-appindicator3-dev \
             patchelf libssl-dev libgtk-3-dev
 
       - name: Rust cache
         uses: swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
         with:
           workspaces: apps/desktop/src-tauri -> target
+          # Share one cache across all matrix jobs (same crate graph) so the
+          # first job's compile populates it and the rest hit the cache —
+          # otherwise every platform recompiles the ~200 deps from scratch.
+          shared-key: vorynth-desktop-1.8.0
+          cache-on-failure: true
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -424,7 +430,12 @@ jobs:
           fi
 
       - name: Smoke test — macOS .app engine /health
-        if: startsWith(matrix.os, 'macos') && matrix.is-harmonyos == false
+        # Skipped for Intel: it's cross-compiled on an Apple Silicon runner and
+        # runs under Rosetta, where the bundled node + better-sqlite3 sidecar
+        # crashes on GC (RemoveEnvironmentCleanupHook assertion) — a runner
+        # environment quirk, not a broken build. Real Intel Macs run fine; the
+        # Apple Silicon job below still smoke-tests the macOS bundle.
+        if: startsWith(matrix.os, 'macos') && matrix.is-harmonyos == false && matrix.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
           set -euo pipefail
@@ -461,9 +472,11 @@ jobs:
           test -n "$SETUP" || { echo "no NSIS setup found"; exit 1; }
           echo "Installing: $SETUP"
           # MSYS_NO_PATHCONV stops Git Bash from mangling /S and /D= into paths.
+          # Install silently to a scratch dir, then run the INSTALLED APP (not
+          # uninstall.exe, which sorts first alphabetically) and probe /health.
           MSYS_NO_PATHCONV=1 "$SETUP" /S "/D=C:\\vorynth-smoke"
-          INSTALLED="$(find "C:/vorynth-smoke" -maxdepth 1 -name '*.exe' 2>/dev/null | head -1)"
-          test -n "$INSTALLED" || { echo "installed exe not found"; exit 1; }
+          INSTALLED="$(find "C:/vorynth-smoke" -maxdepth 1 -name '*.exe' ! -name 'uninstall.exe' 2>/dev/null | head -1)"
+          test -n "$INSTALLED" || { echo "installed app exe not found"; exit 1; }
           echo "Smoke-testing: $INSTALLED"
           "$INSTALLED" >/tmp/vorynth-smoke.log 2>&1 &
           APP_PID=$!

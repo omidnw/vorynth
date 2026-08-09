@@ -572,7 +572,9 @@ fn run_tauri(port: u16, mut child: Option<Child>, start_hidden: bool) {
         ))
         // Auto-update (v1.8.0) — check GitHub releases, download + verify,
         // then install via a detached updater process that relaunches the app.
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        // Not registered on FreeBSD (the plugin doesn't compile there — see
+        // Cargo.toml; updater is a linux/macos/windows feature).
+        .plugin_boxed(updater_plugin())
         // OS notifications (v1.8.0) — the Notification Center's system push.
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
@@ -718,4 +720,20 @@ fn run_tauri(port: u16, mut child: Option<Child>, start_hidden: bool) {
             }
         }
     });
+}
+
+/// The auto-update plugin, boxed so the same builder chain compiles on every
+/// target. On FreeBSD there is nothing to register (the plugin doesn't compile
+/// there — `Env.appimage` only exists on Linux; see Cargo.toml). Everywhere
+/// else it returns the real updater plugin.
+#[cfg(not(target_os = "freebsd"))]
+fn updater_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
+    Box::new(tauri_plugin_updater::Builder::new().build())
+}
+
+#[cfg(target_os = "freebsd")]
+fn updater_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
+    // FreeBSD: no auto-update — the updater plugin does not compile here.
+    // A no-op plugin keeps the builder chain identical on every target.
+    Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
 }

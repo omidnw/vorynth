@@ -29,6 +29,10 @@ tauri-plugin-shell = "2"
 tauri-plugin-autostart = "2"
 # Auto-update (v1.8.0): check GitHub releases → download → verify signature →
 # install via a separate process → relaunch. Signatures are mandatory.
+# Excluded on FreeBSD: the upstream plugin reads `Env.appimage`, a field that
+# only exists on Linux — the cfg block lists freebsd but the field doesn't, so
+# it fails to compile on FreeBSD (upstream bug, present in 2.9 and 2.10).
+[target.'cfg(all(not(target_env = "ohos"), not(target_os = "freebsd")))'.dependencies]
 tauri-plugin-updater = "2"
 # OS notifications (v1.8.0) — the Notification Center pushes job/update events
 # to the system notification center when the user opts in.
