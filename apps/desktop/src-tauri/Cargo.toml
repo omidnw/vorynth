@@ -25,17 +25,21 @@ log = "0.4"
 [target.'cfg(not(target_env = "ohos"))'.dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
+
+[target.'cfg(all(not(target_env = "ohos"), not(target_os = "freebsd")))'.dependencies]
 # Launch-at-login hook (macOS LaunchAgent / Windows Run key / Linux XDG).
+# Excluded on FreeBSD: the underlying auto-launch crate has no FreeBSD backend,
+# so tauri-plugin-autostart doesn't compile there (no enable/disable/is_enabled).
 tauri-plugin-autostart = "2"
 # Auto-update (v1.8.0): check GitHub releases → download → verify signature →
 # install via a separate process → relaunch. Signatures are mandatory.
 # Excluded on FreeBSD: the upstream plugin reads `Env.appimage`, a field that
 # only exists on Linux — the cfg block lists freebsd but the field doesn't, so
 # it fails to compile on FreeBSD (upstream bug, present in 2.9 and 2.10).
-[target.'cfg(all(not(target_env = "ohos"), not(target_os = "freebsd")))'.dependencies]
 tauri-plugin-updater = "2"
 # OS notifications (v1.8.0) — the Notification Center pushes job/update events
-# to the system notification center when the user opts in.
+# to the system notification center when the user opts in. Excluded on FreeBSD
+# alongside autostart/updater (their permission sets don't exist there either).
 tauri-plugin-notification = "2"
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 tokio = { version = "1", features = ["full"] }

@@ -33,6 +33,9 @@ use std::os::windows::process::CommandExt;
 
 use tauri::Manager;
 use tauri::WebviewWindowBuilder;
+// autostart isn't compiled on FreeBSD (auto-launch has no FreeBSD backend) —
+// the import, command, and plugin registration below are cfg-gated to match.
+#[cfg(not(target_os = "freebsd"))]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
 
 /// OS shell integration — "Open plugins folder" (file manager) and
@@ -425,7 +428,8 @@ struct BackgroundMode(std::sync::atomic::AtomicBool);
 /// (Task Manager → Startup apps), an XDG .desktop on Linux (Startup
 /// Applications). LaunchAgent (not SMAppService) is used on macOS because
 /// SMAppService is brittle for ad-hoc-signed, non-notarized builds (Ventura+
-/// relabels or blocks them).
+/// relabels or blocks them). Not compiled on FreeBSD (no auto-launch backend).
+#[cfg(not(target_os = "freebsd"))]
 #[tauri::command]
 fn set_autostart(enabled: bool, app: tauri::AppHandle) -> Result<(), String> {
     let autostart = app.autolaunch();
@@ -451,6 +455,16 @@ fn set_autostart(enabled: bool, app: tauri::AppHandle) -> Result<(), String> {
         log::info!("launch at login disabled");
     }
     Ok(())
+}
+
+/// FreeBSD stub: the autostart plugin isn't compiled there (auto-launch has no
+/// FreeBSD backend), but the command must stay registered — the handler list
+/// is shared across targets — so it answers with a clear error instead of a
+/// silent no-op. The frontend swallows the failure (launch-behavior-bridge).
+#[cfg(target_os = "freebsd")]
+#[tauri::command]
+fn set_autostart(_enabled: bool, _app: tauri::AppHandle) -> Result<(), String> {
+    Err("launch at login is not supported on FreeBSD".to_string())
 }
 
 #[tauri::command]
@@ -565,18 +579,18 @@ fn run_tauri(port: u16, mut child: Option<Child>, start_hidden: bool) {
         .plugin(tauri_plugin_shell::init())
         // Launch-at-login hook. macOS uses a LaunchAgent plist (reliable for
         // ad-hoc-signed builds; SMAppService would be hidden/blocked by
-        // Ventura+ for non-notarized apps).
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            None,
-        ))
+        // Ventura+ for non-notarized apps). Boxed like the updater so the
+        // builder chain is identical on FreeBSD, where the plugin doesn't
+        // compile (auto-launch has no FreeBSD backend — see Cargo.toml).
+        .plugin_boxed(autostart_plugin())
         // Auto-update (v1.8.0) — check GitHub releases, download + verify,
         // then install via a detached updater process that relaunches the app.
         // Not registered on FreeBSD (the plugin doesn't compile there — see
         // Cargo.toml; updater is a linux/macos/windows feature).
         .plugin_boxed(updater_plugin())
         // OS notifications (v1.8.0) — the Notification Center's system push.
-        .plugin(tauri_plugin_notification::init())
+        // Boxed for the same reason: not registered on FreeBSD.
+        .plugin_boxed(notification_plugin())
         .invoke_handler(tauri::generate_handler![
             shell_ops::open_plugins_folder,
             shell_ops::open_plugins_folder_in_terminal,
@@ -735,5 +749,39 @@ fn updater_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
 fn updater_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
     // FreeBSD: no auto-update — the updater plugin does not compile here.
     // A no-op plugin keeps the builder chain identical on every target.
+    Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
+}
+
+/// The launch-at-login plugin, boxed so the same builder chain compiles on
+/// every target. On FreeBSD there is nothing to register (the auto-launch
+/// crate has no FreeBSD backend — see Cargo.toml). Everywhere else it returns
+/// the real autostart plugin.
+#[cfg(not(target_os = "freebsd"))]
+fn autostart_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
+    Box::new(tauri_plugin_autostart::init(
+        MacosLauncher::LaunchAgent,
+        None,
+    ))
+}
+
+#[cfg(target_os = "freebsd")]
+fn autostart_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
+    // FreeBSD: no launch-at-login — the autostart plugin does not compile
+    // here. A no-op plugin keeps the builder chain identical on every target.
+    Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
+}
+
+/// The notification plugin, boxed so the same builder chain compiles on every
+/// target. On FreeBSD there is nothing to register (it lives in the same
+/// FreeBSD-excluded Cargo group as updater/autostart — see Cargo.toml).
+#[cfg(not(target_os = "freebsd"))]
+fn notification_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
+    Box::new(tauri_plugin_notification::init())
+}
+
+#[cfg(target_os = "freebsd")]
+fn notification_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
+    // FreeBSD: no OS notifications — the plugin does not compile here. A
+    // no-op plugin keeps the builder chain identical on every target.
     Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
 }
