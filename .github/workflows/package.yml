@@ -41,21 +41,30 @@ jobs:
   # Semgrep static analysis runs FIRST — packaging must not start until the
   # security scan is clean (free community ruleset + the repo's custom
   # plugin-bundle rules). No SEMGREP_APP_TOKEN needed on public repos.
+  # Runs inside the official `semgrep/semgrep` docker image. The old
+  # `semgrep/semgrep-action@v2` was archived upstream (no `v2` tag exists), so
+  # `semgrep scan` on the image's CLI is the maintained replacement — NOT
+  # `semgrep ci`, which requires an AppSec Platform token and ignores
+  # `--config` (rules come from the org instead).
   security:
     name: Semgrep · Security scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    container:
+      # Pinned, immutable version tag — `latest` is a moving target (and can lag
+      # the newest release); a versioned image keeps the gate reproducible.
+      image: semgrep/semgrep:1.172.0
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run Semgrep
-        uses: semgrep/semgrep-action@v2
-        with:
-          config: |
-            auto
-            .semgrep/plugin-bundles.yml
+        run: |
+          semgrep scan \
+            --config auto \
+            --config .semgrep/plugin-bundles.yml \
+            --metrics off
 
   # ── Stage 2: tests + lint + build ──────────────────────────────────────────
   # Full verification gate. Packaging (below) waits on both this and security.

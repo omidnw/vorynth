@@ -73,16 +73,22 @@ jobs:
     name: Semgrep · Security scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    container:
+      # Pinned, immutable version tag — `latest` is a moving target (and can lag
+      # the newest release); a versioned image keeps the gate reproducible.
+      image: semgrep/semgrep:1.172.0
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # The action runs the open-source semgrep CLI in local mode on public
-      # repos — no SEMGREP_APP_TOKEN required.
+      # Runs the open-source semgrep CLI in local mode on public repos — no
+      # SEMGREP_APP_TOKEN required. Uses `semgrep scan` (not `semgrep ci`,
+      # which needs an AppSec Platform token) inside the official image; the
+      # old `semgrep/semgrep-action@v2` was archived upstream (no v2 tag).
       - name: Run Semgrep
-        uses: semgrep/semgrep-action@v2
-        with:
-          config: |
-            auto
-            .semgrep/plugin-bundles.yml
+        run: |
+          semgrep scan \
+            --config auto \
+            --config .semgrep/plugin-bundles.yml \
+            --metrics off
