@@ -56,6 +56,7 @@ cd apps/desktop/src-tauri && cargo tauri build --bundles app,dmg
 ```
 
 Output:
+
 - `target/release/bundle/macos/Vorynth.app`
 - `target/release/bundle/dmg/Vorynth_1.8.0_aarch64.dmg`
 

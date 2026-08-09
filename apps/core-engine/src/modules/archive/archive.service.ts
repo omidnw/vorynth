@@ -146,15 +146,7 @@ export class ArchiveService {
 				 OR ci.id IN (SELECT content_item_id FROM brief_history WHERE title LIKE ?)
 				 OR ci.id IN (SELECT content_item_id FROM generated_history WHERE title LIKE ?))`,
 			);
-			params.push(
-				needle,
-				needle,
-				needle,
-				needle,
-				needle,
-				needle,
-				needle,
-			);
+			params.push(needle, needle, needle, needle, needle, needle, needle);
 		}
 		if (opts.bookmarked === true)
 			where.push(
@@ -290,22 +282,22 @@ export class ArchiveService {
 				raw.prepare(`DELETE FROM ${table} WHERE id = ?`).run(origin.id);
 				if (table === "articles") {
 					// A story's search entry and its derived analysis die with it.
-					raw.prepare("DELETE FROM articles_fts WHERE article_id = ?").run(
-						origin.id,
-					);
-					raw.prepare("DELETE FROM ai_insights WHERE article_id = ?").run(
-						origin.id,
-					);
+					raw
+						.prepare("DELETE FROM articles_fts WHERE article_id = ?")
+						.run(origin.id);
+					raw
+						.prepare("DELETE FROM ai_insights WHERE article_id = ?")
+						.run(origin.id);
 				}
 			}
 			// Bookmarks + tags cascade off the spine (FK), but delete explicitly
 			// so the intent is auditable and order-independent.
-			raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
-				contentItemId,
-			);
-			raw.prepare("DELETE FROM content_item_tags WHERE content_item_id = ?").run(
-				contentItemId,
-			);
+			raw
+				.prepare("DELETE FROM bookmarks WHERE content_item_id = ?")
+				.run(contentItemId);
+			raw
+				.prepare("DELETE FROM content_item_tags WHERE content_item_id = ?")
+				.run(contentItemId);
 			raw.prepare("DELETE FROM content_items WHERE id = ?").run(contentItemId);
 		})();
 	}

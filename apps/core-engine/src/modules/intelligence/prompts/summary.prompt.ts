@@ -37,8 +37,7 @@ export function buildSummaryPrompt(opts: {
 
 	const bilingual =
 		opts.originalLanguage &&
-		opts.originalLanguage.toLowerCase() !==
-			opts.targetLanguage.toLowerCase();
+		opts.originalLanguage.toLowerCase() !== opts.targetLanguage.toLowerCase();
 
 	const system = [
 		"You are Vorynth, a personal intelligence engine.",
@@ -59,8 +58,8 @@ export function buildSummaryPrompt(opts: {
 		"TONE: Be precise, technical, and direct. No marketing language. No hedging.",
 		`Write every human-readable field in: ${opts.targetLanguage}.`,
 		"Technical terms and proper names (library names, CVE IDs, model names, tool and product",
-		'names) are translated into that language with the source term in parentheses on first',
-		'mention, e.g. \u201C\u06A9\u0644\u0627\u0648\u062F\u0641\u0644\u0631 (Cloudflare)\u201D.',
+		"names) are translated into that language with the source term in parentheses on first",
+		"mention, e.g. \u201C\u06A9\u0644\u0627\u0648\u062F\u0641\u0644\u0631 (Cloudflare)\u201D.",
 		...(bilingual
 			? [
 					`Also write the ENTIRE briefing again in the stories' majority language: ${opts.originalLanguage},`,
@@ -179,7 +178,9 @@ export function parseSummaryDraft(raw: string): SummaryDraft {
 		originalHeadline: String(obj.originalHeadline ?? ""),
 		originalThemes: cleanThemes(obj.originalThemes),
 		originalTakeaways: cleanStringArray(obj.originalTakeaways),
-		originalRecommendedActions: cleanStringArray(obj.originalRecommendedActions),
+		originalRecommendedActions: cleanStringArray(
+			obj.originalRecommendedActions,
+		),
 	};
 }
 

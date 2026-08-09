@@ -22,12 +22,14 @@ import type { BriefEntry, PeriodSummary } from "@vorynth/types";
  *    and export.
  */
 
-function makeEntry(overrides: {
-	articleId?: string;
-	language?: string | null;
-	title?: string;
-	category?: string;
-} = {}): BriefEntry {
+function makeEntry(
+	overrides: {
+		articleId?: string;
+		language?: string | null;
+		title?: string;
+		category?: string;
+	} = {},
+): BriefEntry {
 	return {
 		rank: 1,
 		article: {

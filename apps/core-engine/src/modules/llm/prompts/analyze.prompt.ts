@@ -18,8 +18,7 @@ export function buildAnalyzePrompt(input: AnalyzeInput): {
 	// insight always has both versions for bilingual display and export.
 	const bilingual =
 		input.sourceLanguage &&
-		input.sourceLanguage.toLowerCase() !==
-			input.outputLanguage.toLowerCase();
+		input.sourceLanguage.toLowerCase() !== input.outputLanguage.toLowerCase();
 
 	const system = [
 		"You are Vorynth, a personal intelligence engine.",
@@ -30,7 +29,7 @@ export function buildAnalyzePrompt(input: AnalyzeInput): {
 		`Write every human-readable field in: ${input.outputLanguage}.`,
 		"Technical terms and proper names (library names, CVE IDs, model names, tool",
 		"and product names) are translated into that language, with the source term",
-		'kept in parentheses on first mention, e.g. \u201C\u06A9\u0644\u0627\u0648\u062F\u0641\u0644\u0631 (Cloudflare)\u201D.',
+		"kept in parentheses on first mention, e.g. \u201C\u06A9\u0644\u0627\u0648\u062F\u0641\u0644\u0631 (Cloudflare)\u201D.",
 		...(bilingual
 			? [
 					`Also write the ENTIRE analysis again in the story's source language: ${input.sourceLanguage}.`,

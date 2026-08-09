@@ -9,8 +9,8 @@ import { cn } from "@/lib/cn";
  * docs: "Use 'ghost cards' defined by a 1px Tertiary border").
  */
 export interface GhostCardProps extends HTMLAttributes<HTMLDivElement> {
-/** Highlight the start edge in primary (used for "Recommended Action"). */
-accentLeft?: boolean;
+	/** Highlight the start edge in primary (used for "Recommended Action"). */
+	accentLeft?: boolean;
 	interactive?: boolean;
 }
 

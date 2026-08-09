@@ -127,7 +127,11 @@ beforeEach(() => {
 	mocks.deleteProvider.mockResolvedValue(undefined);
 	mocks.activateProvider.mockResolvedValue(undefined);
 	mocks.setMode.mockResolvedValue(undefined);
-	mocks.exportBackup.mockResolvedValue({ path: "", sizeBytes: 0, createdAt: "" });
+	mocks.exportBackup.mockResolvedValue({
+		path: "",
+		sizeBytes: 0,
+		createdAt: "",
+	});
 	mocks.restoreBackup.mockResolvedValue(undefined);
 	mocks.deleteAllData.mockResolvedValue(undefined);
 	mocks.listBackups.mockResolvedValue({ backups: [] });

@@ -384,7 +384,9 @@ export function platformDownloadLinks(
 ): DownloadLink[] {
 	let links: DownloadLink[];
 	if (releaseAssets && releaseAssets.length > 0) {
-		const hits = releaseAssets.filter((a) => PLATFORM_PATTERNS[key].test(a.name));
+		const hits = releaseAssets.filter((a) =>
+			PLATFORM_PATTERNS[key].test(a.name),
+		);
 		links =
 			hits.length > 0
 				? hits.map((a) => ({

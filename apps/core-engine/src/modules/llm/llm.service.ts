@@ -497,19 +497,14 @@ export class LlmService implements OnModuleInit {
 	 * decrypted (e.g. the local master salt was lost in a restore).
 	 */
 	unavailableReason():
-		| "not-configured"
-		| "key-missing"
-		| "key-undecryptable"
-		| null {
+		"not-configured" | "key-missing" | "key-undecryptable" | null {
 		if (this.buildActive()) return null;
 		const rows = this.db.rawDb
 			.prepare(`SELECT encrypted_api_key FROM llm_providers WHERE enabled = 1`)
 			.all() as Array<{ encrypted_api_key: string | null }>;
 		if (rows.length === 0) return "not-configured";
 		if (
-			rows.some(
-				(r) => this.keyStatus(r.encrypted_api_key) === "undecryptable",
-			)
+			rows.some((r) => this.keyStatus(r.encrypted_api_key) === "undecryptable")
 		) {
 			return "key-undecryptable";
 		}

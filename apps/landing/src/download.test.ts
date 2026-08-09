@@ -190,7 +190,10 @@ describe("fetchLatestRelease", () => {
 				json: async () => ({
 					tag_name: "v1.9.0",
 					assets: [
-						{ name: "Vorynth_1.9.0_x64-setup.exe", browser_download_url: "https://d/x.exe" },
+						{
+							name: "Vorynth_1.9.0_x64-setup.exe",
+							browser_download_url: "https://d/x.exe",
+						},
 						{ name: "broken", browser_download_url: null },
 					],
 				}),

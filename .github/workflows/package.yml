@@ -98,10 +98,12 @@ jobs:
       - name: Version check
         run: pnpm version:check
 
-      # @vorynth/types needs its dist/ emitted before dependent packages
-      # can resolve it via exports.
-      - name: Build shared types
-        run: pnpm --filter @vorynth/types build
+      # @vorynth/types and @vorynth/ui need their dist/ emitted before
+      # dependent packages can resolve them via exports. Building ui here (not
+      # just types) also removes the pretest race between desktop and landing,
+      # which both build ui in parallel during `pnpm -r run test`.
+      - name: Build shared packages
+        run: pnpm --filter @vorynth/types build && pnpm --filter @vorynth/ui build
 
       - name: Test
         run: pnpm test
@@ -285,10 +287,12 @@ jobs:
         if: matrix.is-harmonyos == false
         run: pnpm rebuild better-sqlite3
 
-      # @vorynth/types needs its dist/ emitted before dependent packages
-      # can resolve it via exports.
-      - name: Build shared types
-        run: pnpm --filter @vorynth/types build
+      # @vorynth/types and @vorynth/ui need their dist/ emitted before
+      # dependent packages can resolve them via exports. Building ui here (not
+      # just types) also removes the pretest race between desktop and landing,
+      # which both build ui in parallel during `pnpm -r run test`.
+      - name: Build shared packages
+        run: pnpm --filter @vorynth/types build && pnpm --filter @vorynth/ui build
 
       # ── Lint ────────────────────────────────────────────────────────────────
       # Stage 1: code quality. If this fails, nothing else runs.
@@ -594,8 +598,10 @@ jobs:
             pnpm install --frozen-lockfile
             pnpm rebuild better-sqlite3
 
-            # Build shared types first (needed by core-engine typecheck)
+            # Build shared types + ui first (needed by desktop typecheck,
+            # which imports @vorynth/ui).
             pnpm --filter @vorynth/types build
+            pnpm --filter @vorynth/ui build
 
             # Lint
             pnpm typecheck

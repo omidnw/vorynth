@@ -69,7 +69,8 @@ export class ProfileService {
 		if (patch.alias !== undefined) set.alias = patch.alias;
 		if (patch.fieldOfStudy !== undefined) set.fieldOfStudy = patch.fieldOfStudy;
 		if (patch.degreeLevel !== undefined) set.degreeLevel = patch.degreeLevel;
-		if (patch.experienceLevel !== undefined) set.experienceLevel = patch.experienceLevel;
+		if (patch.experienceLevel !== undefined)
+			set.experienceLevel = patch.experienceLevel;
 		if (patch.preferredUiLanguage !== undefined)
 			set.preferredUiLanguage = patch.preferredUiLanguage;
 		if (patch.preferredIntelligenceLanguage !== undefined)

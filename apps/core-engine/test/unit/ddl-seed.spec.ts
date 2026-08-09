@@ -1,8 +1,5 @@
 import { createTestDb } from "../helpers/db.js";
-import {
-	backfillSeedTags,
-	repairSeedUrls,
-} from "../../src/db/ddl.js";
+import { backfillSeedTags, repairSeedUrls } from "../../src/db/ddl.js";
 
 /**
  * Seed feed-URL repairs (v1.8.0 data fix).
@@ -234,7 +231,9 @@ describe("seed semantic metadata (v1.8.0)", () => {
 
 			// A user classification must never be overwritten.
 			db.service.rawDb
-				.prepare("UPDATE sources SET authority = 'community' WHERE id = 'src-aws'")
+				.prepare(
+					"UPDATE sources SET authority = 'community' WHERE id = 'src-aws'",
+				)
 				.run();
 			backfillSeedTags(db.service.rawDb);
 			const edited = db.service.rawDb

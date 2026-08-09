@@ -440,7 +440,9 @@ describe("archive + bookmarks services", () => {
 			// Simulate a translated story: `title` holds the translation,
 			// `original_title` the source title.
 			db.service.rawDb
-				.prepare("UPDATE articles SET title = ?, original_title = ? WHERE id = ?")
+				.prepare(
+					"UPDATE articles SET title = ?, original_title = ? WHERE id = ?",
+				)
 				.run("عنوان ترجمه شده", "Test story", articleId);
 
 			const { items } = await archive.listItems({});
@@ -467,7 +469,9 @@ describe("archive + bookmarks services", () => {
 			);
 			await bookmarks.create(spineId);
 			db.service.rawDb
-				.prepare("INSERT INTO tags (id, name) VALUES ('tag-del-test', 'security')")
+				.prepare(
+					"INSERT INTO tags (id, name) VALUES ('tag-del-test', 'security')",
+				)
 				.run();
 			db.service.rawDb
 				.prepare(
@@ -487,12 +491,36 @@ describe("archive + bookmarks services", () => {
 
 			// Spine + origin + derived data all gone — no ghosts.
 			const raw = db.service.rawDb;
-			expect(raw.prepare("SELECT id FROM content_items WHERE id = ?").get(spineId)).toBeUndefined();
-			expect(raw.prepare("SELECT id FROM articles WHERE id = ?").get(articleId)).toBeUndefined();
-			expect(raw.prepare("SELECT article_id FROM articles_fts WHERE article_id = ?").get(articleId)).toBeUndefined();
-			expect(raw.prepare("SELECT article_id FROM ai_insights WHERE article_id = ?").get(articleId)).toBeUndefined();
-			expect(raw.prepare("SELECT content_item_id FROM bookmarks WHERE content_item_id = ?").get(spineId)).toBeUndefined();
-			expect(raw.prepare("SELECT content_item_id FROM content_item_tags WHERE content_item_id = ?").get(spineId)).toBeUndefined();
+			expect(
+				raw.prepare("SELECT id FROM content_items WHERE id = ?").get(spineId),
+			).toBeUndefined();
+			expect(
+				raw.prepare("SELECT id FROM articles WHERE id = ?").get(articleId),
+			).toBeUndefined();
+			expect(
+				raw
+					.prepare("SELECT article_id FROM articles_fts WHERE article_id = ?")
+					.get(articleId),
+			).toBeUndefined();
+			expect(
+				raw
+					.prepare("SELECT article_id FROM ai_insights WHERE article_id = ?")
+					.get(articleId),
+			).toBeUndefined();
+			expect(
+				raw
+					.prepare(
+						"SELECT content_item_id FROM bookmarks WHERE content_item_id = ?",
+					)
+					.get(spineId),
+			).toBeUndefined();
+			expect(
+				raw
+					.prepare(
+						"SELECT content_item_id FROM content_item_tags WHERE content_item_id = ?",
+					)
+					.get(spineId),
+			).toBeUndefined();
 
 			// No orphan spines remain (the sweep's invariant holds after a delete).
 			const orphans = raw

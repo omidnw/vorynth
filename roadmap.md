@@ -11,17 +11,17 @@
 
 ## 1. Where we are — snapshot
 
-| Item            | Value                                                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Current release | **v1.8.0 "Extend The Signal"**                                                                                                                    |
-| Release history | v1.0.0 → v1.8.0 (11 releases)                                                                                                                      |
+| Item            | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Current release | **v1.8.0 "Extend The Signal"**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Release history | v1.0.0 → v1.8.0 (11 releases)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Working tree    | v1.8.0 feature work landed, **uncommitted** (422 files) + packaged-Linux engine fix (sidecar path) + per-OS smoke tests + macOS Intel cross-compile + landing download modal. Latest: source tags (live suggestions), Profile education fields, Settings backup list (download/delete), story-view history tab, Takeaway relabel, auto-translate after collect (LLM-gated), insight-first card view, robust back-button detection (trailing-slash fix), ui-ux-approval skill, POLICY.md (first policy: connector sourcing) |
-| Core engine     | NestJS + Fastify + better-sqlite3 + Drizzle ORM — 21 modules                                                                                      |
-| Desktop         | React 18 + Vite + Tailwind + Tauri v2 — 32 pages (+ in-app docs)                                                                                  |
-| Shared types    | `@vorynth/types` — single source of truth for version (`VORYNTH_VERSION`)                                                                         |
-| DB              | Single SQLite file, FTS5 full-text search (title+content+author), auto-migrate on boot, archive spine (`content_items`) + bookmarks + collections |
-| Tests           | Jest (engine, incl. domain invariants) + Vitest (UI) + Storybook + Playwright (planned)                                                           |
-| Target users    | Software / AI engineers, researchers, developers                                                                                                  |
+| Core engine     | NestJS + Fastify + better-sqlite3 + Drizzle ORM — 21 modules                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Desktop         | React 18 + Vite + Tailwind + Tauri v2 — 32 pages (+ in-app docs)                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Shared types    | `@vorynth/types` — single source of truth for version (`VORYNTH_VERSION`)                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| DB              | Single SQLite file, FTS5 full-text search (title+content+author), auto-migrate on boot, archive spine (`content_items`) + bookmarks + collections                                                                                                                                                                                                                                                                                                                                                                          |
+| Tests           | Jest (engine, incl. domain invariants) + Vitest (UI) + Storybook + Playwright (planned)                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Target users    | Software / AI engineers, researchers, developers                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 **One-line summary:** the core product loop works end-to-end — collect from
 your sources (RSS, GitHub releases, arXiv, plus HTML-crawler / Sitemap /
@@ -161,19 +161,19 @@ Truthful list — some of these are known and deferred, others are silent gaps.
 
 ### Source / plugin architecture (project-details §27–30) — shipped in v1.8.0
 
-| Spec item                                                    | Status                                                                    |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| RSS adapter                                                  | ✅ implemented                                                            |
-| GitHub (releases) adapter                                    | ✅ implemented                                                            |
-| arXiv adapter                                                | ✅ implemented — first registry-distributed official connector             |
+| Spec item                                                    | Status                                                                        |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| RSS adapter                                                  | ✅ implemented                                                                |
+| GitHub (releases) adapter                                    | ✅ implemented                                                                |
+| arXiv adapter                                                | ✅ implemented — first registry-distributed official connector                |
 | Reddit adapter                                               | ✅ implemented (ships; deliberately excluded from the connector health probe) |
-| Website-crawler / custom HTML adapter                        | ✅ implemented (v1.8.0)                                                   |
-| Sitemap adapter                                              | ✅ implemented (v1.8.0)                                                   |
-| JSON API adapter                                             | ✅ implemented (v1.8.0)                                                   |
-| "Add New Source" UI with method (RSS/API/HTML/Sitemap)       | ✅ implemented — per-method config fields driven by the adapter plugin      |
-| Custom selector HTML crawling (title/content/date selectors) | ✅ implemented (v1.8.0)                                                   |
-| Plugin management (install/configure in UI)                  | ✅ implemented — Plugins page, install/remove, enable/disable               |
-| Community connectors (user-installed)                        | 🟡 install flow + security scanner exist; real community connectors deferred |
+| Website-crawler / custom HTML adapter                        | ✅ implemented (v1.8.0)                                                       |
+| Sitemap adapter                                              | ✅ implemented (v1.8.0)                                                       |
+| JSON API adapter                                             | ✅ implemented (v1.8.0)                                                       |
+| "Add New Source" UI with method (RSS/API/HTML/Sitemap)       | ✅ implemented — per-method config fields driven by the adapter plugin        |
+| Custom selector HTML crawling (title/content/date selectors) | ✅ implemented (v1.8.0)                                                       |
+| Plugin management (install/configure in UI)                  | ✅ implemented — Plugins page, install/remove, enable/disable                 |
+| Community connectors (user-installed)                        | 🟡 install flow + security scanner exist; real community connectors deferred  |
 
 ### Reports (project-details §19, §31)
 
@@ -240,8 +240,8 @@ work from this session is on top:
 3. **v1.8.0 — i18n & themes** — 10 bundled UI languages with RTL, searchable
    language pickers, plugin themes with custom icons and canvas.
 4. **v1.6.0 + v1.7.0 (committed)** — archive spine + bookmarks + collections
-   + in-app Documentation (v1.6.0 "Navigate the Maze"); Collections page,
-   Archive redesign, docs deep-links (v1.7.0 "Organize The Signal").
+   - in-app Documentation (v1.6.0 "Navigate the Maze"); Collections page,
+     Archive redesign, docs deep-links (v1.7.0 "Organize The Signal").
 5. **This session — landing product story + docs pages** — origin / FAQ /
    "not an AI chat" copy, English-only preview, and new `#/changelog` +
    `#/roadmap` pages on the landing site.
@@ -270,18 +270,18 @@ work from this session is on top:
 
 ## 6. Where we are vs. project-details.md — coverage map
 
-| project-details.md area                | Coverage                                                                                                                             |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| §10–12 Product workflow                | ✅ Core loop complete                                                                                                                |
-| §14–18 Architecture / engine structure | ✅ Implemented (module layout matches)                                                                                               |
-| §19–21 Database entities               | 🟡 Tables exist; clustering/reports partially used                                                                                   |
-| §22–23 Multilingual AI pipeline        | ✅ Dual language + RTL + 10 bundled UI languages (v1.8.0)                                                                            |
-| §24 LLM provider abstraction           | ✅ 4 providers + encryption + rate limit                                                                                             |
-| §25–26 AI workflow                     | ✅ LangGraph 5-node graph                                                                                                            |
-| §27–30 Source plugins                  | ✅ 7 adapters + plugin runtime/scan + GitHub connector registry (v1.8.0); community-authored connectors deferred                      |
-| §31 Scheduling                         | 🟡 30-min collect + daily report; no weekly/monthly                                                                                  |
-| §32 Local-first / privacy              | ✅ Backup/restore/delete-all, offline reading, local keys                                                                            |
-| §33 Tech stack                         | ✅ Stack matches spec                                                                                                                |
+| project-details.md area                | Coverage                                                                                                         |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| §10–12 Product workflow                | ✅ Core loop complete                                                                                            |
+| §14–18 Architecture / engine structure | ✅ Implemented (module layout matches)                                                                           |
+| §19–21 Database entities               | 🟡 Tables exist; clustering/reports partially used                                                               |
+| §22–23 Multilingual AI pipeline        | ✅ Dual language + RTL + 10 bundled UI languages (v1.8.0)                                                        |
+| §24 LLM provider abstraction           | ✅ 4 providers + encryption + rate limit                                                                         |
+| §25–26 AI workflow                     | ✅ LangGraph 5-node graph                                                                                        |
+| §27–30 Source plugins                  | ✅ 7 adapters + plugin runtime/scan + GitHub connector registry (v1.8.0); community-authored connectors deferred |
+| §31 Scheduling                         | 🟡 30-min collect + daily report; no weekly/monthly                                                              |
+| §32 Local-first / privacy              | ✅ Backup/restore/delete-all, offline reading, local keys                                                        |
+| §33 Tech stack                         | ✅ Stack matches spec                                                                                            |
 
 **Connector health (v1.8.0):** every cataloged adapter has ≥1 verified
 reference source (`apps/core-engine/src/health/reference-sources.ts`);
@@ -398,9 +398,9 @@ Full context of every working session is retrievable via ZCode session IDs:
 | 22  | `sess_fdbaf45a` | Dark mode hover/legibility fixes                                                                                                                                                                                                                                                 |
 | 23  | `sess_57dbd86b` | Review of latest changes (this handoff chain)                                                                                                                                                                                                                                    |
 | 24  | `sess_8893f94a` | v1.6.0 "Navigate the Maze" — archive (content_items spine, bookmarks, collections/tags/notes), docs page + transparency, search relocation, author/advanced search, sources range windows, test foundation (Jest+Vitest+Playwright+Storybook), changelog general/technical split |
-| 25  | `sess_e2b5e5c9` | Full i18n sweep (~37 files, 453 keys, 10 languages), LLM error-code clarity (`invokeWithBudget` 400s), Settings/Profile redesign (rail + search) |
-| 26  | `sess_b63c275f` | v1.8.0 update testing, source details/data volumes, Homebrew cask + personal tap |
-| 27  | `sess_c3a240ac` | Diagnosed a running translate-one job on the production engine |
-| 28  | `sess_60cc7052` | Packaged-Linux engine fix (sidecar resource path), per-OS smoke tests, macOS Intel cross-compile on arm64, v1.8.0 changelog entry, landing download modal |
-| 29  | `sess_20198778` | Landing page — mobile hamburger menu, self-hosted Material Symbols icons (offline), download modal distro guide, FAQ note, dev port 5174 |
-| 30  | `sess_4e7c331f` | connector-policy.md governance doc — decision table, verified official tier, registry definitions-only, quality bar, maintenance responsibility |
+| 25  | `sess_e2b5e5c9` | Full i18n sweep (~37 files, 453 keys, 10 languages), LLM error-code clarity (`invokeWithBudget` 400s), Settings/Profile redesign (rail + search)                                                                                                                                 |
+| 26  | `sess_b63c275f` | v1.8.0 update testing, source details/data volumes, Homebrew cask + personal tap                                                                                                                                                                                                 |
+| 27  | `sess_c3a240ac` | Diagnosed a running translate-one job on the production engine                                                                                                                                                                                                                   |
+| 28  | `sess_60cc7052` | Packaged-Linux engine fix (sidecar resource path), per-OS smoke tests, macOS Intel cross-compile on arm64, v1.8.0 changelog entry, landing download modal                                                                                                                        |
+| 29  | `sess_20198778` | Landing page — mobile hamburger menu, self-hosted Material Symbols icons (offline), download modal distro guide, FAQ note, dev port 5174                                                                                                                                         |
+| 30  | `sess_4e7c331f` | connector-policy.md governance doc — decision table, verified official tier, registry definitions-only, quality bar, maintenance responsibility                                                                                                                                  |

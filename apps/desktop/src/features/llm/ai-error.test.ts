@@ -12,7 +12,12 @@ const t = ((key: string) => key) as TFunction;
 
 describe("aiErrorCode", () => {
 	it("returns the code from an ApiException", () => {
-		const err = new ApiException(400, "rate limited", undefined, "LLM_RATE_LIMITED");
+		const err = new ApiException(
+			400,
+			"rate limited",
+			undefined,
+			"LLM_RATE_LIMITED",
+		);
 		expect(aiErrorCode(err)).toBe("LLM_RATE_LIMITED");
 	});
 
@@ -42,16 +47,21 @@ describe("aiErrorMessage — code → llmError key", () => {
 	}
 
 	it("maps INSIGHT_LLM_UNAVAILABLE alongside LLM_NOT_CONFIGURED", () => {
-		const err = new ApiException(400, "no llm", undefined, "INSIGHT_LLM_UNAVAILABLE");
+		const err = new ApiException(
+			400,
+			"no llm",
+			undefined,
+			"INSIGHT_LLM_UNAVAILABLE",
+		);
 		expect(aiErrorMessage(t, err, "article.generateInsightFailed")).toBe(
 			"llmError.notConfigured",
 		);
 	});
 
 	it("maps a known code string surfaced as plain text (job errors)", () => {
-		expect(aiErrorMessage(t, "LLM_KEY_MISSING", "article.translateFailed")).toBe(
-			"llmError.keyMissing",
-		);
+		expect(
+			aiErrorMessage(t, "LLM_KEY_MISSING", "article.translateFailed"),
+		).toBe("llmError.keyMissing");
 	});
 });
 
@@ -64,9 +74,9 @@ describe("aiErrorMessage — unknown error → fallback key", () => {
 	});
 
 	it("falls back for a plain Error", () => {
-		expect(aiErrorMessage(t, new Error("provider down"), "profile.generateFailed")).toBe(
-			"profile.generateFailed",
-		);
+		expect(
+			aiErrorMessage(t, new Error("provider down"), "profile.generateFailed"),
+		).toBe("profile.generateFailed");
 	});
 
 	it("falls back for a non-code string message", () => {

@@ -2,7 +2,12 @@ import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { eq, inArray } from "drizzle-orm";
 import { DatabaseService } from "../../db/database.service.js";
 import { articles, sources } from "../../db/schema.js";
-import { attachSpine, createSpine, hasSpine, sweepOrphanSpines } from "../../db/spine.js";
+import {
+	attachSpine,
+	createSpine,
+	hasSpine,
+	sweepOrphanSpines,
+} from "../../db/spine.js";
 import { ftsInsertArticle, ftsUpdateArticle } from "../../db/fts-sync.js";
 import type { Article } from "@vorynth/types";
 import type { SourceAdapter } from "./source-adapter.js";
@@ -736,9 +741,9 @@ export class CrawlerService implements OnModuleInit {
 			clauses.push(
 				"content_item_id NOT IN (SELECT content_item_id FROM bookmarks WHERE content_item_id IS NOT NULL)",
 			);
-			raw.prepare(`DELETE FROM articles WHERE ${clauses.join(" AND ")}`).run(
-				...params,
-			);
+			raw
+				.prepare(`DELETE FROM articles WHERE ${clauses.join(" AND ")}`)
+				.run(...params);
 			sweepOrphanSpines(raw);
 		})();
 	}

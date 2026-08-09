@@ -134,9 +134,7 @@ describe("App", () => {
 			"brew tap omidnw/vorynth\nbrew install --cask vorynth",
 		);
 		// The "Copied" state lands in a microtask after the clipboard await.
-		expect(
-			await within(dialog).findByText("Copied"),
-		).toBeInTheDocument();
+		expect(await within(dialog).findByText("Copied")).toBeInTheDocument();
 	});
 
 	it("toggles the mobile nav menu and closes it on a link click", () => {

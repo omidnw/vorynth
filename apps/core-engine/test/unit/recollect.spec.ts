@@ -395,7 +395,10 @@ describe("IntelligenceService.generateInsight — bilingual (v1.8.0)", () => {
 			.prepare(
 				"SELECT original_summary, original_recommended_action FROM ai_insights WHERE article_id = 'art-1'",
 			)
-			.get() as { original_summary: string; original_recommended_action: string };
+			.get() as {
+			original_summary: string;
+			original_recommended_action: string;
+		};
 		expect(row.original_summary).toBe("English summary");
 		expect(row.original_recommended_action).toBe("English action");
 	});

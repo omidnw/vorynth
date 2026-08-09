@@ -76,7 +76,11 @@ export function DownloadModal({
 				);
 			} else {
 				setLinks(
-					platformDownloadLinks(platform.key as PlatformKey, VORYNTH_VERSION, null),
+					platformDownloadLinks(
+						platform.key as PlatformKey,
+						VORYNTH_VERSION,
+						null,
+					),
 				);
 			}
 		});
@@ -140,10 +144,7 @@ export function DownloadModal({
 								</summary>
 								<ul className="distro-guide-list">
 									<li>
-										<span
-											className="dot dot--appimage"
-											aria-hidden="true"
-										/>
+										<span className="dot dot--appimage" aria-hidden="true" />
 										<strong>AppImage</strong>
 										<span>Any glibc-based distro — no install</span>
 									</li>
@@ -172,10 +173,7 @@ export function DownloadModal({
 								<span className="modal-loading">Checking GitHub…</span>
 							) : (
 								links.map((link) => (
-									<div
-										key={link.url ?? link.command}
-										className="modal-link"
-									>
+									<div key={link.url ?? link.command} className="modal-link">
 										{link.url ? (
 											<a className="btn btn-primary" href={link.url}>
 												<Icon name="download" size={20} />
@@ -189,9 +187,7 @@ export function DownloadModal({
 													<button
 														type="button"
 														className="modal-copy"
-														onClick={() =>
-															copyCommand(link.command ?? "")
-														}
+														onClick={() => copyCommand(link.command ?? "")}
 														aria-label={`Copy ${link.label} command`}
 													>
 														<Icon
@@ -201,9 +197,7 @@ export function DownloadModal({
 														{copied ? "Copied" : "Copy"}
 													</button>
 												</div>
-												<code className="modal-command">
-													{link.command}
-												</code>
+												<code className="modal-command">{link.command}</code>
 											</div>
 										)}
 										{link.hint ? (

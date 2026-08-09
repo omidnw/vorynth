@@ -8,6 +8,8 @@
 		"build:plugins": "node scripts/build-plugin-bundles.mjs && node scripts/build-icons-assets.mjs && node scripts/build-tech-vocab.mjs",
 		"predev": "pnpm build:plugins",
 		"prebuild": "pnpm build:plugins",
+		"pretypecheck": "pnpm --filter @vorynth/types build && pnpm --filter @vorynth/ui build",
+		"pretest": "pnpm --filter @vorynth/types build && pnpm --filter @vorynth/ui build",
 		"dev": "vite",
 		"build": "tsc -b && vite build",
 		"preview": "vite preview",

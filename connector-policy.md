@@ -17,18 +17,18 @@ One table to settle future proposals. If a source doesn't land on **Yes**, it
 either ships as a community connector or doesn't ship at all — the debate does
 not restart from zero with every "why not LinkedIn?" request.
 
-| Source capability | Official / built-in connector |
-| --- | --- |
-| Public RSS feed | Yes |
-| Public API (publisher intends public use) | Yes |
-| Public sitemap | Yes |
-| Public JSON feed / listing | Yes |
-| Requires authentication | Case by case |
-| Requires bypassing restrictions (paywalls, geo, anti-bot) | No |
-| Private user data | No |
-| Paid API with no public mode | No |
+| Source capability                                         | Official / built-in connector |
+| --------------------------------------------------------- | ----------------------------- |
+| Public RSS feed                                           | Yes                           |
+| Public API (publisher intends public use)                 | Yes                           |
+| Public sitemap                                            | Yes                           |
+| Public JSON feed / listing                                | Yes                           |
+| Requires authentication                                   | Case by case                  |
+| Requires bypassing restrictions (paywalls, geo, anti-bot) | No                            |
+| Private user data                                         | No                            |
+| Paid API with no public mode                              | No                            |
 
-"Requires authentication" is only *case by case* when the publisher openly
+"Requires authentication" is only _case by case_ when the publisher openly
 offers the access to anyone — free registration, a public app key, or similar.
 The moment a connector would depend on bypassing restrictions or scraping
 around auth, it is a **No**, regardless of how easy the bypass is.

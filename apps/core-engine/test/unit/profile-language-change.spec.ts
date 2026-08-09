@@ -93,5 +93,4 @@ describe("ProfileService.update — AI output language change", () => {
 		expect(cleared.degreeLevel).toBeNull();
 		expect(cleared.experienceLevel).toBeNull();
 	});
-
 });

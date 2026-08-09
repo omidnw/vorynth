@@ -184,10 +184,10 @@ Every modification follows this loop — never skip to "Modify":
 | `/testing-frontend`     | Frontend Vitest + Playwright tests (aria/role only, no data-test-id)                                                                         | 🟢 Low    |
 | `/docs-update`          | Every new page/feature ships its in-app docs section (rich blocks: icon features, flow, one file per page)                                   | 🟢 Low    |
 | `/landing`              | Any work on the GitHub Pages landing site (`apps/landing`) — a separate app from the desktop, rendering the real screens as a mocked preview | 🟢 Low    |
-| `/ui-ux-approval`       | Structural page/UX changes (tabs, sections, flows, nav) — propose to the user BEFORE coding; the user judges usability                 | 🟡 Medium |
+| `/ui-ux-approval`       | Structural page/UX changes (tabs, sections, flows, nav) — propose to the user BEFORE coding; the user judges usability                       | 🟡 Medium |
 | `/ui-guidance`          | Every interactive element is self-explanatory (placeholder, unit, hint, aria-label; no decorative controls)                                  | 🟢 Low    |
-| `/build-macos`          | Build the macOS app (engine sidecar → stage → `cargo tauri build`) and install to /Applications; debug the packaged engine                  | 🟢 Low    |
-| `/homebrew-cask`        | Homebrew distribution: bump the personal tap (`omidnw/homebrew-vorynth`) per release; publish the cask to the official homebrew-cask repo   | 🟢 Low    |
+| `/build-macos`          | Build the macOS app (engine sidecar → stage → `cargo tauri build`) and install to /Applications; debug the packaged engine                   | 🟢 Low    |
+| `/homebrew-cask`        | Homebrew distribution: bump the personal tap (`omidnw/homebrew-vorynth`) per release; publish the cask to the official homebrew-cask repo    | 🟢 Low    |
 
 **Personal workflows** (user-level, `~/.agents/skills/` — apply in every project, not Vorynth-specific): `code-quality` (formatters/linters/typecheck on changed files) · `external-ai-consult` (front-load research questions to an external AI before heavy tasks) · `always-english` (respond in English).
 
