@@ -307,12 +307,24 @@ jobs:
           # better-sqlite3's published prebuilt is compiled on Ubuntu 24.04 and
           # requires GLIBC_2.38 — the x86_64 job runs on 22.04 (glibc 2.35) and
           # the AppImage base is 22.04, so the prebuilt crashes at load
-          # (ERR_DLOPEN_FAILED). Force a from-source compile there: node-gyp
-          # links against the runner's glibc 2.35, matching the AppImage.
+          # (ERR_DLOPEN_FAILED). On that target we bypass prebuild-install
+          # entirely (its download can survive a rebuild via the pnpm store
+          # cache) and run better-sqlite3's own node-gyp script — a pure local
+          # compile that links the runner's glibc 2.35 — then verify the glibc
+          # floor so a prebuilt can never sneak back into the bundle.
           if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
-            export npm_config_build_from_source=true
+            rm -rf apps/core-engine/node_modules/better-sqlite3/build/Release
+            npm run --prefix apps/core-engine/node_modules/better-sqlite3 build-release
+            FLOOR="$(objdump -T apps/core-engine/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
+              | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1)"
+            echo "better_sqlite3.node glibc floor: $FLOOR"
+            case "$FLOOR" in
+              GLIBC_2.2*|GLIBC_2.3[0-5]*) echo "OK — runs on glibc 2.35 (AppImage base)";;
+              *) echo "FAIL — built binary needs $FLOOR but the AppImage base is 2.35"; exit 1;;
+            esac
+          else
+            pnpm rebuild better-sqlite3
           fi
-          pnpm rebuild better-sqlite3
 
       # @vorynth/types and @vorynth/ui need their dist/ emitted before
       # dependent packages can resolve them via exports. Building ui here (not
