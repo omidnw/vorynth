@@ -8,6 +8,10 @@ export interface TooltipProps {
 	children: ReactNode;
 	/** Position — defaults to "top". */
 	position?: "top" | "bottom";
+	/** Direction of `label` — RTL labels (Persian/Arabic) must render RTL. */
+	dir?: "ltr" | "rtl";
+	/** Allow the label to wrap instead of a single line (long labels). */
+	wrap?: boolean;
 	className?: string;
 }
 
@@ -21,12 +25,15 @@ export interface TooltipProps {
  * enhancement, not the accessible name.
  *
  * **Never use the bare `title` attribute for interactive guidance** — it can't
- * be themed or delayed (R-D07). Use this component.
+ * be themed or delayed (R-D07). Use this component. Pass `dir` when the label
+ * is RTL so the bubble renders in the label's script direction.
  */
 export function Tooltip({
 	label,
 	children,
 	position = "top",
+	dir,
+	wrap,
 	className,
 }: TooltipProps) {
 	const [open, setOpen] = useState(false);
@@ -53,8 +60,14 @@ export function Tooltip({
 			{open ? (
 				<span
 					role="tooltip"
+					dir={dir}
 					className={cn(
-						"pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-1 font-label text-label-sm text-on-surface shadow-lg",
+						"pointer-events-none absolute start-1/2 z-50 -translate-x-1/2 rtl:translate-x-1/2 rounded border border-outline-variant bg-surface-container-lowest px-3 py-1.5 font-body text-body-md text-on-surface shadow-lg",
+						// wrap = sized to the label (like a native tooltip), only capping at a
+						// comfortable reading width so long text wraps instead of overflowing.
+						wrap
+							? "w-max max-w-[400px] whitespace-normal"
+							: "whitespace-nowrap",
 						position === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5",
 					)}
 				>

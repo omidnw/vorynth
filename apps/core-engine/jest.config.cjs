@@ -13,6 +13,10 @@ module.exports = {
 	testEnvironment: "node",
 	moduleNameMapper: {
 		"^(\\.{1,2}/.*)\\.js$": "$1",
+		// @vorynth/types is ESM ("type": "module"); ts-jest runs CommonJS and
+		// ignores node_modules, so route the value-importing constant
+		// (VORYNTH_VERSION) to the TS source it can transform.
+		"^@vorynth/types$": "<rootDir>/../../packages/types/src/index.ts",
 	},
 	transform: {
 		"^.+\\.ts$": [

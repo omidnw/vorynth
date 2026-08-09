@@ -1,0 +1,35 @@
+{
+	"name": "@vorynth/ui",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Shared Vorynth UI components — pure-presentational React, no app-framework deps.",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./preview.css": "./dist/preview.css"
+	},
+	"scripts": {
+		"prebuild": "pnpm --filter @vorynth/types build",
+		"pretypecheck": "pnpm --filter @vorynth/types build",
+		"build": "tsc && cp src/preview.css dist/preview.css",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint src",
+		"lint:fix": "eslint src --fix"
+	},
+	"dependencies": {
+		"@vorynth/types": "workspace:*",
+		"clsx": "^2.1.1"
+	},
+	"peerDependencies": {
+		"react": "^18.0.0"
+	},
+	"devDependencies": {
+		"@types/react": "^18.3.12",
+		"typescript": "^5.9.3"
+	}
+}

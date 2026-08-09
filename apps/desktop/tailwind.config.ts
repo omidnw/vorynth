@@ -15,7 +15,11 @@ import type { Config } from "tailwind";
  */
 const config: Config = {
 	darkMode: "class",
-	content: ["./index.html", "./src/**/*.{ts,tsx}"],
+	content: [
+		"./index.html",
+		"./src/**/*.{ts,tsx}",
+		"../../packages/ui/src/**/*.{ts,tsx}",
+	],
 	plugins: [containerQueries],
 	theme: {
 		extend: {
@@ -127,40 +131,135 @@ const config: Config = {
 				"max-content-width": "800px",
 			},
 			fontFamily: {
-				headline: ["Newsreader", "ui-serif", "Georgia", "serif"],
-				body: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
-				label: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
-				mono: ["Geist", "ui-monospace", "SFMono-Regular", "monospace"],
+				// v1.8.0 — var-backed so the Settings font picker can re-skin the
+				// whole app by overriding --font-* (globals.css :root defaults).
+				headline: ["var(--font-headline)", "ui-serif", "Georgia", "serif"],
+				body: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
+				label: [
+					"var(--font-label)",
+					"ui-sans-serif",
+					"system-ui",
+					"sans-serif",
+				],
+				mono: [
+					"var(--font-mono)",
+					"ui-monospace",
+					"SFMono-Regular",
+					"monospace",
+				],
 			},
 			fontSize: {
-				// Ported verbatim from examples/colors/*.md.
+				// Ported verbatim from examples/colors/*.md. Sizes are scaled by
+				// --font-scale (v1.8.0 font-size slider; defaults to 1).
 				"display-lg": [
-					"48px",
+					"calc(48px * var(--font-scale))",
 					{ lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "500" },
 				],
 				"headline-lg": [
-					"32px",
+					"calc(32px * var(--font-scale))",
 					{ lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "500" },
 				],
 				"headline-lg-mobile": [
-					"28px",
+					"calc(28px * var(--font-scale))",
 					{ lineHeight: "36px", fontWeight: "500" },
 				],
-				"headline-md": ["24px", { lineHeight: "32px", fontWeight: "500" }],
-				"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
-				"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+				"headline-md": [
+					"calc(24px * var(--font-scale))",
+					{ lineHeight: "32px", fontWeight: "500" },
+				],
+				"body-lg": [
+					"calc(18px * var(--font-scale))",
+					{ lineHeight: "28px", fontWeight: "400" },
+				],
+				"body-md": [
+					"calc(16px * var(--font-scale))",
+					{ lineHeight: "24px", fontWeight: "400" },
+				],
 				"label-md": [
-					"14px",
+					"calc(14px * var(--font-scale))",
 					{ lineHeight: "20px", letterSpacing: "0.02em", fontWeight: "600" },
 				],
 				"label-sm": [
-					"12px",
+					"calc(12px * var(--font-scale))",
 					{ lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" },
 				],
-				"mono-technical": ["13px", { lineHeight: "20px", fontWeight: "400" }],
+				"mono-technical": [
+					"calc(13px * var(--font-scale))",
+					{ lineHeight: "20px", fontWeight: "400" },
+				],
 			},
 			maxWidth: {
 				content: "800px",
+			},
+			// v1.8.0 — the motion system (R-D08): every panel/modal/sidebar that
+			// opens or closes animates. Keyframes live here so `animate-*`
+			// utilities are generated; the exit half is handled by keeping the
+			// element mounted and toggling a data-exiting flag (see Reveal.tsx).
+			keyframes: {
+				"fade-in": {
+					from: { opacity: "0" },
+					to: { opacity: "1" },
+				},
+				"fade-out": {
+					from: { opacity: "1" },
+					to: { opacity: "0" },
+				},
+				"scale-in": {
+					from: { opacity: "0", transform: "scale(0.96)" },
+					to: { opacity: "1", transform: "scale(1)" },
+				},
+				"slide-in-start": {
+					from: { opacity: "0", transform: "translateX(1rem)" },
+					to: { opacity: "1", transform: "translateX(0)" },
+				},
+				"slide-in-end": {
+					from: { opacity: "0", transform: "translateX(-1rem)" },
+					to: { opacity: "1", transform: "translateX(0)" },
+				},
+				// The history drawer: a real slide in from the inline-end edge.
+				"slide-in-end-full": {
+					from: { transform: "translateX(100%)" },
+					to: { transform: "translateX(0)" },
+				},
+				// Exit halves — the exact reverse of the enter keyframes, so a
+				// panel's close animation mirrors its open (R-D08: closing is
+				// the reverse of opening, not a generic fade).
+				"scale-out": {
+					from: { opacity: "1", transform: "scale(1)" },
+					to: { opacity: "0", transform: "scale(0.96)" },
+				},
+				"slide-out-start": {
+					from: { opacity: "1", transform: "translateX(0)" },
+					to: { opacity: "0", transform: "translateX(1rem)" },
+				},
+				"slide-out-end": {
+					from: { opacity: "1", transform: "translateX(0)" },
+					to: { opacity: "0", transform: "translateX(-1rem)" },
+				},
+				"slide-out-end-full": {
+					from: { transform: "translateX(0)" },
+					to: { transform: "translateX(100%)" },
+				},
+			},
+			animation: {
+				"fade-in": "fade-in 180ms ease-out",
+				// Exit animations hold their end state (forwards) so a panel
+				// stays hidden after its exit finishes until Reveal unmounts it
+				// — without it, the element snaps back to full opacity the
+				// moment the animation completes and the screen flickers.
+				"fade-out": "fade-out 180ms ease-in forwards",
+				"scale-in": "scale-in 160ms cubic-bezier(0.2, 0.8, 0.3, 1)",
+				"slide-in-start": "slide-in-start 220ms cubic-bezier(0.2, 0.8, 0.3, 1)",
+				"slide-in-end": "slide-in-end 220ms cubic-bezier(0.2, 0.8, 0.3, 1)",
+				"slide-in-end-full":
+					"slide-in-end-full 260ms cubic-bezier(0.2, 0.8, 0.3, 1)",
+				"scale-out": "scale-out 160ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards",
+				"slide-out-start":
+					"slide-out-start 220ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards",
+				"slide-out-end":
+					"slide-out-end 220ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards",
+				"slide-out-end-full":
+					"slide-out-end-full 260ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards",
 			},
 		},
 	},

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type {
 	AppSettings,
 	BriefHistoryEntry,
@@ -11,6 +12,8 @@ import type {
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { Reveal } from "@/components/ui/Reveal";
+import { useTextDirection } from "@/i18n";
 import { ConfirmDialog, PromptDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/cn";
 import {
@@ -25,6 +28,10 @@ import {
 	patchSearchEntry,
 } from "./history-api.js";
 import { useHistoryStore, type HistoryScope } from "./history-store.js";
+import { StoryViewHistory } from "@/features/story-views/StoryViewHistory.js";
+
+/** Minimal `t` shape — matches react-i18next's `t` as threaded through helpers. */
+type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /**
  * Right-side History drawer.
@@ -43,6 +50,8 @@ import { useHistoryStore, type HistoryScope } from "./history-store.js";
  */
 export function HistoryDrawer() {
 	const { open, scope, closeDrawer, setScope } = useHistoryStore();
+	const { t } = useTranslation();
+	const navigate = useNavigate();
 
 	// Snap scope to the current route whenever the drawer opens.
 	const location = useLocation();
@@ -57,30 +66,101 @@ export function HistoryDrawer() {
 		if (next !== scope) setScope(next);
 	}, [open, location.pathname, scope, setScope]);
 
-	if (!open) return null;
+	// v1.8.0 — a tab selector inside the drawer switches between the page's own
+	// history (brief/search/generated) and the viewed-stories history (every
+	// story opened, anywhere).
+	const [drawerTab, setDrawerTab] = useState<"history" | "views">("history");
+	const scopeTitle =
+		scope === "brief"
+			? t("history.titleBrief")
+			: scope === "generated"
+				? t("history.titleGenerated")
+				: t("history.titleSearch");
 
+	// The drawer stays mounted while closing so Reveal can play the exit
+	// animations — the backdrop fades out while the panel slides back out to
+	// the inline-end edge (the reverse of how it opens). `open` toggles
+	// visibility; `duration` covers the 260ms slide-out so it isn't cut short.
 	return (
-		<div className="fixed inset-0 z-50">
-			{/* Click-away backdrop */}
+		<Reveal
+			open={open}
+			enter="animate-fade-in"
+			exit="animate-fade-out"
+			duration={260}
+			className="fixed inset-0 z-50"
+		>
+			{/* Click-away backdrop — the app-wide neutral black scrim
+			    (bg-black/60), not a theme-relative on-surface wash that turns
+			    into a milky gray haze in black/white themes. */}
 			<button
 				type="button"
-				aria-label="Close history"
+				aria-label={t("history.closeAria")}
 				onClick={closeDrawer}
-				className="absolute inset-0 bg-on-surface/20 backdrop-blur-[1px]"
+				className="absolute inset-0 bg-black/60 backdrop-blur-[1px]"
 			/>
-			{/* Drawer panel — RTL-aware: pinned to the inline-end edge. */}
-			<aside
-				className={cn(
-					"absolute top-0 flex h-screen w-[420px] max-w-[92vw] flex-col border-outline-variant bg-surface-container-lowest shadow-2xl",
-					// LTR: right edge. RTL: left edge (flipped by the rtl-flip utility).
-					"end-0 border-l rtl:border-l-0 rtl:border-r",
-				)}
-				onClick={(e) => e.stopPropagation()}
+			{/* Drawer panel — slides in from the inline-end on open and slides
+			    back out (reverse) on close via its own Reveal. */}
+			<Reveal
+				open={open}
+				enter="animate-slide-in-end-full"
+				exit="animate-slide-out-end-full"
+				duration={260}
+				className="absolute inset-y-0 end-0"
 			>
-				<DrawerHeader />
-				<DrawerBody />
-			</aside>
-		</div>
+				<aside
+					className={cn(
+						"flex h-full w-[420px] max-w-[92vw] flex-col border-outline-variant bg-surface-container-lowest shadow-2xl",
+						// LTR: right edge. RTL: left edge (flipped by the rtl-flip utility).
+						"border-l rtl:border-l-0 rtl:border-r",
+					)}
+					onClick={(e) => e.stopPropagation()}
+				>
+					<DrawerHeader />
+					{/* v1.8.0 — switch between this page's history and the
+					    viewed-stories history (every story opened, anywhere). */}
+					<div className="flex items-center gap-1 border-b border-outline-variant px-4 py-2">
+						<button
+							type="button"
+							onClick={() => setDrawerTab("history")}
+							aria-pressed={drawerTab === "history"}
+							className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-label text-label-sm transition-colors ${
+								drawerTab === "history"
+									? "bg-primary-container text-on-primary-container"
+									: "text-on-surface-variant hover:bg-surface-container-high"
+							}`}
+						>
+							<Icon name="history" className="text-[15px]" />
+							{scopeTitle}
+						</button>
+						<button
+							type="button"
+							onClick={() => setDrawerTab("views")}
+							aria-pressed={drawerTab === "views"}
+							className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-label text-label-sm transition-colors ${
+								drawerTab === "views"
+									? "bg-primary-container text-on-primary-container"
+									: "text-on-surface-variant hover:bg-surface-container-high"
+							}`}
+						>
+							<Icon name="visibility" className="text-[15px]" />
+							{t("history.tabViews")}
+						</button>
+					</div>
+					{drawerTab === "views" ? (
+						<div className="flex-1 overflow-y-auto px-4 py-3">
+							<StoryViewHistory
+								onOpen={(articleId) => {
+									closeDrawer();
+									navigate(`/articles/${articleId}`);
+								}}
+							/>
+						</div>
+					) : (
+						<DrawerBody />
+					)}
+				</aside>
+			</Reveal>
+		</Reveal>
 	);
 }
 
@@ -89,20 +169,29 @@ export function HistoryDrawer() {
 function DrawerHeader() {
 	const { scope, closeDrawer } = useHistoryStore();
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	// The drawer silently follows the current page: on /brief it shows
 	// briefings, on /profile it shows generated summaries, everywhere else
 	// searches. No toggle — the title makes it obvious which one the user is
 	// looking at.
 	const meta =
 		scope === "brief"
-			? { icon: "today", title: "Briefing History", sub: "from Today's Brief" }
+			? {
+					icon: "today",
+					title: t("history.titleBrief"),
+					sub: t("history.fromBrief"),
+				}
 			: scope === "generated"
 				? {
 						icon: "auto_awesome",
-						title: "Generated History",
-						sub: "from Profile",
+						title: t("history.titleGenerated"),
+						sub: t("history.fromProfile"),
 					}
-				: { icon: "search", title: "Search History", sub: "from Search" };
+				: {
+						icon: "search",
+						title: t("history.titleSearch"),
+						sub: t("history.fromSearch"),
+					};
 	return (
 		<header className="flex items-center justify-between gap-3 border-b border-outline-variant px-5 py-4">
 			<div className="flex items-center gap-2">
@@ -123,17 +212,17 @@ function DrawerHeader() {
 						closeDrawer();
 						navigate("/docs#history");
 					}}
-					aria-label="How History works"
-					title="How History works"
+					aria-label={t("history.howItWorks")}
+					title={t("history.howItWorks")}
 					className="flex items-center gap-1 px-1.5 py-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
 				>
 					<Icon name="menu_book" className="text-[16px]" />
-					<span className="hidden sm:inline">Read docs</span>
+					<span className="hidden sm:inline">{t("history.readDocs")}</span>
 				</button>
 				<button
 					type="button"
 					onClick={closeDrawer}
-					aria-label="Close"
+					aria-label={t("settings.close")}
 					className="text-on-surface-variant transition-colors hover:text-primary"
 				>
 					<Icon name="close" />
@@ -165,6 +254,7 @@ function DrawerBody() {
 
 function SearchList() {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	const {
 		mutationNonce,
 		selectMode,
@@ -188,8 +278,8 @@ function SearchList() {
 		return (
 			<EmptyState
 				icon="search"
-				title="No searches yet"
-				body="Run a keyword or Ask-AI search and it'll show up here. Ask-AI answers are saved by default; keyword recording can be enabled in Settings."
+				title={t("history.noSearches")}
+				body={t("history.noSearchesBody")}
 			/>
 		);
 	}
@@ -198,14 +288,14 @@ function SearchList() {
 		<div className="flex-1 overflow-y-auto px-3 py-3">
 			<div className="mb-2 flex items-center justify-between px-2">
 				<span className="font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-					{items.length} entries
+					{t("history.entries", { count: items.length })}
 				</span>
 				<button
 					type="button"
 					onClick={() => setSelectMode(!selectMode)}
 					className="font-label text-label-sm uppercase tracking-widest text-secondary hover:text-primary"
 				>
-					{selectMode ? "Done" : "Select"}
+					{selectMode ? t("history.done") : t("history.select")}
 				</button>
 			</div>
 			<ul className="space-y-2">
@@ -247,7 +337,9 @@ function SearchRow({
 	onOpen: () => void;
 	onArchive: () => void;
 }) {
+	const { t } = useTranslation();
 	const [menuOpen, setMenuOpen] = useState(false);
+	const textDir = useTextDirection();
 	const [showRename, setShowRename] = useState(false);
 	const [showDelete, setShowDelete] = useState(false);
 	return (
@@ -279,16 +371,24 @@ function SearchRow({
 						<ModeBadge mode={entry.mode} />
 					)}
 					<div className="min-w-0 flex-1">
-						<p className="truncate font-body text-body-md font-medium text-on-surface">
+						<p
+							className="truncate font-body text-body-md font-medium text-on-surface"
+							dir={textDir(entry.title)}
+						>
 							{entry.title}
 						</p>
 						<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-on-tertiary-container">
-							<span>{timeAgo(entry.createdAt)}</span>
-							<span>· {entry.hitCount} hits</span>
+							<span>{timeAgo(t, entry.createdAt)}</span>
+							<span>· {t("history.hits", { count: entry.hitCount })}</span>
 							{entry.tokensUsed > 0 ? (
-								<span>· {entry.tokensUsed.toLocaleString()} tokens</span>
+								<span>
+									·{" "}
+									{t("history.tokens", {
+										count: entry.tokensUsed.toLocaleString(),
+									})}
+								</span>
 							) : null}
-							{entry.archived ? <span>· archived</span> : null}
+							{entry.archived ? <span>· {t("history.archived")}</span> : null}
 						</div>
 					</div>
 					{!selectMode ? (
@@ -300,18 +400,18 @@ function SearchRow({
 									setMenuOpen((v) => !v);
 								}}
 								className="text-on-surface-variant hover:text-primary"
-								aria-label="More actions"
+								aria-label={t("history.moreActions")}
 							>
 								<Icon name="more_vert" className="text-[18px]" />
 							</button>
 							{menuOpen ? (
 								<div
-									className="absolute right-0 top-7 z-10 w-40 rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
+									className="absolute end-0 top-7 z-10 w-40 rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
 									onClick={(e) => e.stopPropagation()}
 								>
 									<MenuItem
 										icon="drive_file_rename_outline"
-										label="Rename"
+										label={t("history.rename")}
 										onClick={() => {
 											setMenuOpen(false);
 											setShowRename(true);
@@ -319,7 +419,11 @@ function SearchRow({
 									/>
 									<MenuItem
 										icon={entry.archived ? "unarchive" : "archive"}
-										label={entry.archived ? "Unarchive" : "Archive"}
+										label={
+											entry.archived
+												? t("history.unarchive")
+												: t("history.archive")
+										}
 										onClick={() => {
 											setMenuOpen(false);
 											onArchive();
@@ -327,7 +431,7 @@ function SearchRow({
 									/>
 									<MenuItem
 										icon="delete"
-										label="Delete"
+										label={t("history.delete")}
 										danger
 										onClick={() => {
 											setMenuOpen(false);
@@ -342,7 +446,7 @@ function SearchRow({
 			</GhostCard>
 			<PromptDialog
 				open={showRename}
-				title="Rename entry"
+				title={t("history.renameTitle")}
 				defaultValue={entry.title}
 				onSubmit={(next) => {
 					setShowRename(false);
@@ -354,9 +458,9 @@ function SearchRow({
 			/>
 			<ConfirmDialog
 				open={showDelete}
-				title="Delete entry?"
-				message="Delete this entry permanently?"
-				confirmLabel="Delete"
+				title={t("history.deleteTitle")}
+				message={t("history.deleteMessage")}
+				confirmLabel={t("history.deleteConfirm")}
 				icon="delete"
 				danger
 				onConfirm={() => {
@@ -375,6 +479,7 @@ function SearchRow({
 
 function BriefList() {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	const {
 		mutationNonce,
 		selectMode,
@@ -398,8 +503,8 @@ function BriefList() {
 		return (
 			<EmptyState
 				icon="today"
-				title="No briefings saved"
-				body="Generate a period summary from Today's Brief and it'll be saved here automatically, so you can revisit it without regenerating."
+				title={t("history.noBriefings")}
+				body={t("history.noBriefingsBody")}
 			/>
 		);
 	}
@@ -408,14 +513,14 @@ function BriefList() {
 		<div className="flex-1 overflow-y-auto px-3 py-3">
 			<div className="mb-2 flex items-center justify-between px-2">
 				<span className="font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-					{items.length} entries
+					{t("history.entries", { count: items.length })}
 				</span>
 				<button
 					type="button"
 					onClick={() => setSelectMode(!selectMode)}
 					className="font-label text-label-sm uppercase tracking-widest text-secondary hover:text-primary"
 				>
-					{selectMode ? "Done" : "Select"}
+					{selectMode ? t("history.done") : t("history.select")}
 				</button>
 			</div>
 			<ul className="space-y-2">
@@ -457,7 +562,9 @@ function BriefRow({
 	onOpen: () => void;
 	onArchive: () => void;
 }) {
+	const { t } = useTranslation();
 	const [menuOpen, setMenuOpen] = useState(false);
+	const textDir = useTextDirection();
 	const [showRename, setShowRename] = useState(false);
 	const [showDelete, setShowDelete] = useState(false);
 	return (
@@ -489,13 +596,16 @@ function BriefRow({
 						<PeriodBadge period={entry.period} />
 					)}
 					<div className="min-w-0 flex-1">
-						<p className="truncate font-body text-body-md font-medium text-on-surface">
+						<p
+							className="truncate font-body text-body-md font-medium text-on-surface"
+							dir={textDir(entry.title)}
+						>
 							{entry.title}
 						</p>
 						<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-on-tertiary-container">
-							<span>{timeAgo(entry.createdAt)}</span>
-							<span>· {entry.storyCount} stories</span>
-							{entry.archived ? <span>· archived</span> : null}
+							<span>{timeAgo(t, entry.createdAt)}</span>
+							<span>· {t("brief.stories", { count: entry.storyCount })}</span>
+							{entry.archived ? <span>· {t("history.archived")}</span> : null}
 						</div>
 					</div>
 					{!selectMode ? (
@@ -507,18 +617,18 @@ function BriefRow({
 									setMenuOpen((v) => !v);
 								}}
 								className="text-on-surface-variant hover:text-primary"
-								aria-label="More actions"
+								aria-label={t("history.moreActions")}
 							>
 								<Icon name="more_vert" className="text-[18px]" />
 							</button>
 							{menuOpen ? (
 								<div
-									className="absolute right-0 top-7 z-10 w-40 rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
+									className="absolute end-0 top-7 z-10 w-40 rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
 									onClick={(e) => e.stopPropagation()}
 								>
 									<MenuItem
 										icon="drive_file_rename_outline"
-										label="Rename"
+										label={t("history.rename")}
 										onClick={() => {
 											setMenuOpen(false);
 											setShowRename(true);
@@ -526,7 +636,11 @@ function BriefRow({
 									/>
 									<MenuItem
 										icon={entry.archived ? "unarchive" : "archive"}
-										label={entry.archived ? "Unarchive" : "Archive"}
+										label={
+											entry.archived
+												? t("history.unarchive")
+												: t("history.archive")
+										}
 										onClick={() => {
 											setMenuOpen(false);
 											onArchive();
@@ -534,7 +648,7 @@ function BriefRow({
 									/>
 									<MenuItem
 										icon="delete"
-										label="Delete"
+										label={t("history.delete")}
 										danger
 										onClick={() => {
 											setMenuOpen(false);
@@ -549,7 +663,7 @@ function BriefRow({
 			</GhostCard>
 			<PromptDialog
 				open={showRename}
-				title="Rename entry"
+				title={t("history.renameTitle")}
 				defaultValue={entry.title}
 				onSubmit={(next) => {
 					setShowRename(false);
@@ -561,9 +675,9 @@ function BriefRow({
 			/>
 			<ConfirmDialog
 				open={showDelete}
-				title="Delete entry?"
-				message="Delete this entry permanently?"
-				confirmLabel="Delete"
+				title={t("history.deleteTitle")}
+				message={t("history.deleteMessage")}
+				confirmLabel={t("history.deleteConfirm")}
 				icon="delete"
 				danger
 				onConfirm={() => {
@@ -582,6 +696,7 @@ function BriefRow({
 
 function GeneratedList() {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	const {
 		mutationNonce,
 		selectMode,
@@ -605,8 +720,8 @@ function GeneratedList() {
 		return (
 			<EmptyState
 				icon="auto_awesome"
-				title="No generations yet"
-				body="Generate a behavior summary or improve a custom instruction from the Profile page and each one will be saved here."
+				title={t("history.noGenerations")}
+				body={t("history.noGenerationsBody")}
 			/>
 		);
 	}
@@ -615,14 +730,14 @@ function GeneratedList() {
 		<div className="flex-1 overflow-y-auto px-3 py-3">
 			<div className="mb-2 flex items-center justify-between px-2">
 				<span className="font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-					{items.length} entries
+					{t("history.entries", { count: items.length })}
 				</span>
 				<button
 					type="button"
 					onClick={() => setSelectMode(!selectMode)}
 					className="font-label text-label-sm uppercase tracking-widest text-secondary hover:text-primary"
 				>
-					{selectMode ? "Done" : "Select"}
+					{selectMode ? t("history.done") : t("history.select")}
 				</button>
 			</div>
 			<ul className="space-y-2">
@@ -639,7 +754,9 @@ function GeneratedList() {
 						}}
 						onArchive={async () => {
 							await patchGeneratedEntry(e.id, { archived: !e.archived });
-							void qc.invalidateQueries({ queryKey: ["history", "generated"] });
+							void qc.invalidateQueries({
+								queryKey: ["history", "generated"],
+							});
 							useHistoryStore.getState().noteMutation();
 						}}
 					/>
@@ -664,7 +781,9 @@ function GeneratedRow({
 	onOpen: () => void;
 	onArchive: () => void;
 }) {
+	const { t } = useTranslation();
 	const [menuOpen, setMenuOpen] = useState(false);
+	const textDir = useTextDirection();
 	const [showDelete, setShowDelete] = useState(false);
 	return (
 		<li>
@@ -695,18 +814,29 @@ function GeneratedRow({
 						<KindBadge kind={entry.kind} />
 					)}
 					<div className="min-w-0 flex-1">
-						<p className="truncate font-body text-body-md font-medium text-on-surface">
+						<p
+							className="truncate font-body text-body-md font-medium text-on-surface"
+							dir={textDir(entry.title)}
+						>
 							{entry.title}
 						</p>
-						<p className="mt-0.5 line-clamp-2 font-body text-body-sm text-on-surface-variant">
+						<p
+							className="mt-0.5 line-clamp-2 font-body text-body-sm text-on-surface-variant"
+							dir={textDir(entry.result)}
+						>
 							{entry.result}
 						</p>
 						<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-on-tertiary-container">
-							<span>{timeAgo(entry.createdAt)}</span>
+							<span>{timeAgo(t, entry.createdAt)}</span>
 							{entry.tokensUsed > 0 ? (
-								<span>· {entry.tokensUsed.toLocaleString()} tokens</span>
+								<span>
+									·{" "}
+									{t("history.tokens", {
+										count: entry.tokensUsed.toLocaleString(),
+									})}
+								</span>
 							) : null}
-							{entry.archived ? <span>· archived</span> : null}
+							{entry.archived ? <span>· {t("history.archived")}</span> : null}
 						</div>
 					</div>
 					{!selectMode ? (
@@ -718,18 +848,22 @@ function GeneratedRow({
 									setMenuOpen((v) => !v);
 								}}
 								className="text-on-surface-variant hover:text-primary"
-								aria-label="More actions"
+								aria-label={t("history.moreActions")}
 							>
 								<Icon name="more_vert" className="text-[18px]" />
 							</button>
 							{menuOpen ? (
 								<div
-									className="absolute right-0 top-7 z-10 w-40 rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
+									className="absolute end-0 top-7 z-10 w-40 rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
 									onClick={(e) => e.stopPropagation()}
 								>
 									<MenuItem
 										icon={entry.archived ? "unarchive" : "archive"}
-										label={entry.archived ? "Unarchive" : "Archive"}
+										label={
+											entry.archived
+												? t("history.unarchive")
+												: t("history.archive")
+										}
 										onClick={() => {
 											setMenuOpen(false);
 											onArchive();
@@ -737,7 +871,7 @@ function GeneratedRow({
 									/>
 									<MenuItem
 										icon="delete"
-										label="Delete"
+										label={t("history.delete")}
 										danger
 										onClick={() => {
 											setMenuOpen(false);
@@ -752,9 +886,9 @@ function GeneratedRow({
 			</GhostCard>
 			<ConfirmDialog
 				open={showDelete}
-				title="Delete entry?"
-				message="Delete this entry permanently?"
-				confirmLabel="Delete"
+				title={t("history.deleteTitle")}
+				message={t("history.deleteMessage")}
+				confirmLabel={t("history.deleteConfirm")}
 				icon="delete"
 				danger
 				onConfirm={() => {
@@ -772,6 +906,7 @@ function GeneratedRow({
 // ── Bulk actions ───────────────────────────────────────────────────────────
 
 function BulkActionBar({ scope }: { scope: HistoryScope }) {
+	const { t } = useTranslation();
 	const { selectedIds, clearSelection, setSelectMode } = useHistoryStore();
 	const qc = useQueryClient();
 	const count = selectedIds.size;
@@ -779,7 +914,7 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 	if (count === 0) {
 		return (
 			<div className="border-t border-outline-variant px-5 py-3 text-center font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-				Select entries to enable bulk actions
+				{t("history.selectHint")}
 			</div>
 		);
 	}
@@ -811,11 +946,11 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 	return (
 		<div className="flex items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-5 py-3">
 			<span className="font-mono text-[11px] uppercase tracking-widest text-on-surface-variant">
-				{count} selected
+				{t("history.selectedCount", { count })}
 			</span>
 			<div className="flex items-center gap-2">
 				<Button variant="ghost" size="sm" icon="archive" onClick={doArchive}>
-					Archive
+					{t("history.archive")}
 				</Button>
 				<Button
 					variant="secondary"
@@ -823,17 +958,17 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 					icon="delete"
 					onClick={() => setShowDelete(true)}
 				>
-					Delete
+					{t("history.delete")}
 				</Button>
 				<Button variant="ghost" size="sm" onClick={() => setSelectMode(false)}>
-					Cancel
+					{t("common.cancel")}
 				</Button>
 			</div>
 			<ConfirmDialog
 				open={showDelete}
-				title={`Delete ${count} entries?`}
-				message={`Delete ${count} entries permanently? This cannot be undone.`}
-				confirmLabel="Delete"
+				title={t("history.deleteManyTitle", { count })}
+				message={t("history.deleteManyMessage", { count })}
+				confirmLabel={t("history.deleteConfirm")}
 				icon="delete"
 				danger
 				onConfirm={() => {
@@ -847,6 +982,7 @@ function BulkActionBar({ scope }: { scope: HistoryScope }) {
 }
 
 function ModeBadge({ mode }: { mode: SearchMode }) {
+	const { t } = useTranslation();
 	return (
 		<span
 			className={cn(
@@ -856,20 +992,21 @@ function ModeBadge({ mode }: { mode: SearchMode }) {
 					: "bg-surface-variant text-on-surface-variant",
 			)}
 		>
-			{mode === "ai" ? "AI" : "KW"}
+			{mode === "ai" ? t("history.modeAi") : t("history.modeKw")}
 		</span>
 	);
 }
 
 function PeriodBadge({ period }: { period: BriefHistoryEntry["period"] }) {
+	const { t } = useTranslation();
 	const label =
 		period === "today"
-			? "Today"
+			? t("history.periodToday")
 			: period === "week"
-				? "Week"
+				? t("history.periodWeek")
 				: period === "month"
-					? "Month"
-					: "All";
+					? t("history.periodMonth")
+					: t("history.periodAll");
 	const icon =
 		period === "today"
 			? "today"
@@ -887,11 +1024,12 @@ function PeriodBadge({ period }: { period: BriefHistoryEntry["period"] }) {
 }
 
 function KindBadge({ kind }: { kind: GeneratedHistoryEntry["kind"] }) {
+	const { t } = useTranslation();
 	const isSummary = kind === "behavior-summary";
 	return (
 		<span className="inline-flex flex-none items-center gap-1 rounded bg-primary-container px-1.5 py-0.5 font-label text-[10px] uppercase tracking-widest text-on-primary-container">
 			<Icon name={isSummary ? "insights" : "tune"} className="text-[12px]" />
-			{isSummary ? "Summary" : "Instruction"}
+			{isSummary ? t("history.kindSummary") : t("history.kindInstruction")}
 		</span>
 	);
 }
@@ -912,7 +1050,7 @@ function MenuItem({
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"flex w-full items-center gap-2 px-3 py-1.5 text-left font-body text-body-sm transition-colors hover:bg-surface-container",
+				"flex w-full items-center gap-2 px-3 py-1.5 text-start font-body text-body-sm transition-colors hover:bg-surface-container",
 				danger ? "text-error" : "text-on-surface",
 			)}
 		>
@@ -923,11 +1061,12 @@ function MenuItem({
 }
 
 function DrawerLoading() {
+	const { t } = useTranslation();
 	return (
 		<div className="flex flex-1 items-center justify-center gap-2 text-on-surface-variant">
-			<Icon name="sync" className="animate-spin text-[18px]" />
+			<Icon name="sync" className="animate-spin-reverse text-[18px]" />
 			<span className="font-mono text-[11px] uppercase tracking-widest">
-				Loading…
+				{t("article.loading")}
 			</span>
 		</div>
 	);
@@ -966,21 +1105,21 @@ function EmptyState({
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string): string {
+function timeAgo(t: Translate, iso: string): string {
 	const then = new Date(iso).getTime();
 	if (Number.isNaN(then)) return "—";
 	const diff = Date.now() - then;
 	const sec = Math.round(diff / 1000);
-	if (sec < 60) return "just now";
+	if (sec < 60) return t("history.timeJustNow");
 	const min = Math.round(sec / 60);
-	if (min < 60) return `${min}m ago`;
+	if (min < 60) return t("history.timeMinutesAgo", { count: min });
 	const hr = Math.round(min / 60);
-	if (hr < 24) return `${hr}h ago`;
+	if (hr < 24) return t("history.timeHoursAgo", { count: hr });
 	const day = Math.round(hr / 24);
-	if (day < 30) return `${day}d ago`;
+	if (day < 30) return t("history.timeDaysAgo", { count: day });
 	const mo = Math.round(day / 30);
-	if (mo < 12) return `${mo}mo ago`;
-	return `${Math.round(mo / 12)}y ago`;
+	if (mo < 12) return t("history.timeMonthsAgo", { count: mo });
+	return t("history.timeYearsAgo", { count: Math.round(mo / 12) });
 }
 
 // Re-export so SettingsPage can read/write app settings via the same module.

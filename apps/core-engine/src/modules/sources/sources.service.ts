@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	ConflictException,
 	Inject,
 	Injectable,
@@ -9,18 +10,36 @@ import { randomUUID } from "node:crypto";
 import { DatabaseService } from "../../db/database.service.js";
 import { articles, sources } from "../../db/schema.js";
 import { ftsRebuildIndex } from "../../db/fts-sync.js";
+import { sweepOrphanSpines } from "../../db/spine.js";
+import { PluginsService } from "../plugins/plugins.service.js";
+import { CrawlerService } from "../crawler/crawler.service.js";
+import { ConnectorRegistryService } from "../connector-registry/connector-registry.service.js";
 import type {
 	Article,
+	BulkSourceEnableInput,
 	CreateSourceInput,
 	Source,
 	SourceArticlesResult,
+	SourceAuthority,
+	SourceGroupDimension,
 	SourceRange,
+	SourceScope,
+	SourceType,
 	UpdateSourceInput,
+	VerifySourceInput,
+	VerifySourceResult,
 } from "@vorynth/types";
+import { SOURCE_AUTHORITIES, SOURCE_SCOPES } from "@vorynth/types";
 
 @Injectable()
 export class SourcesService {
-	constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
+	constructor(
+		@Inject(DatabaseService) private readonly db: DatabaseService,
+		@Inject(PluginsService) private readonly plugins: PluginsService,
+		@Inject(CrawlerService) private readonly crawler: CrawlerService,
+		@Inject(ConnectorRegistryService)
+		private readonly connectors: ConnectorRegistryService,
+	) {}
 
 	async list(): Promise<Source[]> {
 		const rows = await this.db.db.select().from(sources);
@@ -38,6 +57,20 @@ export class SourcesService {
 	}
 
 	async create(input: CreateSourceInput): Promise<Source> {
+		// v1.8.0 — resolve the adapter from the type via the plugin registry and
+		// validate the config against the adapter's schema BEFORE saving. The old
+		// `defaultAdapterFor` pinned every type to RSS, so html/api/sitemap
+		// sources saved fine but silently collected nothing.
+		const adapter = await this.resolveAdapter(input.type);
+		const config = (input.configuration ?? {}) as Record<string, unknown>;
+		const configError = this.plugins.validateConfig(adapter, config);
+		if (configError) {
+			throw new BadRequestException({
+				code: "INVALID_SOURCE_CONFIG",
+				message: configError,
+			});
+		}
+
 		const id = input.url
 			? slugify(input.name) + "-" + randomUUID().slice(0, 8)
 			: randomUUID();
@@ -47,10 +80,17 @@ export class SourcesService {
 			url: input.url,
 			type: input.type,
 			category: input.category,
-			adapter: input.adapter ?? defaultAdapterFor(input.type),
-			configuration: (input.configuration ?? {}) as Record<string, unknown>,
+			adapter,
+			configuration: config,
 			enabled: input.enabled ?? true,
 			fetchWindowDays: input.fetchWindowDays ?? 7,
+			country: normalizeTag(input.country, "country"),
+			city: input.city ?? null,
+			language: normalizeTag(input.language, "language"),
+			scope: normalizeScope(input.scope),
+			authority: normalizeAuthority(input.authority),
+			impactAreas: normalizeImpactAreas(input.impactAreas),
+			tags: normalizeTags(input.tags),
 		};
 		await this.db.db.insert(sources).values(row);
 		const [created] = await this.db.db
@@ -65,6 +105,7 @@ export class SourcesService {
 		const patch: Record<string, unknown> = {};
 		if (input.name !== undefined) patch.name = input.name;
 		if (input.enabled !== undefined) patch.enabled = input.enabled;
+		if (input.category !== undefined) patch.category = input.category;
 		if (input.fetchWindowDays !== undefined) {
 			patch.fetchWindowDays = Math.max(0, Math.floor(input.fetchWindowDays));
 		}
@@ -72,7 +113,8 @@ export class SourcesService {
 		// from/to dates; passing fetchFrom: null clears it back to relative.
 		// Values arrive as ISO strings over JSON — coerce to Date for Drizzle.
 		if (input.fetchFrom !== undefined) {
-			patch.fetchFrom = input.fetchFrom === null ? null : new Date(input.fetchFrom);
+			patch.fetchFrom =
+				input.fetchFrom === null ? null : new Date(input.fetchFrom);
 		}
 		if (input.fetchTo !== undefined) {
 			patch.fetchTo = input.fetchTo === null ? null : new Date(input.fetchTo);
@@ -80,10 +122,66 @@ export class SourcesService {
 		if (input.configuration !== undefined) {
 			patch.configuration = input.configuration;
 		}
+		// Geography/language tags (v1.8.0) — country/language are 2-letter codes,
+		// city is free text; null clears a tag.
+		if (input.country !== undefined) {
+			patch.country = normalizeTag(input.country, "country");
+		}
+		if (input.city !== undefined) patch.city = input.city ?? null;
+		if (input.language !== undefined) {
+			patch.language = normalizeTag(input.language, "language");
+		}
+		// Semantic metadata (v1.8.0) — scope/authority enums + impact-area
+		// slugs; null clears a field.
+		if (input.scope !== undefined) patch.scope = normalizeScope(input.scope);
+		if (input.authority !== undefined) {
+			patch.authority = normalizeAuthority(input.authority);
+		}
+		if (input.impactAreas !== undefined) {
+			patch.impactAreas = normalizeImpactAreas(input.impactAreas);
+		}
+		// Free-form tags (v1.9.0) — lowercase slugs; null clears them.
+		if (input.tags !== undefined) patch.tags = normalizeTags(input.tags);
 		if (Object.keys(patch).length > 0) {
 			await this.db.db.update(sources).set(patch).where(eq(sources.id, id));
 		}
 		return this.get(id);
+	}
+
+	/**
+	 * Bulk enable/disable (v1.8.0) — the Sources page group master switches.
+	 * Flips `enabled` on every source whose dimension equals `value`
+	 * (e.g. all sources in category "security" or country "US"). Dimensions
+	 * and values are whitelisted/validated; untagged sources are untouched.
+	 */
+	async bulkEnable(input: BulkSourceEnableInput): Promise<{ updated: number }> {
+		const { dimension, value, enabled } = input;
+		const column = dimensionColumn(dimension);
+		if (!column) {
+			throw new BadRequestException({
+				code: "INVALID_GROUP_DIMENSION",
+				message: `unknown group dimension "${dimension}"`,
+			});
+		}
+		const v = (value ?? "").trim();
+		if (!v) {
+			throw new BadRequestException({
+				code: "INVALID_GROUP_VALUE",
+				message: "group value must not be empty",
+			});
+		}
+		// Country/language codes are stored normalized (upper/lowercase); match
+		// either case from the UI.
+		const normalized =
+			dimension === "country"
+				? v.toUpperCase()
+				: dimension === "language"
+					? v.toLowerCase()
+					: v;
+		const { changes } = this.db.rawDb
+			.prepare(`UPDATE sources SET enabled = ? WHERE ${column} = ?`)
+			.run(enabled ? 1 : 0, normalized);
+		return { updated: changes };
 	}
 
 	/**
@@ -122,13 +220,7 @@ export class SourcesService {
 			// Drop the spines the cascaded articles leave behind (bookmarks
 			// referencing them cascade too). Only touches spines with no
 			// origin — invariant-preserving and idempotent.
-			raw.prepare(
-				`DELETE FROM content_items
-				 WHERE id NOT IN (SELECT content_item_id FROM articles WHERE content_item_id IS NOT NULL)
-				   AND id NOT IN (SELECT content_item_id FROM search_history WHERE content_item_id IS NOT NULL)
-				   AND id NOT IN (SELECT content_item_id FROM brief_history WHERE content_item_id IS NOT NULL)
-				   AND id NOT IN (SELECT content_item_id FROM generated_history WHERE content_item_id IS NOT NULL)`,
-			).run();
+			sweepOrphanSpines(raw);
 		})();
 
 		// Stale FTS5 entries (from cascade-deleted articles) are invisible
@@ -177,6 +269,52 @@ export class SourcesService {
 	async setEnabled(id: string, enabled: boolean): Promise<Source> {
 		return this.update(id, { enabled });
 	}
+
+	/**
+	 * Resolve a source type to its adapter, AUTO-PROVISIONING the official
+	 * connector from the GitHub registry when it isn't registered yet (v1.8.0 —
+	 * the "source needs a connector → fetch it from GitHub → use it" flow).
+	 *
+	 * - adapter registered locally → its id;
+	 * - not registered but the registry has it → provisioned, then its id;
+	 * - not registered and no official connector exists → BadRequest
+	 *   CONNECTOR_NOT_AVAILABLE (message mentions the version gate);
+	 * - registry unreachable → ServiceUnavailableException REGISTRY_UNREACHABLE.
+	 */
+	private async resolveAdapter(type: SourceType): Promise<string> {
+		try {
+			return this.plugins.adapterFor(type);
+		} catch {
+			const connector = await this.connectors.ensureForType(type);
+			if (connector) return this.plugins.adapterFor(type);
+			throw new BadRequestException({
+				code: "CONNECTOR_NOT_AVAILABLE",
+				message: `No official connector for source type '${type}' is available in this Vorynth version. Check the connector registry (Plugins → Check GitHub for connectors) or update Vorynth.`,
+			});
+		}
+	}
+
+	/**
+	 * Dry-run a source configuration (v1.8.0) — validates and fetches via the
+	 * adapter WITHOUT persisting. Powers the Add Source form's "Test" button.
+	 */
+	async verify(input: VerifySourceInput): Promise<VerifySourceResult> {
+		let adapter: string;
+		try {
+			adapter = await this.resolveAdapter(input.type);
+		} catch (err) {
+			return {
+				ok: false,
+				error: (err as Error).message,
+				itemCount: 0,
+				samples: [],
+			};
+		}
+		return this.crawler.verifySource(
+			adapter,
+			(input.configuration ?? {}) as Record<string, unknown>,
+		);
+	}
 }
 
 function toDto(row: {
@@ -193,6 +331,14 @@ function toDto(row: {
 	fetchTo: Date | null;
 	lastCheckedAt: Date | null;
 	createdAt: Date;
+	listId: string | null;
+	country: string | null;
+	city: string | null;
+	language: string | null;
+	scope: string | null;
+	authority: string | null;
+	impactAreas: unknown;
+	tags: unknown;
 }): Source {
 	return {
 		id: row.id,
@@ -208,7 +354,130 @@ function toDto(row: {
 		fetchTo: row.fetchTo,
 		lastCheckedAt: row.lastCheckedAt,
 		createdAt: row.createdAt,
+		listId: row.listId ?? null,
+		country: row.country ?? null,
+		city: row.city ?? null,
+		language: row.language ?? null,
+		scope: (row.scope ?? null) as Source["scope"],
+		authority: (row.authority ?? null) as Source["authority"],
+		impactAreas: Array.isArray(row.impactAreas)
+			? (row.impactAreas as string[])
+			: null,
+		tags: Array.isArray(row.tags) ? (row.tags as string[]) : null,
 	};
+}
+
+/** ISO country/language code validation: 2 letters, uppercased country. */
+function normalizeTag(
+	value: string | null | undefined,
+	kind: "country" | "language",
+): string | null {
+	if (value === null || value === undefined || value === "") return null;
+	const v = value.trim();
+	if (!/^[a-zA-Z]{2}$/.test(v)) {
+		throw new BadRequestException({
+			code: "INVALID_TAG_CODE",
+			message: `${kind} must be a 2-letter ISO code, got "${v}"`,
+		});
+	}
+	return kind === "country" ? v.toUpperCase() : v.toLowerCase();
+}
+
+/** Source scope validation (v1.8.0) — must be a known enum value, else null. */
+function normalizeScope(value: string | null | undefined): SourceScope | null {
+	if (value === null || value === undefined || value === "") return null;
+	if (!SOURCE_SCOPES.includes(value as SourceScope)) {
+		throw new BadRequestException({
+			code: "INVALID_SOURCE_SCOPE",
+			message: `unknown source scope "${value}"`,
+		});
+	}
+	return value as SourceScope;
+}
+
+/** Source authority validation (v1.8.0) — must be a known enum value. */
+function normalizeAuthority(
+	value: string | null | undefined,
+): SourceAuthority | null {
+	if (value === null || value === undefined || value === "") return null;
+	if (!SOURCE_AUTHORITIES.includes(value as SourceAuthority)) {
+		throw new BadRequestException({
+			code: "INVALID_SOURCE_AUTHORITY",
+			message: `unknown source authority "${value}"`,
+		});
+	}
+	return value as SourceAuthority;
+}
+
+/**
+ * Impact-area normalization (v1.8.0) — an array of lowercase hyphenated slugs
+ * ("ai", "programming-languages"). Deduped and capped at 12; null/empty clears.
+ * Free-form values are accepted (like categories) — the curated vocabulary is
+ * a UI suggestion, not a constraint.
+ */
+function normalizeImpactAreas(
+	value: string[] | null | undefined,
+): string[] | null {
+	if (value === null || value === undefined) return null;
+	if (!Array.isArray(value)) {
+		throw new BadRequestException({
+			code: "INVALID_SOURCE_IMPACT_AREAS",
+			message: "impactAreas must be an array of slugs",
+		});
+	}
+	const cleaned = value
+		.map((v) =>
+			String(v)
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, "-")
+				.replace(/^-+|-+$/g, ""),
+		)
+		.filter((v) => v.length >= 2 && v.length <= 64);
+	const unique = [...new Set(cleaned)].slice(0, 12);
+	return unique.length > 0 ? unique : null;
+}
+
+/**
+ * Free-form tag normalization (v1.9.0) — lowercase hyphenated slugs like the
+ * impact areas ("cloud", "ai"). Deduped and capped at 12; null/empty clears.
+ * The curated vocabulary (tech-catalog + app vocab) is a UI suggestion, never
+ * a constraint — same free-form policy as `normalizeImpactAreas`.
+ */
+function normalizeTags(value: string[] | null | undefined): string[] | null {
+	if (value === null || value === undefined) return null;
+	if (!Array.isArray(value)) {
+		throw new BadRequestException({
+			code: "INVALID_SOURCE_TAGS",
+			message: "tags must be an array of slugs",
+		});
+	}
+	const cleaned = value
+		.map((v) =>
+			String(v)
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, "-")
+				.replace(/^-+|-+$/g, ""),
+		)
+		.filter((v) => v.length >= 2 && v.length <= 64);
+	const unique = [...new Set(cleaned)].slice(0, 12);
+	return unique.length > 0 ? unique : null;
+}
+
+/** Whitelisted group dimension → sources column. */
+function dimensionColumn(
+	dimension: SourceGroupDimension,
+): "category" | "country" | "city" | "language" | null {
+	switch (dimension) {
+		case "category":
+		case "country":
+		case "city":
+		case "language":
+			return dimension;
+		default:
+			return null;
+	}
 }
 
 function toArticleDto(row: {
@@ -282,11 +551,6 @@ function rangeWindow(
 		}
 	}
 	return { fromMs, toMs, prunedNote };
-}
-
-function defaultAdapterFor(type: CreateSourceInput["type"]): string {
-	if (type === "rss") return "rss";
-	return "rss";
 }
 
 function slugify(s: string): string {

@@ -1,21 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { locationHasHistory } from "@/lib/router/has-history.js";
 import type { ArticleMedia } from "@vorynth/types";
+import { recordStoryView } from "@/features/story-views/story-views-api.js";
 import {
 	fetchArticleDetail,
 	fetchArticleMedia,
 	setMediaKeep,
 	releaseArticleMedia,
+	recollectArticle,
+	translateArticle,
 } from "@/features/reader/reader-api";
 import { SupportAuthorModal } from "@/features/reader/SupportAuthorModal";
+import { ReaderActionBar } from "@/features/reader/ReaderActionBar";
+import { usePluginStoryExports } from "@/plugins/plugin-hooks";
+import { fetchSettings } from "@/features/history/history-api.js";
 import { Icon } from "@/components/ui/Icon";
+import { RichContent } from "@/components/ui/RichContent";
+import { ExportDialog } from "@/components/export/ExportDialog";
 import { Button } from "@/components/ui/Button";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
+import { fetchProfile } from "@/features/profile/profile-api.js";
 import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { useTranslation, useTextDirection } from "@/i18n";
+import { aiErrorMessage } from "@/features/llm/ai-error.js";
 
 /**
  * Native article reader (v1.1.0).
@@ -37,12 +48,22 @@ export function ArticleDetailPage() {
 
 	// Smart back: return to the page that opened this article (Brief, Archive,
 	// Bookmarks, Search) when there's history to go back to; otherwise fall back
-	// to the Brief. `location.key !== "default"` means react-router has a prior
-	// entry in its history stack.
+	// to the Brief. `locationHasHistory` means react-router has a prior entry in
+	// its history stack (reliable across trailing-slash deep links on reload).
 	const goBack = () => {
-		if (location.key !== "default") navigate(-1);
+		if (locationHasHistory(location.key)) navigate(-1);
 		else navigate("/brief");
 	};
+
+	// v1.8.0 — story-view history: opening the article records scope='article'
+	// so the Brief History tab can show which story was read, when, and on
+	// which surface. Best-effort; a failed record never breaks the read.
+	useEffect(() => {
+		if (!id) return;
+		void recordStoryView({ articleId: id, scope: "article" }).catch(
+			() => undefined,
+		);
+	}, [id]);
 
 	const [reminderDismissed, setReminderDismissed] = useState(false);
 	const [read, setRead] = useState(false);
@@ -52,17 +73,28 @@ export function ArticleDetailPage() {
 	const [showOriginal, setShowOriginal] = useState(false);
 	const [showOriginalBody, setShowOriginalBody] = useState(false);
 	const [zoomed, setZoomed] = useState<ArticleMedia | null>(null);
+	const [showExport, setShowExport] = useState(false);
 
 	const { data: detail, isLoading } = useQuery({
 		queryKey: ["article", id],
 		queryFn: () => fetchArticleDetail(id),
 		enabled: Boolean(id),
 	});
+	const { data: profile } = useQuery({
+		queryKey: ["profile"],
+		queryFn: fetchProfile,
+	});
 	const { data: media = [] } = useQuery({
 		queryKey: ["article-media", id],
 		queryFn: () => fetchArticleMedia(id),
 		enabled: Boolean(id),
 	});
+	// Which reader-footer actions stay pinned in the bar (Profile preference).
+	const { data: settings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+	});
+	const readerPinned = settings?.["ui.readerPinnedActions"];
 
 	const keepMutation = useMutation({
 		mutationFn: ({ url, keep }: { url: string; keep: boolean }) =>
@@ -75,6 +107,41 @@ export function ArticleDetailPage() {
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: ["article-media", id] }),
 	});
+
+	// Per-story translate (v1.8.0) — shown next to the title until a translation
+	// exists. On success the article query refreshes (title + body become the
+	// translation) and the Brief feed picks up the new title.
+	const translateMutation = useMutation({
+		mutationFn: () => translateArticle(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["article", id] });
+			queryClient.invalidateQueries({ queryKey: ["reports"] });
+		},
+	});
+
+	// Per-story Re-collect (v1.8.0) — the full repair pipeline for one story:
+	// re-fetch the origin, refresh the full text, re-translate, fill a missing
+	// insight. Shown in the floating footer next to Save.
+	const recollectMutation = useMutation({
+		mutationFn: () => recollectArticle(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["article", id] });
+			queryClient.invalidateQueries({ queryKey: ["reports"] });
+		},
+	});
+
+	// Per-story Re-translate (v1.8.0) — shown when the engine detects the stored
+	// translation is incomplete; forces a fresh translation of title + body.
+	const retranslateMutation = useMutation({
+		mutationFn: () => translateArticle(id, { force: true }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["article", id] });
+			queryClient.invalidateQueries({ queryKey: ["reports"] });
+		},
+	});
+
+	// Story export panels contributed by enabled UI plugins (Story Renderer).
+	const storyExports = usePluginStoryExports();
 
 	// Real save — bookmark flag on the article's content item (v1.6.0).
 	const bookmark = useBookmarkToggle(detail?.article.contentItemId);
@@ -111,16 +178,43 @@ export function ArticleDetailPage() {
 	const { article, sourceName, sourceCategory } = detail;
 	const hasOriginalTitle = Boolean(article.originalTitle);
 	const hasTranslatedBody = Boolean(article.translatedContent);
+	// Per-story translate shows while the story isn't fully translated —
+	// "fully translated" = the title is translated AND there's no body left to
+	// translate (body empty or body translated). A legacy title-only
+	// translation and a story with a title but no body text both keep the pill.
+	const bodyEmpty = !article.content.trim();
+	const fullyTranslated = hasOriginalTitle && (bodyEmpty || hasTranslatedBody);
+	// Re-translate (v1.8.0): every story that HAS a translation — complete or
+	// incomplete — offers Re-translate, so the user can force a fresh AI pass
+	// any time (after a language change, or when a translation looks off).
+	// Only a never-translated story shows the plain Translate pill instead.
+	const canRetranslate = hasTranslatedBody;
+	// Same-language guard (v1.8.0): a story whose SOURCE language already equals
+	// the user's intelligence language is never translated (the engine skips it
+	// too) — hide the pill instead of offering a no-op translation.
+	const targetLang = profile?.preferredIntelligenceLanguage?.toLowerCase();
+	const sourceLang = article.language?.toLowerCase();
+	const sameLanguage = Boolean(
+		sourceLang && targetLang && sourceLang === targetLang,
+	);
 	const displayTitle =
 		showOriginal && hasOriginalTitle
 			? (article.originalTitle ?? article.title)
 			: article.title;
+	// Controls trail the title — translate pill, then the Original toggle —
+	// matching the Brief card. The h1 itself carries the text direction; the
+	// row stays in layout order so the pill reads "in front of" the title.
+	const titleDir = textDir(displayTitle);
 	// Default shows the translation when present; the toggle reveals the
-	// original `content` (which stays canonical in storage, R-A05).
+	// original `content` (which stays canonical in storage, R-A05). A damaged
+	// body (captured page-interface junk) shows its read-time cleanup instead
+	// of the raw JSON/chrome (v1.8.0). A same-language story shows the original
+	// even if a stale translation from a previous language setting is stored.
+	const showTranslation = hasTranslatedBody && !sameLanguage;
 	const displayContent =
-		hasTranslatedBody && !showOriginalBody
+		showTranslation && !showOriginalBody
 			? (article.translatedContent ?? article.content)
-			: article.content;
+			: (article.contentClean ?? article.content);
 	const showReminder = !reminderDismissed;
 	const keptCount = media.filter((m) => m.source === "local").length;
 
@@ -148,16 +242,22 @@ export function ArticleDetailPage() {
 				</div>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
 					{sourceCategory ? <DomainTag>{sourceCategory}</DomainTag> : null}
-					<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
+					<span
+						className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container"
+						dir={textDir(sourceName ?? "")}
+					>
 						{sourceName ?? t("article.unknownSource")}
 					</span>
 					{article.author ? (
-						<span className="font-label text-label-sm text-on-surface-variant">
+						<span
+							className="font-label text-label-sm text-on-surface-variant"
+							dir={textDir(article.author)}
+						>
 							· {t("article.by")} {article.author}
 						</span>
 					) : null}
 					{article.publishedAt ? (
-						<span className="ml-auto font-mono text-mono-technical text-on-tertiary-container">
+						<span className="ms-auto font-mono text-mono-technical text-on-tertiary-container">
 							{new Date(article.publishedAt).toLocaleDateString(undefined, {
 								day: "numeric",
 								month: "long",
@@ -166,13 +266,43 @@ export function ArticleDetailPage() {
 						</span>
 					) : null}
 				</div>
-				<div className="mb-6 flex items-start gap-3">
+				{/* The row mirrors the title's direction: LTR keeps the controls
+				    after the title (right); an RTL title leads from the right and
+				    the controls trail it on the left. */}
+				<div className="mb-6 flex items-start gap-3" dir={titleDir}>
 					<h1
 						className="font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
-						dir={textDir(displayTitle)}
+						dir={titleDir}
 					>
 						{displayTitle}
 					</h1>
+					{!fullyTranslated && !sameLanguage ? (
+						<button
+							type="button"
+							onClick={() => translateMutation.mutate()}
+							disabled={translateMutation.isPending}
+							className="mt-2 inline-flex shrink-0 items-center gap-1.5 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary disabled:opacity-60"
+							title={t("article.translateHint")}
+						>
+							<Icon name="translate" className="text-[14px]" />
+							{translateMutation.isPending
+								? t("article.translating")
+								: t("article.translate")}
+						</button>
+					) : canRetranslate && !sameLanguage ? (
+						<button
+							type="button"
+							onClick={() => retranslateMutation.mutate()}
+							disabled={retranslateMutation.isPending}
+							className="mt-2 inline-flex shrink-0 items-center gap-1.5 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary disabled:opacity-60"
+							title={t("article.retranslateHint")}
+						>
+							<Icon name="translate" className="text-[14px]" />
+							{retranslateMutation.isPending
+								? t("article.retranslating")
+								: t("article.retranslate")}
+						</button>
+					) : null}
 					{hasOriginalTitle ? (
 						<button
 							type="button"
@@ -191,6 +321,24 @@ export function ArticleDetailPage() {
 						</button>
 					) : null}
 				</div>
+				{translateMutation.isError ? (
+					<p className="mb-4 font-body text-body-sm text-error">
+						{aiErrorMessage(
+							t,
+							translateMutation.error,
+							"article.translateFailed",
+						)}
+					</p>
+				) : null}
+				{article.contentCorrupted ? (
+					<p
+						className="mb-4 inline-flex items-start gap-1.5 font-body text-body-sm text-on-surface-variant"
+						dir={titleDir}
+					>
+						<Icon name="info" className="mt-0.5 shrink-0 text-[14px]" />
+						<span>{t("article.contentCorruptedNote")}</span>
+					</p>
+				) : null}
 				<div className="mb-4 h-0.5 w-12 bg-primary" />
 				<a
 					href={article.url}
@@ -224,12 +372,14 @@ export function ArticleDetailPage() {
 						</button>
 					</div>
 				) : null}
-				<div
-					className="mx-auto max-w-prose whitespace-pre-wrap font-body text-body-lg leading-relaxed text-on-surface"
+				{/* Body — stored text in a focused reading column. Feed bodies that
+				    carry HTML (bold, links, lists) render sanitized (RichContent);
+				    plain-text bodies render as before. */}
+				<RichContent
+					text={displayContent || t("article.noContent")}
 					dir={textDir(displayContent)}
-				>
-					{displayContent || t("article.noContent")}
-				</div>
+					className="mx-auto max-w-prose font-body text-body-lg leading-relaxed text-on-surface"
+				/>
 			</GhostCard>
 
 			{/* Media gallery — on-demand from source, per-item keep toggle. */}
@@ -280,47 +430,114 @@ export function ArticleDetailPage() {
 				</section>
 			) : null}
 
-			{/* Floating action footer (mirrors InsightDetailPage). */}
-			<footer className="fixed bottom-12 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-outline-variant bg-surface-container px-6 py-3 shadow-2xl">
-				<ActionBtn
-					icon={read ? "check" : "check_circle"}
-					label={read ? t("article.read") : t("article.markRead")}
-					onClick={() => setRead(true)}
-				/>
-				<div className="mx-2 h-6 w-px bg-outline-variant" />
-				<ActionBtn
-					icon={bookmark.saved ? "bookmark_added" : "bookmark"}
-					label={bookmark.saved ? t("article.saved") : t("article.save")}
-					onClick={bookmark.toggle}
-				/>
-				<ActionBtn
-					icon="ios_share"
-					label={t("article.share")}
-					onClick={() => {
-						if (navigator.share) {
-							void navigator.share({
-								title: article.title,
-								url: article.url,
-							});
-						} else {
-							void navigator.clipboard.writeText(article.url);
-						}
+			{/* Floating action bar — pinned actions up front, the rest behind the
+			    More ⋮ menu (Profile → Reader actions chooses which are pinned). */}
+			<ReaderActionBar
+				pinnedIds={readerPinned}
+				moreLabel={t("article.more")}
+				moreAriaLabel={t("article.moreAria")}
+				actions={[
+					{
+						id: "markRead",
+						icon: read ? "check" : "check_circle",
+						label: read ? t("article.read") : t("article.markRead"),
+						onClick: () => setRead(true),
+					},
+					{
+						id: "save",
+						icon: bookmark.saved ? "bookmark_added" : "bookmark",
+						label: bookmark.saved ? t("article.saved") : t("article.save"),
+						onClick: bookmark.toggle,
+					},
+					{
+						id: "recollect",
+						icon: "refresh",
+						label: recollectMutation.isPending
+							? t("article.recollecting")
+							: t("article.recollect"),
+						busy: recollectMutation.isPending,
+						onClick: () => {
+							if (!recollectMutation.isPending) recollectMutation.mutate();
+						},
+					},
+					// Re-translate sits right next to Re-collect (v1.8.0): forces a
+					// fresh LLM translation of title + body with no re-fetch. Only
+					// when the story was translated at least once — a never-translated
+					// story uses the Translate pill next to the title instead.
+					...(hasOriginalTitle || hasTranslatedBody
+						? [
+								{
+									id: "retranslate" as const,
+									icon: "translate",
+									label: retranslateMutation.isPending
+										? t("article.retranslating")
+										: t("article.retranslate"),
+									busy: retranslateMutation.isPending,
+									onClick: () => {
+										if (!retranslateMutation.isPending)
+											retranslateMutation.mutate();
+									},
+								},
+							]
+						: []),
+					{
+						id: "share",
+						icon: "ios_share",
+						label: t("article.share"),
+						onClick: () => {
+							if (navigator.share) {
+								void navigator.share({
+									title: article.title,
+									url: article.url,
+								});
+							} else {
+								void navigator.clipboard.writeText(article.url);
+							}
+						},
+					},
+					...(storyExports.length > 0
+						? [
+								{
+									id: "export" as const,
+									icon: "file_download",
+									label: t("article.export"),
+									onClick: () => setShowExport(true),
+								},
+							]
+						: []),
+					{
+						id: "openOriginal",
+						icon: "open_in_new",
+						label: t("article.original"),
+						onClick: () =>
+							window.open(article.url, "_blank", "noopener,noreferrer"),
+					},
+					{
+						id: "back",
+						icon: "arrow_back",
+						label: t("article.back"),
+						onClick: goBack,
+					},
+				]}
+			/>
+
+			{/* Export dialog — driven by UI plugins' exporter contribution, fed a
+			    generic content payload (v1.8.0). */}
+			{showExport ? (
+				<ExportDialog
+					content={{
+						kind: "article",
+						title: article.title,
+						body: article.content,
+						translatedBody: article.translatedContent ?? undefined,
+						url: article.url,
+						source: sourceName ?? undefined,
+						author: article.author ?? undefined,
+						publishedAt: article.publishedAt,
 					}}
+					onClose={() => setShowExport(false)}
 				/>
-				<div className="mx-2 h-6 w-px bg-outline-variant" />
-				<ActionBtn
-					icon="open_in_new"
-					label={t("article.original")}
-					onClick={() =>
-						window.open(article.url, "_blank", "noopener,noreferrer")
-					}
-				/>
-				<ActionBtn
-					icon="arrow_back"
-					label={t("article.back")}
-					onClick={goBack}
-				/>
-			</footer>
+			) : null}
 
 			{/* Zoom overlay. */}
 			{zoomed ? (
@@ -331,7 +548,7 @@ export function ArticleDetailPage() {
 					}}
 				>
 					<button
-						className="absolute right-6 top-6 text-on-surface-variant hover:text-primary"
+						className="absolute end-6 top-6 text-on-surface-variant hover:text-primary"
 						onClick={() => setZoomed(null)}
 						aria-label={t("article.close")}
 					>
@@ -368,6 +585,7 @@ function MediaItem({
 	toggling: boolean;
 }) {
 	const { t } = useTranslation();
+	const textDir = useTextDirection();
 	const kept = media.source === "local";
 	return (
 		<figure className="group overflow-hidden rounded border border-outline-variant bg-surface-container-low">
@@ -396,7 +614,10 @@ function MediaItem({
 			<figcaption className="flex items-center justify-between gap-2 p-3">
 				<div className="min-w-0">
 					{media.caption ? (
-						<p className="truncate font-body text-body-sm text-on-surface-variant">
+						<p
+							className="truncate font-body text-body-sm text-on-surface-variant"
+							dir={textDir(media.caption)}
+						>
 							{media.caption}
 						</p>
 					) : null}
@@ -425,28 +646,6 @@ function MediaItem({
 				</button>
 			</figcaption>
 		</figure>
-	);
-}
-
-function ActionBtn({
-	icon,
-	label,
-	onClick,
-}: {
-	icon: string;
-	label: string;
-	onClick?: () => void;
-}) {
-	return (
-		<button
-			onClick={onClick}
-			className="flex items-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-surface-container-high"
-		>
-			<Icon name={icon} className="text-[20px]" />
-			<span className="font-label text-label-md uppercase tracking-wide">
-				{label}
-			</span>
-		</button>
 	);
 }
 

@@ -14,6 +14,7 @@ import { collectionsSection } from "./sections/collections.js";
 import { docsSection } from "./sections/docs.js";
 import { historySection } from "./sections/history.js";
 import { mediaSection } from "./sections/media.js";
+import { pluginsSection } from "./sections/plugins.js";
 import { profileSection } from "./sections/profile.js";
 import { searchSection } from "./sections/search.js";
 import { settingsSection } from "./sections/settings.js";
@@ -24,6 +25,7 @@ import { transparencySections } from "./sections/transparency.js";
 export const DOCS_SECTIONS = [
 	briefSection,
 	sourcesSection,
+	pluginsSection,
 	archiveSection,
 	collectionsSection,
 	bookmarksSection,

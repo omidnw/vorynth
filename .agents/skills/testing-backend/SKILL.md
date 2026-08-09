@@ -30,7 +30,7 @@ Write engine tests that actually catch regressions: unit tests for pure logic, i
 2. **Place the test**:
    - Pure logic → `test/unit/<module>.spec.ts` (e.g. `hashing.spec.ts`).
    - Service/DB logic → `test/<module>.spec.ts` or `test/unit/<module>.spec.ts`.
-   - Business laws → `test/domain/invariants.spec.ts` (or `test/domain/invariants/<name>.spec.ts`). These are not feature tests — they assert *impossible states stay impossible*: origin without spine, bookmark→missing item, retention never prunes bookmarked content, collection tree depth/parent_type.
+   - Business laws → `test/domain/invariants.spec.ts` (or `test/domain/invariants/<name>.spec.ts`). These are not feature tests — they assert _impossible states stay impossible_: origin without spine, bookmark→missing item, retention never prunes bookmarked content, collection tree depth/parent_type.
 3. **Write the test** with `describe`/`it`/`expect` (Jest globals, `@types/jest`). For services that need DI, construct them directly with the `DatabaseService` from `createTestDb()` (or a mock provider) — don't boot the whole Nest app unless you must.
 4. **Assert on behavior, not implementation**: the returned data and DB state, not which SQL ran.
 5. **Run** `pnpm --filter @vorynth/core-engine test` (single file: `-- test/unit/hashing.spec.ts`).
@@ -50,6 +50,7 @@ Write engine tests that actually catch regressions: unit tests for pure logic, i
 - Forgetting `close()` → leaked file handles and flaky WAL locks on the temp dir.
 - Testing `jest.fn` call counts against the mock you passed — assert on observable behavior instead.
 - Counting rows without accounting for `seedDefaults()` (sources, settings) inserted by `runMigrations`.
+- Asserting wall-clock timing deltas in tests — they flake under parallel Jest. The rate-limiter spec used to measure `Date.now()` deltas around real `sleep()`s: under CPU contention a sleep overshoots, the next slot ages out, and the next call legitimately returns immediately (`t3 - t2 ≈ 0`) — a false failure. For spacing/immediacy invariants use `jest.useFakeTimers()` (deterministic `Date.now` + `setTimeout`, restore with `jest.useRealTimers()` in `afterEach`); the rate-limiter spec is the reference pattern.
 - Writing `raw.transaction(() => {...})` and forgetting to INVOKE it — better-sqlite3's `db.transaction(fn)` returns a function; without the trailing `()`, the whole block silently never runs (this bit the archive/bookmark/source-delete code once — assert DB state AFTER a write, and prefer `const run = db.transaction(fn); run()`).
 
 ## Validation

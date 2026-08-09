@@ -22,11 +22,16 @@ function main(): void {
 	const problems: string[] = [];
 
 	// Schema guard — give a clear message instead of "no such column".
-	const hasSpine = (db.prepare(
-		"SELECT name FROM sqlite_master WHERE type='table' AND name='content_items'",
-	).get() as { name?: string } | undefined) !== undefined;
+	const hasSpine =
+		(db
+			.prepare(
+				"SELECT name FROM sqlite_master WHERE type='table' AND name='content_items'",
+			)
+			.get() as { name?: string } | undefined) !== undefined;
 	if (!hasSpine) {
-		console.error("✗ content_items table missing — run `pnpm db:migrate` first.");
+		console.error(
+			"✗ content_items table missing — run `pnpm db:migrate` first.",
+		);
 		db.close();
 		process.exit(1);
 	}
@@ -40,7 +45,9 @@ function main(): void {
 	];
 	for (const [table, label] of originTables) {
 		const { c } = db
-			.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE content_item_id IS NULL`)
+			.prepare(
+				`SELECT COUNT(*) AS c FROM ${table} WHERE content_item_id IS NULL`,
+			)
 			.get() as { c: number };
 		if (c > 0) problems.push(`${c} ${label} without an archive spine`);
 	}
@@ -56,7 +63,8 @@ function main(): void {
 			 WHERE a.id IS NULL AND s.id IS NULL AND b.id IS NULL AND g.id IS NULL`,
 		)
 		.all() as Array<{ id: string }>;
-	if (orphans.length > 0) problems.push(`${orphans.length} orphan content items`);
+	if (orphans.length > 0)
+		problems.push(`${orphans.length} orphan content items`);
 
 	// 3. Bookmarks pointing at missing items.
 	const badBookmarks = db

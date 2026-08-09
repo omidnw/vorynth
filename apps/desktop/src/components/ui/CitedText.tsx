@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { Citation } from "@vorynth/types";
 import { useTextDirection } from "@/i18n";
+import { cn } from "@/lib/cn";
 import { Icon } from "./Icon";
 
 /**
@@ -18,23 +19,35 @@ export function CitedText({
 	text,
 	citations,
 	className,
+	titleFormatter = (title: string) => `Open: ${title}`,
 }: {
 	text: string;
 	citations: Citation[];
 	className?: string;
+	/** Build each citation link's accessible title from its title. Callers pass
+	 *  `t("search.openCitation", { title })` — the default keeps the English
+	 *  fallback for callers that aren't wired to translations yet. */
+	titleFormatter?: (title: string) => string;
 }) {
 	const byN = new Map(citations.map((c) => [c.n, c]));
 	const parts = parseCitedText(text, byN);
 	const textDir = useTextDirection();
+	const dir = textDir(text);
 
 	return (
-		<span className={className} dir={textDir(text)}>
+		<span className={className} dir={dir}>
 			{parts.map((part, i) => {
 				if (part.kind === "text") {
 					return <span key={i}>{part.value}</span>;
 				}
 				return (
-					<CitationChip key={i} n={part.n} citation={part.citation ?? null} />
+					<CitationChip
+						key={i}
+						n={part.n}
+						citation={part.citation ?? null}
+						dir={dir}
+						titleFormatter={titleFormatter}
+					/>
 				);
 			})}
 		</span>
@@ -81,11 +94,16 @@ function parseCitedText(text: string, byN: Map<number, Citation>): Part[] {
 function CitationChip({
 	n,
 	citation,
+	dir,
+	titleFormatter,
 }: {
 	n: number;
 	citation: Citation | null;
+	dir: "ltr" | "rtl";
+	titleFormatter: (title: string) => string;
 }) {
 	const [hovered, setHovered] = useState(false);
+	const textDir = useTextDirection();
 
 	// Unresolved citation (model invented a number) — render as muted text.
 	if (!citation) {
@@ -107,16 +125,23 @@ function CitationChip({
 				target="_blank"
 				rel="noreferrer"
 				className="mx-0.5 inline-flex items-center rounded bg-secondary-container px-1 font-mono text-[10px] font-semibold text-on-secondary-container no-underline transition-colors hover:bg-secondary hover:text-on-secondary"
-				title={`Open: ${citation.title}`}
+				title={titleFormatter(citation.title)}
 			>
 				{n}
-				<Icon name="open_in_new" className="ml-0.5 text-[10px]" />
+				{/* In RTL prose the icon sits LEFT of the number — flip the gap. */}
+				<Icon
+					name="open_in_new"
+					className={cn("text-[10px]", dir === "rtl" ? "mr-0.5" : "ml-0.5")}
+				/>
 			</a>
 
 			{hovered ? (
 				<span
 					role="tooltip"
-					className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded border border-outline-variant bg-surface-container-lowest p-3 text-left shadow-lg"
+					// The card follows the citation title's own direction — an English
+					// title stays LTR, a translated/Persian title renders RTL.
+					dir={textDir(citation.title)}
+					className="pointer-events-none absolute bottom-full start-1/2 z-50 mb-2 w-64 -translate-x-1/2 rtl:translate-x-1/2 rounded border border-outline-variant bg-surface-container-lowest p-3 text-start shadow-lg"
 				>
 					<span className="block font-label text-label-sm uppercase tracking-wide text-secondary">
 						{citation.sourceName}
@@ -163,7 +188,7 @@ export function CitationList({
 							className="font-body text-body-md text-on-surface hover:text-primary hover:underline"
 						>
 							{c.title}
-							<span className="ml-2 font-mono text-[11px] text-on-tertiary-container">
+							<span className="ms-2 font-mono text-[11px] text-on-tertiary-container">
 								{c.sourceName}
 							</span>
 						</a>

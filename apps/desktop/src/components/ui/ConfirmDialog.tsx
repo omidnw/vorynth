@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTextDirection } from "@/i18n";
 import { cn } from "@/lib/cn";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 
@@ -11,8 +12,8 @@ export interface ConfirmDialogProps {
 	title: string;
 	/** Body text explaining the consequence (e.g. "3 saved stories will also be deleted."). */
 	message: ReactNode;
-	/** Called when the user confirms. */
-	onConfirm: () => void;
+	/** Called when the user confirms. With `dontShowAgain`, receives the checkbox state. */
+	onConfirm: (dontShowAgain?: boolean) => void;
 	/** Called when the user cancels (button, Escape, or backdrop click). */
 	onCancel: () => void;
 	/** Label for the confirm button. Defaults to "Confirm". */
@@ -84,19 +85,20 @@ export function ConfirmDialog({
 		if (open) setDontShow(false);
 	}, [open]);
 
+	// The overlay is inline (not a portal) — lock the page scroll so the
+	// content behind a fixed overlay can't scroll with the wheel (R-D07).
+	useBodyScrollLock(open);
+
 	if (!open) return null;
 
 	const handleConfirm = () => {
-		if (dontShowAgain) {
-			(onConfirm as (dontShow: boolean) => void)(dontShow);
-		} else {
-			(onConfirm as () => void)();
-		}
+		if (dontShowAgain) onConfirm(dontShow);
+		else onConfirm();
 	};
 
 	return (
 		<div
-			className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-6 backdrop-blur-[1px]"
+			className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-6 backdrop-blur-[1px] animate-fade-in"
 			role="alertdialog"
 			aria-modal="true"
 			aria-labelledby="confirm-dialog-title"
@@ -105,8 +107,8 @@ export function ConfirmDialog({
 				if (e.target === e.currentTarget) onCancel();
 			}}
 		>
-			<div className="w-full max-w-md rounded-lg border border-outline-variant bg-surface-container p-6 shadow-2xl">
-				<div className="mb-4 flex items-start gap-4">
+			<div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container shadow-2xl animate-scale-in">
+				<div className="mb-4 flex items-start gap-4 p-6 pb-0">
 					<span
 						className={cn(
 							"flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
@@ -127,29 +129,31 @@ export function ConfirmDialog({
 					</div>
 				</div>
 
-				<p
-					id="confirm-dialog-message"
-					className="mb-6 font-body text-body-md leading-relaxed text-on-surface-variant"
-					dir={typeof message === "string" ? textDir(message) : "auto"}
-				>
-					{message}
-				</p>
+				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
+					<p
+						id="confirm-dialog-message"
+						className="font-body text-body-md leading-relaxed text-on-surface-variant"
+						dir={typeof message === "string" ? textDir(message) : "auto"}
+					>
+						{message}
+					</p>
 
-				{dontShowAgain ? (
-					<label className="mb-4 flex cursor-pointer items-center gap-3">
-						<input
-							type="checkbox"
-							checked={dontShow}
-							onChange={(e) => setDontShow(e.target.checked)}
-							className="h-4 w-4 accent-secondary"
-						/>
-						<span className="font-body text-body-sm text-on-surface-variant">
-							Don&apos;t ask again
-						</span>
-					</label>
-				) : null}
+					{dontShowAgain ? (
+						<label className="mb-4 mt-4 flex cursor-pointer items-center gap-3">
+							<input
+								type="checkbox"
+								checked={dontShow}
+								onChange={(e) => setDontShow(e.target.checked)}
+								className="h-4 w-4 accent-secondary"
+							/>
+							<span className="font-body text-body-sm text-on-surface-variant">
+								Don&apos;t ask again
+							</span>
+						</label>
+					) : null}
+				</div>
 
-				<div className="flex justify-end gap-2">
+				<div className="flex justify-end gap-2 border-t border-outline-variant px-6 py-4">
 					<Button variant="ghost" size="sm" onClick={onCancel}>
 						{cancelLabel}
 					</Button>
@@ -239,7 +243,7 @@ export function PromptDialog({
 				if (e.target === e.currentTarget) onCancel();
 			}}
 		>
-			<div className="w-full max-w-md rounded-lg border border-outline-variant bg-surface-container p-6 shadow-2xl">
+			<div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg border border-outline-variant bg-surface-container p-6 shadow-2xl">
 				<div className="mb-4 flex items-start gap-4">
 					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
 						<Icon name="drive_file_rename_outline" className="text-[20px]" />

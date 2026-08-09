@@ -76,7 +76,7 @@ Vorynth/
 │       │   ├── intelligence/       LangGraph.js workflow (collect → analyze → brief)
 │       │   ├── search/             FTS5 full-text + AI-assisted RAG search
 │       │   ├── backup/             Export / restore / manage snapshots
-│       │   └── llm/                Provider abstraction: OpenAI, Claude, Gemini, Groq
+│       │   └── llm/                Provider abstraction: OpenAI, Claude, Gemini, Ollama
 │       ├── data/                   SQLite database (better-sqlite3 + Drizzle ORM)
 │       └── scripts/                Sidecar bundler (ncc + native addon)
 └── packages/
@@ -95,7 +95,7 @@ localization, and report generation.
   rate limiting. 13 seed sources covering AI, engineering, security & more.
 - **LangGraph intelligence** — AI workflow: collect → normalize → dedup →
   rank → classify → analyze → brief. All local.
-- **4 LLM providers** — OpenAI, Anthropic Claude, Google Gemini, Groq.
+- **4 LLM providers** — OpenAI, Anthropic Claude, Google Gemini, Ollama.
   Switch per-query or per-generate.
 - **FTS5 full-text search** — blazing-fast keyword search with Persian/Arabic
   diacritic normalization and prefix matching.
@@ -156,8 +156,12 @@ localization, and report generation.
 
 ## Project status
 
-Version **1.7.0** — active development. See the in-app **Settings → Changelog**
+Version **1.8.0** — active development. See the in-app **Settings → Changelog**
 or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
+
+Policies that govern product decisions live in **[POLICY.md](POLICY.md)** —
+starting with the [Connector Sourcing Policy](connector-policy.md): which
+sources get an official / built-in connector, and where the line is drawn.
 
 ### Roadmap
 
@@ -165,7 +169,7 @@ or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 - [x] Desktop app: brief, search, sources, settings, insights
 - [x] i18n (English + Persian), RTL support, dark mode
 - [x] Background jobs with live progress
-- [x] 4 LLM providers (OpenAI, Claude, Gemini, Groq)
+- [x] 4 LLM providers (OpenAI, Claude, Gemini, Ollama)
 - [x] CI/CD: automated builds for 6 platforms
 - [ ] Android / iOS mobile builds (Tauri v2 mobile)
 - [ ] Harmony OS native `.hap` build (raw `.so` bundle exists; needs ArkTS bridge + DevEco packaging)

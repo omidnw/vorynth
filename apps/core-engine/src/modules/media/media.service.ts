@@ -9,6 +9,7 @@ import { resolveArticleMediaDir, resolveMediaDir } from "../../db/paths.js";
 import type {
 	ArticleMedia,
 	LocalMediaArticle,
+	LocalMediaItem,
 	LocalMediaSummary,
 	MediaKind,
 	SetMediaKeepAllInput,
@@ -144,9 +145,16 @@ export class MediaService {
 		const rows = await this.db.db
 			.select({
 				articleId: articleMedia.articleId,
+				itemId: articleMedia.id,
+				kind: articleMedia.kind,
+				url: articleMedia.url,
+				mime: articleMedia.mime,
 				bytes: articleMedia.bytes,
+				caption: articleMedia.caption,
 				keptAt: articleMedia.keptAt,
 				title: articles.title,
+				originalTitle: articles.originalTitle,
+				articleUrl: articles.url,
 				collectedAt: articles.collectedAt,
 				sourceName: sources.name,
 			})
@@ -157,11 +165,24 @@ export class MediaService {
 
 		const kept = rows.filter((r) => r.keptAt !== null);
 
-		const byArticle = new Map<string, { bytes: number; items: number }>();
+		const byArticle = new Map<
+			string,
+			{ bytes: number; items: LocalMediaItem[] }
+		>();
 		for (const r of kept) {
-			const cur = byArticle.get(r.articleId) ?? { bytes: 0, items: 0 };
+			const cur = byArticle.get(r.articleId) ?? { bytes: 0, items: [] };
 			cur.bytes += r.bytes ?? 0;
-			cur.items += 1;
+			cur.items.push({
+				id: r.itemId,
+				kind: r.kind,
+				url: r.url,
+				mime: r.mime,
+				bytes: r.bytes,
+				caption: r.caption,
+				keptAt: r.keptAt
+					? new Date(r.keptAt).toISOString()
+					: new Date(0).toISOString(),
+			});
 			byArticle.set(r.articleId, cur);
 		}
 
@@ -171,12 +192,15 @@ export class MediaService {
 			articleRows.push({
 				articleId,
 				articleTitle: m?.title ?? "Unknown",
+				articleOriginalTitle: m?.originalTitle ?? null,
+				articleUrl: m?.articleUrl ?? "",
 				sourceName: m?.sourceName ?? null,
 				collectedAt: m
 					? new Date(m.collectedAt).toISOString()
 					: new Date(0).toISOString(),
-				itemCount: agg.items,
+				itemCount: agg.items.length,
 				bytes: agg.bytes,
+				items: agg.items,
 			});
 		}
 		articleRows.sort((a, b) => b.bytes - a.bytes);
@@ -188,6 +212,31 @@ export class MediaService {
 			totalBytes,
 			totalItems,
 		};
+	}
+
+	/**
+	 * Resolve the on-disk blob for a locally-kept media item so the client can
+	 * download it. Returns `null` when the item doesn't exist, was never kept,
+	 * or its file has vanished from disk (the row would then be stale).
+	 */
+	async getLocalFile(itemId: string): Promise<{
+		path: string;
+		mime: string | null;
+		bytes: number | null;
+	} | null> {
+		const row = await this.db.db
+			.select()
+			.from(articleMedia)
+			.where(eq(articleMedia.id, itemId))
+			.get();
+		if (!row || !row.localPath || !row.keptAt) return null;
+		try {
+			const st = await stat(row.localPath);
+			if (!st.isFile()) return null;
+		} catch {
+			return null;
+		}
+		return { path: row.localPath, mime: row.mime, bytes: row.bytes };
 	}
 
 	/** Release every locally-kept media item for an article. */

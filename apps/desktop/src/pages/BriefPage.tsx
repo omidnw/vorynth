@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { BriefEntry, BriefPeriod } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -10,6 +11,7 @@ import { GhostCard } from "@/components/ui/GhostCard";
 import { BriefItemView } from "@/features/brief/BriefItemView.js";
 import { PeriodSummaryPanel } from "@/features/brief/PeriodSummaryPanel.js";
 import { fetchRange } from "@/features/brief/brief-api.js";
+import { fetchSettings } from "@/features/history/history-api.js";
 import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 
@@ -45,28 +47,45 @@ const DEFAULTS = {
 	domain: null as string | null,
 };
 
-const PERIODS: { value: BriefPeriod; label: string }[] = [
-	{ value: "today", label: "Today" },
-	{ value: "week", label: "This Week" },
-	{ value: "month", label: "This Month" },
-	{ value: "all", label: "All Time" },
-];
+/** Period filter chips — labels come from the `period.*` namespace. */
+function periods(t: TFunction): { value: BriefPeriod; label: string }[] {
+	return [
+		{ value: "today", label: t("period.today") },
+		{ value: "week", label: t("period.thisWeek") },
+		{ value: "month", label: t("period.thisMonth") },
+		{ value: "all", label: t("period.allTime") },
+	];
+}
 
 type SortMode = "newest" | "most-relevant" | "most-important";
 
-const SORT_MODES: { value: SortMode; label: string; icon: string }[] = [
-	{ value: "newest", label: "Newest", icon: "schedule" },
-	{ value: "most-relevant", label: "Most relevant", icon: "trending_up" },
-	{ value: "most-important", label: "Most important", icon: "priority_high" },
-];
+/** Sort-mode chips — labels come from the `sort.*` namespace. */
+function sortModes(
+	t: TFunction,
+): { value: SortMode; label: string; icon: string }[] {
+	return [
+		{ value: "newest", label: t("sort.newest"), icon: "schedule" },
+		{
+			value: "most-relevant",
+			label: t("sort.mostRelevant"),
+			icon: "trending_up",
+		},
+		{
+			value: "most-important",
+			label: t("sort.mostImportant"),
+			icon: "priority_high",
+		},
+	];
+}
 
-const DOMAINS = [
-	"AI",
-	"Software Engineering",
-	"Security",
-	"Cloud",
-	"Backend",
-	"DevOps",
+/** Domain-filter chips — category slugs, displayed via `categories.*`. */
+const DOMAIN_CATEGORIES: BriefEntry["category"][] = [
+	"ai",
+	"software-engineering",
+	"security",
+	"cloud",
+	"backend",
+	"devops",
 ];
 
 /**
@@ -88,7 +107,6 @@ export function BriefPage() {
 	);
 	const [limit, setLimit] = useState(30);
 	const [sort, setSort] = usePersistedState<SortMode>("sort", "newest");
-
 	const clearPersisted = useCallback(() => {
 		setPeriod(DEFAULTS.period);
 		setSort(DEFAULTS.sort);
@@ -117,6 +135,15 @@ export function BriefPage() {
 		refetchInterval: busy ? 2_000 : 60_000,
 	});
 
+	// Profile → "drag selects text" (v1.8.0): when on (default) dragging over a
+	// card selects text instead of opening it; off = any press-release opens.
+	const { data: appSettings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+		staleTime: 60_000,
+	});
+	const dragSelectsText = appSettings?.["ui.dragSelectsText"] ?? true;
+
 	const intelligenceEnabled = data?.intelligenceEnabled ?? false;
 	const allEntries = data?.entries ?? [];
 
@@ -124,7 +151,9 @@ export function BriefPage() {
 	const visible = useMemo(() => {
 		const filtered =
 			domainFilter !== null
-				? allEntries.filter((e) => categoryLabel(e.category) === domainFilter)
+				? allEntries.filter(
+						(e) => categoryLabel(t, e.category) === domainFilter,
+					)
 				: allEntries;
 		const sorted = [...filtered];
 		if (sort === "newest") {
@@ -139,12 +168,12 @@ export function BriefPage() {
 		}
 		// Re-rank after sort so the visible rank numbers are 1..N.
 		return sorted.slice(0, limit).map((e, i) => ({ ...e, rank: i + 1 }));
-	}, [allEntries, domainFilter, sort, limit]);
+	}, [allEntries, domainFilter, sort, limit, t]);
 
 	/** Total entries after the domain filter (independent of the page size). */
 	const filteredCount = () =>
 		domainFilter !== null
-			? allEntries.filter((e) => categoryLabel(e.category) === domainFilter)
+			? allEntries.filter((e) => categoryLabel(t, e.category) === domainFilter)
 					.length
 			: allEntries.length;
 
@@ -155,17 +184,19 @@ export function BriefPage() {
 				    not next to the mode/stats line below. */}
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<h2 className="font-headline text-headline-lg text-primary dark:text-primary-fixed">
-						Today's Intelligence Brief
+						{t("brief.title")}
 					</h2>
 					<DocsHelpButton sectionId="brief" />
 				</div>
 				<div className="mt-2 flex flex-wrap items-center gap-4 font-label text-label-md text-on-tertiary-container">
 					<span className="flex items-center gap-1">
 						<Icon name="timer" className="text-[18px]" />
-						{data ? `${data.totalStories} stories` : "—"}
+						{data ? t("brief.stories", { count: data.totalStories }) : "—"}
 					</span>
 					<span className="h-1 w-1 rounded-full bg-outline-variant" />
-					<span>{data ? `${data.totalSources} sources` : "—"}</span>
+					<span>
+						{data ? t("brief.sources", { count: data.totalSources }) : "—"}
+					</span>
 					<span className="h-1 w-1 rounded-full bg-outline-variant" />
 					<span
 						className={
@@ -185,7 +216,7 @@ export function BriefPage() {
 						size="sm"
 						icon="bookmark"
 						onClick={() => navigate("/bookmarks")}
-						title="Saved stories"
+						title={t("brief.savedStories")}
 					>
 						Bookmarks
 					</Button>
@@ -195,7 +226,7 @@ export function BriefPage() {
 						icon="tune"
 						onClick={() => navigate("/archive/search")}
 					>
-						Advanced search
+						{t("search.advanced")}
 					</Button>
 					<Button
 						variant="ghost"
@@ -204,7 +235,7 @@ export function BriefPage() {
 						onClick={() => void startCollect()}
 						disabled={busy}
 					>
-						{collectActive ? "Collecting…" : "Collect"}
+						{collectActive ? t("common.collecting") : t("common.collect")}
 					</Button>
 					<Button
 						variant="secondary"
@@ -214,7 +245,7 @@ export function BriefPage() {
 						onClick={() => void startGenerate({ cap: 10, period })}
 						disabled={busy}
 					>
-						{generateActive ? "Generating…" : "Generate Brief"}
+						{generateActive ? t("common.generating") : t("common.generate")}
 					</Button>
 				</div>
 			</header>
@@ -222,10 +253,10 @@ export function BriefPage() {
 			{/* Period + sort selectors */}
 			<div className="mb-8 flex flex-wrap items-center justify-between gap-3">
 				<div className="flex flex-wrap items-center gap-2">
-					<span className="mr-2 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
+					<span className="me-2 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
 						Range
 					</span>
-					{PERIODS.map((p) => (
+					{periods(t).map((p) => (
 						<button
 							key={p.value}
 							onClick={() => setPeriod(p.value)}
@@ -240,10 +271,10 @@ export function BriefPage() {
 					))}
 				</div>
 				<div className="flex items-center gap-2">
-					<span className="mr-1 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
+					<span className="me-1 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
 						Sort
 					</span>
-					{SORT_MODES.map((m) => (
+					{sortModes(t).map((m) => (
 						<button
 							key={m.value}
 							onClick={() => setSort(m.value)}
@@ -258,23 +289,23 @@ export function BriefPage() {
 							<span className="hidden sm:inline">{m.label}</span>
 						</button>
 					))}
-					<div className="ml-1 h-5 w-px bg-outline-variant" />
+					<div className="ms-1 h-5 w-px bg-outline-variant" />
 					<button
 						type="button"
 						onClick={clearPersisted}
-						title="Reset filters to defaults"
+						title={t("brief.resetFilters")}
 						className="flex items-center gap-1 rounded px-2 py-1 font-label text-label-sm text-on-surface-variant transition-colors hover:text-error"
 					>
 						<Icon name="clear" className="text-[16px]" />
-						<span className="hidden sm:inline">Clear</span>
+						<span className="hidden sm:inline">{t("brief.clear")}</span>
 					</button>
 				</div>
 			</div>
 
 			{/* Live-collect indicator */}
 			{collectActive ? (
-				<div className="mb-6 flex items-center gap-3 border-l-2 border-secondary bg-surface-container-low px-4 py-3 rounded">
-					<Icon name="sync" className="animate-spin text-secondary" />
+				<div className="mb-6 flex items-center gap-3 border-s-2 border-s-secondary bg-surface-container-low px-4 py-3 rounded">
+					<Icon name="sync" className="animate-spin-reverse text-secondary" />
 					<span className="font-body text-body-md text-on-surface">
 						Collecting from sources in the background — you can navigate away;
 						the list updates live as stories arrive.
@@ -292,7 +323,7 @@ export function BriefPage() {
 			<div className="mb-12 flex items-center gap-8 overflow-x-auto border-b border-outline-variant pb-6 no-scrollbar">
 				<div className="flex items-center gap-3">
 					<span className="font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
-						Domains
+						{t("brief.domains")}
 					</span>
 					<button
 						onClick={() => setDomainFilter(null)}
@@ -302,21 +333,24 @@ export function BriefPage() {
 								: "text-on-surface-variant hover:text-primary"
 						}`}
 					>
-						All
+						{t("brief.all")}
 					</button>
-					{DOMAINS.map((d) => (
-						<button
-							key={d}
-							onClick={() => setDomainFilter(d)}
-							className={`px-3 py-1 font-label text-label-md transition-colors hover:text-primary ${
-								domainFilter === d
-									? "text-primary underline underline-offset-4"
-									: "text-on-surface-variant"
-							}`}
-						>
-							{d}
-						</button>
-					))}
+					{DOMAIN_CATEGORIES.map((d) => {
+						const label = t(`categories.${d}`);
+						return (
+							<button
+								key={d}
+								onClick={() => setDomainFilter(label)}
+								className={`px-3 py-1 font-label text-label-md transition-colors hover:text-primary ${
+									domainFilter === label
+										? "text-primary underline underline-offset-4"
+										: "text-on-surface-variant"
+								}`}
+							>
+								{label}
+							</button>
+						);
+					})}
 				</div>
 			</div>
 
@@ -325,7 +359,12 @@ export function BriefPage() {
 			) : visible.length > 0 ? (
 				<div className="space-y-20">
 					{visible.map((entry: BriefEntry) => (
-						<BriefItemView key={entry.article.id} entry={entry} />
+						<BriefItemView
+							key={entry.article.id}
+							entry={entry}
+							intelligenceEnabled={intelligenceEnabled}
+							dragSelectsText={dragSelectsText}
+						/>
 					))}
 				</div>
 			) : (
@@ -350,7 +389,7 @@ export function BriefPage() {
 
 			{!intelligenceEnabled && allEntries.length > 0 ? (
 				<div
-					className="mt-8 flex cursor-pointer items-center gap-3 border-l-2 border-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
+					className="mt-8 flex cursor-pointer items-center gap-3 border-s-2 border-s-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
 					onClick={() => navigate("/settings")}
 					role="button"
 					tabIndex={0}
@@ -358,7 +397,7 @@ export function BriefPage() {
 					<Icon name="tips_and_updates" className="text-secondary" />
 					<p className="font-body text-body-md text-on-surface-variant">
 						<Trans t={t} i18nKey="brief.newsHint">
-							<span className="underline">Settings</span>
+							<span className="underline">{t("nav.settings")}</span>
 						</Trans>
 					</p>
 				</div>
@@ -366,7 +405,7 @@ export function BriefPage() {
 
 			{intelligenceEnabled ? (
 				<div className="mt-4">
-					<DomainTag>Intelligence Mode Active</DomainTag>
+					<DomainTag>{t("brief.intelligenceActive")}</DomainTag>
 				</div>
 			) : null}
 		</section>
@@ -399,19 +438,22 @@ function EmptyState({
 	busy: boolean;
 	error: string | null;
 }) {
+	const { t } = useTranslation();
 	return (
 		<GhostCard className="flex flex-col items-center gap-4 py-16 text-center">
 			<Icon
-				name="search_insights"
+				name="insights"
 				className="text-[48px] text-on-tertiary-container"
 			/>
 			<h3 className="font-headline text-headline-md text-primary dark:text-primary-fixed">
-				No stories in this range
+				{t("brief.emptyRangeTitle")}
 			</h3>
 			<p className="max-w-md font-body text-body-md text-on-surface-variant">
-				Either no articles have been collected yet, or none fall in the selected
-				period. Hit <em>Collect</em> to pull fresh stories — no API key
-				required.
+				<Trans t={t} i18nKey="brief.emptyRangeBody">
+					Either no articles have been collected yet, or none fall in the
+					selected period. Hit <em>Collect</em> to pull fresh stories — no API
+					key required.
+				</Trans>
 			</p>
 			{error ? (
 				<p className="max-w-md font-mono text-mono-technical text-error">
@@ -420,10 +462,10 @@ function EmptyState({
 			) : null}
 			<div className="flex gap-3 pt-2">
 				<Button icon="sync" onClick={onCollect} disabled={busy}>
-					{busy ? "Working…" : "Collect Now"}
+					{busy ? t("brief.empty.working") : t("brief.empty.collect")}
 				</Button>
 			</div>
-			<DomainTag className="mt-4">Local Engine Active</DomainTag>
+			<DomainTag className="mt-4">{t("app.localEngine")}</DomainTag>
 		</GhostCard>
 	);
 }
@@ -441,18 +483,6 @@ function toMs(d: Date | string | null | undefined): number {
 }
 
 /** Map a SourceCategory to the short label shown in the filter chips. */
-function categoryLabel(category: BriefEntry["category"]): string {
-	const map: Record<BriefEntry["category"], string> = {
-		ai: "AI",
-		"software-engineering": "Software Engineering",
-		"programming-languages": "Programming Languages",
-		"web-development": "Web Development",
-		backend: "Backend",
-		devops: "DevOps",
-		cloud: "Cloud",
-		security: "Security",
-		"open-source": "Open Source",
-		other: "Other",
-	};
-	return map[category] ?? "Other";
+function categoryLabel(t: TFunction, category: BriefEntry["category"]): string {
+	return t(`categories.${category}`);
 }

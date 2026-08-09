@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -7,6 +7,8 @@ import {
 	generateSummary,
 	improveInstruction,
 } from "@/features/profile/profile-api";
+import { ReaderActionsSection } from "@/features/profile/ReaderActionsSection";
+import { CardClickSection } from "@/features/profile/CardClickSection";
 import {
 	fetchSettings,
 	patchSettings,
@@ -21,8 +23,19 @@ import { Select } from "@/components/ui/Select";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
+import { SettingsCategory } from "@/components/settings/SettingsCategory.js";
+import {
+	CategoryRail,
+	CategoryChips,
+} from "@/components/settings/CategoryRail.js";
+import { SettingsSearch } from "@/components/settings/SettingsSearch.js";
+import { useCategorySearch } from "@/components/settings/useCategorySearch.js";
+import { CrossPageHint } from "@/features/settings/CrossPageHint.js";
+import { findCrossPageTopic } from "@/features/settings/cross-page-search.js";
+import { useSectionHighlight } from "@/features/settings/use-section-highlight.js";
 import { useTranslation } from "react-i18next";
 import { useTextDirection } from "@/i18n";
+import { aiErrorMessage } from "@/features/llm/ai-error.js";
 import ISO6391 from "iso-639-1";
 
 /**
@@ -42,6 +55,76 @@ export function ProfilePage() {
 		queryFn: fetchProfile,
 	});
 
+	const categories = useMemo(
+		() => [
+			{
+				id: "profile-identity",
+				label: t("profile.categoryIdentity"),
+				icon: "person",
+				// v1.8.0 — the keyword blob is localized: it follows the selected
+				// UI language, so typing in Persian/French/… matches too.
+				search: t("profile.searchIdentity"),
+			},
+			{
+				id: "profile-ai",
+				label: t("profile.categoryAi"),
+				icon: "auto_awesome",
+				search: t("profile.searchAi"),
+			},
+			{
+				id: "profile-languages",
+				label: t("profile.categoryLanguages"),
+				icon: "translate",
+				search: t("profile.searchLanguages"),
+			},
+			{
+				id: "profile-reading",
+				label: t("profile.categoryReading"),
+				icon: "menu_book",
+				search: t("profile.searchReading"),
+			},
+		],
+		[t],
+	);
+
+	const {
+		query,
+		setQuery,
+		activeId,
+		select,
+		dimmedIds,
+		noResults,
+		matches,
+		highlightedIds,
+		focusFirstMatch,
+	} = useCategorySearch(categories);
+	/** v1.8.0 — deep-linked `?section=` from the cross-page search hint. */
+	const highlightFromLink = useSectionHighlight();
+	const crossTopic = findCrossPageTopic(query, "/profile", t);
+	const isHighlighted = (id: string) =>
+		highlightedIds.includes(id) || highlightFromLink === id;
+
+	// v1.8.0 — the jump-to-result happens on Enter / the search button, never
+	// mid-keystroke. When the query matches a topic that lives on the OTHER
+	// page, the cross-page hint takes focus priority (the thing isn't here).
+	const hintRef = useRef<HTMLDivElement>(null);
+	const [hintFocused, setHintFocused] = useState(false);
+	const focusSearch = () => {
+		if (crossTopic) {
+			setHintFocused(true);
+			hintRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+			return;
+		}
+		focusFirstMatch();
+	};
+
+	const navItems = useMemo(
+		() => categories.map(({ id, label, icon }) => ({ id, label, icon })),
+		[categories],
+	);
+
+	const cat = (id: string) => categories.find((c) => c.id === id);
+
 	if (isLoading) {
 		return (
 			<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
@@ -54,7 +137,7 @@ export function ProfilePage() {
 	if (!profile) return null;
 
 	return (
-		<section className="mx-auto w-full max-w-max-content-width space-y-8 px-gutter py-12">
+		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
 			<header className="mb-2">
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<h1 className="mb-2 flex items-center gap-3 font-headline text-display-md text-primary dark:text-primary-fixed">
@@ -68,52 +151,166 @@ export function ProfilePage() {
 				</p>
 			</header>
 
-			<IdentitySection />
-			<CustomInstructionSection customInstruction={profile.customInstruction} />
-			<BehaviorSummarySection
-				summary={profile.behaviorSummary}
-				generatedAt={profile.summaryGeneratedAt}
-			/>
-			<InterestsSection />
-			<LanguageSection
-				onLocaleChange={(code) => patchProfile({ preferredUiLanguage: code })}
-			/>
-			<AiLanguageSection />
-			<ReaderSettingsSection />
+			<div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
+				{/* Category rail — sticky navigation, shown on lg+ screens */}
+				<CategoryRail
+					className="hidden lg:block"
+					items={navItems}
+					activeId={activeId}
+					onSelect={select}
+					dimmedIds={dimmedIds}
+					ariaLabel={t("profile.title")}
+				/>
+				{/* Category chips — narrow screens, below lg */}
+				<CategoryChips
+					className="lg:hidden"
+					items={navItems}
+					activeId={activeId}
+					onSelect={select}
+					dimmedIds={dimmedIds}
+					ariaLabel={t("profile.title")}
+				/>
 
-			{/* Reset confirmation dialogs */}
-			<ConfirmResetSection />
-
-			{/* Tip: app settings live on the Settings page */}
-			<GhostCard className="flex items-center justify-between gap-4">
-				<div className="flex items-center gap-3">
-					<Icon
-						name="settings"
-						className="text-[24px] text-on-surface-variant"
+				<div className="min-w-0 flex-1 space-y-8">
+					<SettingsSearch
+						value={query}
+						onChange={(v) => {
+							setQuery(v);
+							setHintFocused(false);
+						}}
+						onSearch={focusSearch}
 					/>
-					<div>
-						<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-							{t("profile.settingsTipTitle")}
-						</h3>
-						<p className="font-body text-body-sm text-on-tertiary-container">
-							{t("profile.settingsTipBody")}
+
+					{/* v1.8.0 — "this setting lives in Settings" hint */}
+					{crossTopic ? (
+						<CrossPageHint
+							topic={crossTopic}
+							highlighted={hintFocused}
+							hintRef={hintRef}
+						/>
+					) : null}
+
+					{noResults ? (
+						<p className="font-body text-body-md text-on-surface-variant">
+							{t("common.noResults")}
 						</p>
-					</div>
+					) : null}
+
+					{/* ── Who you are ─────────────────────────────────────────── */}
+					<SettingsCategory
+						id="profile-identity"
+						title={cat("profile-identity")?.label ?? ""}
+						icon={cat("profile-identity")?.icon}
+						search={cat("profile-identity")?.search}
+						highlighted={isHighlighted("profile-identity")}
+						className={matches("profile-identity") ? undefined : "hidden"}
+					>
+						<IdentitySection />
+						<BehaviorSummarySection
+							summary={profile.behaviorSummary}
+							generatedAt={profile.summaryGeneratedAt}
+						/>
+						<InterestsSection />
+					</SettingsCategory>
+
+					{/* ── How the AI writes ───────────────────────────────────── */}
+					<SettingsCategory
+						id="profile-ai"
+						title={cat("profile-ai")?.label ?? ""}
+						icon={cat("profile-ai")?.icon}
+						search={cat("profile-ai")?.search}
+						highlighted={isHighlighted("profile-ai")}
+						className={matches("profile-ai") ? undefined : "hidden"}
+					>
+						<CustomInstructionSection
+							customInstruction={profile.customInstruction}
+						/>
+						<AiLanguageSection />
+					</SettingsCategory>
+
+					{/* ── Languages ───────────────────────────────────────────── */}
+					<SettingsCategory
+						id="profile-languages"
+						title={cat("profile-languages")?.label ?? ""}
+						icon={cat("profile-languages")?.icon}
+						search={cat("profile-languages")?.search}
+						highlighted={isHighlighted("profile-languages")}
+						className={matches("profile-languages") ? undefined : "hidden"}
+					>
+						<LanguageSection
+							onLocaleChange={(code) =>
+								patchProfile({ preferredUiLanguage: code })
+							}
+						/>
+					</SettingsCategory>
+
+					{/* ── Reading ─────────────────────────────────────────────── */}
+					<SettingsCategory
+						id="profile-reading"
+						title={cat("profile-reading")?.label ?? ""}
+						icon={cat("profile-reading")?.icon}
+						search={cat("profile-reading")?.search}
+						highlighted={isHighlighted("profile-reading")}
+						className={matches("profile-reading") ? undefined : "hidden"}
+					>
+						<ReaderSettingsSection />
+						<ReaderActionsSection />
+						<CardClickSection />
+					</SettingsCategory>
+
+					{/* Reset confirmation dialogs */}
+					<ConfirmResetSection />
+
+					{/* Tip: app settings live on the Settings page */}
+					<GhostCard className="flex items-center justify-between gap-4">
+						<div className="flex items-center gap-3">
+							<Icon
+								name="settings"
+								className="text-[24px] text-on-surface-variant"
+							/>
+							<div>
+								<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+									{t("profile.settingsTipTitle")}
+								</h3>
+								<p className="font-body text-body-sm text-on-tertiary-container">
+									{t("profile.settingsTipBody")}
+								</p>
+							</div>
+						</div>
+						<Button
+							variant="secondary"
+							size="sm"
+							icon="settings"
+							onClick={() => navigate("/settings")}
+						>
+							{t("nav.settings")}
+						</Button>
+					</GhostCard>
 				</div>
-				<Button
-					variant="secondary"
-					size="sm"
-					icon="settings"
-					onClick={() => navigate("/settings")}
-				>
-					{t("nav.settings")}
-				</Button>
-			</GhostCard>
+			</div>
 		</section>
 	);
 }
 
 // ── Identity ────────────────────────────────────────────────────────────────
+
+/** Degree-level slugs (v1.9.0) — stable values, localized labels. */
+const DEGREE_LEVELS = [
+	"high-school",
+	"associate",
+	"bachelor",
+	"master",
+	"phd",
+	"other",
+] as const;
+
+/** Experience-level slugs (v1.9.0) — stable values, localized labels. */
+const EXPERIENCE_LEVELS = [
+	"beginner",
+	"intermediate",
+	"advanced",
+	"expert",
+] as const;
 
 function IdentitySection() {
 	const { t } = useTranslation();
@@ -127,6 +324,12 @@ function IdentitySection() {
 	const [lastName, setLastName] = useState("");
 	const [alias, setAlias] = useState("");
 
+	// Education + experience (v1.9.0) — collected for the future
+	// source/category/tag suggestion feature.
+	const [fieldOfStudy, setFieldOfStudy] = useState("");
+	const [degreeLevel, setDegreeLevel] = useState("");
+	const [experienceLevel, setExperienceLevel] = useState("");
+
 	// Sync local form state when the profile loads (only for initial load, not
 	// after every save — the mutation onSuccess handles the UI feedback).
 	useEffect(() => {
@@ -134,8 +337,18 @@ function IdentitySection() {
 			setFirstName(profile.firstName ?? "");
 			setLastName(profile.lastName ?? "");
 			setAlias(profile.alias ?? "");
+			setFieldOfStudy(profile.fieldOfStudy ?? "");
+			setDegreeLevel(profile.degreeLevel ?? "");
+			setExperienceLevel(profile.experienceLevel ?? "");
 		}
-	}, [profile?.firstName, profile?.lastName, profile?.alias]);
+	}, [
+		profile?.firstName,
+		profile?.lastName,
+		profile?.alias,
+		profile?.fieldOfStudy,
+		profile?.degreeLevel,
+		profile?.experienceLevel,
+	]);
 
 	const save = useMutation({
 		mutationFn: () =>
@@ -143,6 +356,9 @@ function IdentitySection() {
 				firstName: firstName.trim() || null,
 				lastName: lastName.trim() || null,
 				alias: alias.trim() || null,
+				fieldOfStudy: fieldOfStudy.trim() || null,
+				degreeLevel: degreeLevel || null,
+				experienceLevel: experienceLevel || null,
 			}),
 		onSuccess: () => {
 			// Wait for the refetch before clearing the pending state so the
@@ -200,6 +416,61 @@ function IdentitySection() {
 						icon="alternate_email"
 					/>
 				</Field>
+			</div>
+
+			{/* Education & experience (v1.9.0) — collected today; a future
+			    feature will suggest sources, categories, and tags matched to
+			    them. Everything stays accessible. */}
+			<div className="mt-6 rounded border border-outline-variant bg-surface-container-low p-4">
+				<p className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+					<Icon name="school" className="text-base" />
+					{t("profile.educationTitle")}
+				</p>
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+					<Field label={t("profile.fieldOfStudy")}>
+						<Input
+							value={fieldOfStudy}
+							onChange={(e) => setFieldOfStudy(e.target.value)}
+							placeholder={t("profile.fieldOfStudyPlaceholder")}
+							icon="school"
+						/>
+					</Field>
+					<Field label={t("profile.degreeLevel")}>
+						<Select
+							value={degreeLevel}
+							onChange={setDegreeLevel}
+							aria-label={t("profile.degreeLevel")}
+							options={[
+								{ value: "", label: t("profile.degreeNone") },
+								...DEGREE_LEVELS.map((d) => ({
+									value: d,
+									label: t(`profile.degree.${d}`),
+								})),
+							]}
+						/>
+					</Field>
+					<Field label={t("profile.experienceLevel")}>
+						<Select
+							value={experienceLevel}
+							onChange={setExperienceLevel}
+							aria-label={t("profile.experienceLevel")}
+							options={[
+								{ value: "", label: t("profile.experienceNone") },
+								...EXPERIENCE_LEVELS.map((e) => ({
+									value: e,
+									label: t(`profile.experience.${e}`),
+								})),
+							]}
+						/>
+					</Field>
+				</div>
+				<p className="mt-3 flex items-start gap-1.5 font-body text-body-sm text-on-surface-variant">
+					<Icon
+						name="tips_and_updates"
+						className="mt-0.5 shrink-0 text-[14px]"
+					/>
+					<span>{t("profile.educationTip")}</span>
+				</p>
 			</div>
 
 			<div className="mt-6 flex items-center gap-3">
@@ -364,9 +635,7 @@ function CustomInstructionSection({
 					{improve.isError ? (
 						<span className="flex items-center gap-1 font-label text-label-sm text-error">
 							<Icon name="error_outline" className="text-[16px]" />
-							{(improve.error as Error)?.message?.includes("provider")
-								? t("profile.needProvider")
-								: t("profile.improveFailed")}
+							{aiErrorMessage(t, improve.error, "profile.improveFailed")}
 						</span>
 					) : null}
 				</div>
@@ -416,16 +685,14 @@ function BehaviorSummarySection({
 			{generate.isError ? (
 				<p className="flex items-center gap-2 font-body text-body-md text-error">
 					<Icon name="error_outline" className="text-[18px]" />
-					{(generate.error as Error)?.message?.includes("provider")
-						? t("profile.needProvider")
-						: t("profile.generateFailed")}
+					{aiErrorMessage(t, generate.error, "profile.generateFailed")}
 				</p>
 			) : null}
 
 			{summary ? (
 				<>
 					<p
-						className="border-l-2 border-primary pl-6 font-body text-body-lg italic leading-relaxed text-on-surface"
+						className="border-s-2 border-s-primary ps-6 font-body text-body-lg italic leading-relaxed text-on-surface"
 						dir={textDir(summary)}
 					>
 						{summary}
@@ -561,7 +828,10 @@ function AiLanguageSection() {
 				<Select
 					value={currentLang}
 					onChange={(v) => update.mutate(v)}
-					aria-label="AI output language"
+					aria-label={t("profile.aiLanguageAria")}
+					searchable
+					searchPlaceholder={t("settings.languageSearchPlaceholder")}
+					noResultsLabel={t("common.noResults")}
 					options={ALL_LANGUAGES.map((lang) => ({
 						value: lang.code,
 						label: `${lang.nativeName} — ${lang.name} (${lang.code})`,
@@ -626,6 +896,7 @@ function ReaderSettingsSection() {
 }
 
 function ConfirmResetSection() {
+	const { t } = useTranslation();
 	const queryClient = useQueryClient();
 	const patch = useMutation({
 		mutationFn: (values: Parameters<typeof patchSettings>[0]) =>
@@ -658,7 +929,7 @@ function ConfirmResetSection() {
 				}}
 				disabled={patch.isPending}
 			>
-				{patch.isPending ? "Resetting…" : "Reset all"}
+				{patch.isPending ? t("profile.resetting") : t("profile.resetAll")}
 			</Button>
 		</GhostCard>
 	);
@@ -713,7 +984,7 @@ function Toggle({
 			>
 				<span
 					className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface transition-transform ${
-						checked ? "left-[22px]" : "left-0.5"
+						checked ? "start-[22px]" : "start-0.5"
 					}`}
 				/>
 			</button>

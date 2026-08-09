@@ -64,3 +64,25 @@ jobs:
       # ── Build ───────────────────────────────────────────────────────────────
       - name: Build
         run: pnpm build
+
+  # ── Security ──────────────────────────────────────────────────────────────
+  # Static analysis with Semgrep (free community ruleset + the repo's custom
+  # plugin-bundle rules). Runs in parallel with verify; the release pipeline
+  # gates packaging on this job too (see package.yml).
+  semgrep:
+    name: Semgrep · Security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The action runs the open-source semgrep CLI in local mode on public
+      # repos — no SEMGREP_APP_TOKEN required.
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v2
+        with:
+          config: |
+            auto
+            .semgrep/plugin-bundles.yml

@@ -1,9 +1,10 @@
 /**
  * Catalog + locale types.
  *
- * A `Locale` is: a BCP-47 code, a direction, and a translation catalog. Only
- * English ships built-in; every other locale is registered at runtime from a
- * catalog the user imported (see `locale-store.ts` → `registerCatalog`).
+ * A `Locale` is: a BCP-47 code, a direction, and a translation catalog. 10
+ * languages ship bundled (see `locales.ts`); every other locale is registered
+ * at runtime from a catalog the user imported (see `locale-store.ts` →
+ * `registerCatalog`).
  *
  * RTL is decided per-locale, not hardcoded — the store flips `<html dir>` and
  * `dir=` on the root element when the active locale's direction changes.

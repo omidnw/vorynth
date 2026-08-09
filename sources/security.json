@@ -1,0 +1,73 @@
+{
+	"id": "security-news",
+	"name": "Security News",
+	"description": "Stable infosec feeds — advisories, threat research, and analysis. A general list curated by the Vorynth community.",
+	"nsfw": false,
+	"version": "1.0.0",
+	"sources": [
+		{
+			"id": "src-schneier",
+			"name": "Schneier on Security",
+			"url": "https://www.schneier.com/feed/atom",
+			"type": "rss",
+			"category": "security",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://www.schneier.com/feed/atom" },
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-google-security",
+			"name": "Google Security Blog",
+			"url": "https://security.googleblog.com/feeds/posts/default",
+			"type": "rss",
+			"category": "security",
+			"adapter": "rss",
+			"configuration": {
+				"feedUrl": "https://security.googleblog.com/feeds/posts/default"
+			},
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-ms-security",
+			"name": "Microsoft Security Response Center",
+			"url": "https://msrc.microsoft.com/blog/feed",
+			"type": "rss",
+			"category": "security",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://msrc.microsoft.com/blog/feed" },
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-portswigger",
+			"name": "PortSwigger Research",
+			"url": "https://portswigger.net/research/rss",
+			"type": "rss",
+			"category": "security",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://portswigger.net/research/rss" },
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-unit42",
+			"name": "Unit 42 — Palo Alto Networks",
+			"url": "https://unit42.paloaltonetworks.com/feed/",
+			"type": "rss",
+			"category": "security",
+			"adapter": "rss",
+			"configuration": {
+				"feedUrl": "https://unit42.paloaltonetworks.com/feed/"
+			},
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-snyk-security",
+			"name": "Snyk Blog",
+			"url": "https://snyk.io/blog/feed/",
+			"type": "rss",
+			"category": "security",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://snyk.io/blog/feed/" },
+			"fetchWindowDays": 7
+		}
+	]
+}

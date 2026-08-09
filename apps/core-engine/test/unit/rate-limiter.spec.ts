@@ -30,33 +30,52 @@ function withEnv(
 }
 
 describe("RateLimiter", () => {
-	it("lets the first call through immediately after an idle gap", () => {
-		return withEnv({ VORYNTH_LLM_SPACING_MS: "120" }, async () => {
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
+	it("lets the first call through immediately after an idle gap", async () => {
+		// Fake timers make the timing assertions immune to parallel-run jitter:
+		// real `sleep()` overshoots under CPU contention, which made the old
+		// wall-clock deltas flaky (a late sleep lets the next slot age out, and
+		// the next call legitimately goes through immediately).
+		jest.useFakeTimers();
+		await withEnv({ VORYNTH_LLM_SPACING_MS: "120" }, async () => {
 			const limiter = new RateLimiter();
 			const t0 = Date.now();
 			await limiter.acquire("test");
-			expect(Date.now() - t0).toBeLessThan(50);
+			// No timer is scheduled for the first call — it starts at fake time 0.
+			expect(Date.now() - t0).toBe(0);
 		});
 	});
 
-	it("spaces consecutive calls evenly instead of bursting", () => {
-		return withEnv({ VORYNTH_LLM_SPACING_MS: "60" }, async () => {
+	it("spaces consecutive calls evenly instead of bursting", async () => {
+		jest.useFakeTimers();
+		await withEnv({ VORYNTH_LLM_SPACING_MS: "60" }, async () => {
 			const limiter = new RateLimiter();
 			const t0 = Date.now();
+
+			// First call immediate; the next slot opens at fake time 60.
 			await limiter.acquire("test");
 			const t1 = Date.now();
-			await limiter.acquire("test");
-			const t2 = Date.now();
-			await limiter.acquire("test");
-			const t3 = Date.now();
+			expect(t1 - t0).toBe(0);
 
-			// First call immediate; the next two are spaced ~60ms apart.
-			expect(t1 - t0).toBeLessThan(50);
-			expect(t2 - t1).toBeGreaterThanOrEqual(50);
-			expect(t3 - t2).toBeGreaterThanOrEqual(50);
-			// Total wall time ≈ 2 intervals, not a burst.
-			expect(t3 - t0).toBeGreaterThanOrEqual(110);
-			expect(t3 - t0).toBeLessThan(1000);
+			// Second call sleeps until its slot opens exactly 60ms after the first.
+			const second = limiter.acquire("test");
+			jest.advanceTimersByTime(60);
+			await second;
+			const t2 = Date.now();
+			expect(t2 - t1).toBe(60);
+
+			// Third call likewise, on the next slot.
+			const third = limiter.acquire("test");
+			jest.advanceTimersByTime(60);
+			await third;
+			const t3 = Date.now();
+			expect(t3 - t2).toBe(60);
+
+			// Three calls across two full intervals — a steady cadence, not a burst.
+			expect(t3 - t0).toBe(120);
 		});
 	});
 

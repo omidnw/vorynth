@@ -28,6 +28,7 @@ Record a finished ZCode session in `roadmap.md` so the project's memory is never
    ```
 
    Number = previous last row number + 1. Keep the theme short (what the session achieved, not the file list).
+
 4. **Update the §1 snapshot** if the session changed project state:
    - Current release / working-tree status
    - "Working tree: N files modified" if the diff count changed

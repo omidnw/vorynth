@@ -1,0 +1,49 @@
+{
+	"id": "kubernetes-ops",
+	"name": "Kubernetes & Cloud Native",
+	"description": "Kubernetes and cloud-native infrastructure news, curated by the devops community.",
+	"nsfw": false,
+	"version": "1.0.0",
+	"sources": [
+		{
+			"id": "src-kubernetes-blog",
+			"name": "Kubernetes Blog",
+			"url": "https://kubernetes.io/feed.xml",
+			"type": "rss",
+			"category": "devops",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://kubernetes.io/feed.xml" },
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-cncf-blog",
+			"name": "CNCF Blog",
+			"url": "https://www.cncf.io/blog/feed/",
+			"type": "rss",
+			"category": "devops",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://www.cncf.io/blog/feed/" },
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-istio-blog",
+			"name": "Istio Blog",
+			"url": "https://istio.io/latest/blog/feed.xml",
+			"type": "rss",
+			"category": "devops",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://istio.io/latest/blog/feed.xml" },
+			"fetchWindowDays": 7
+		},
+		{
+			"id": "src-hashicorp-ops",
+			"name": "HashiCorp Blog",
+			"url": "https://www.hashicorp.com/blog/feed.xml",
+			"type": "rss",
+			"category": "devops",
+			"adapter": "rss",
+			"configuration": { "feedUrl": "https://www.hashicorp.com/blog/feed.xml" },
+			"fetchWindowDays": 7
+		}
+	]
+}

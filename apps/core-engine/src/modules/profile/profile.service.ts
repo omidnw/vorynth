@@ -4,6 +4,7 @@ import { DatabaseService } from "../../db/database.service.js";
 import { userProfile } from "../../db/schema.js";
 import { HistoryService } from "../history/history.service.js";
 import { LlmService } from "../llm/llm.service.js";
+import { JobsService } from "../jobs/jobs.service.js";
 import {
 	buildBehaviorSummaryPrompt,
 	buildImproveInstructionPrompt,
@@ -35,6 +36,7 @@ export class ProfileService {
 		@Inject(DatabaseService) private readonly db: DatabaseService,
 		@Inject(HistoryService) private readonly history: HistoryService,
 		@Inject(LlmService) private readonly llm: LlmService,
+		@Inject(JobsService) private readonly jobs: JobsService,
 	) {}
 
 	/** Read the single profile row (creates it if missing — defensive). */
@@ -51,10 +53,23 @@ export class ProfileService {
 	/** Patch editable fields. Returns the updated row. */
 	async update(patch: UpdateUserProfileInput): Promise<UserProfile> {
 		await this.ensureRow();
+		const before = await this.get();
+		// A change of the AI output language must reach the EXISTING backlog, not
+		// just new stories: fire the batch translate job so every untranslated
+		// story follows the new language (v1.8.0). The job is idempotent — it only
+		// touches stories without a translation, and its same-language guard
+		// makes an en→en "change" a no-op — so firing on the first save is safe.
+		const languageChanged =
+			patch.preferredIntelligenceLanguage !== undefined &&
+			(patch.preferredIntelligenceLanguage.trim() || "en").toLowerCase() !==
+				(before.preferredIntelligenceLanguage ?? "en").toLowerCase();
 		const set: Record<string, unknown> = { updatedAt: new Date() };
 		if (patch.firstName !== undefined) set.firstName = patch.firstName;
 		if (patch.lastName !== undefined) set.lastName = patch.lastName;
 		if (patch.alias !== undefined) set.alias = patch.alias;
+		if (patch.fieldOfStudy !== undefined) set.fieldOfStudy = patch.fieldOfStudy;
+		if (patch.degreeLevel !== undefined) set.degreeLevel = patch.degreeLevel;
+		if (patch.experienceLevel !== undefined) set.experienceLevel = patch.experienceLevel;
 		if (patch.preferredUiLanguage !== undefined)
 			set.preferredUiLanguage = patch.preferredUiLanguage;
 		if (patch.preferredIntelligenceLanguage !== undefined)
@@ -69,6 +84,19 @@ export class ProfileService {
 			.set(set)
 			.where(eq(userProfile.id, "default"))
 			.run();
+
+		// Never fail the profile save because a job couldn't be created — the
+		// batch translate job (like every job) shares the LLM rate limiter, so a
+		// large backlog translates progressively in the background.
+		if (languageChanged) {
+			try {
+				this.jobs.start({ kind: "translate", input: {} });
+			} catch (err) {
+				this.logger.warn(
+					`update: could not start translate job after language change (${(err as Error).message})`,
+				);
+			}
+		}
 		return this.get();
 	}
 
@@ -245,6 +273,9 @@ export class ProfileService {
 		firstName: string | null;
 		lastName: string | null;
 		alias: string | null;
+		fieldOfStudy: string | null;
+		degreeLevel: string | null;
+		experienceLevel: string | null;
 		customInstruction: string;
 		behaviorSummary: string;
 		summaryGeneratedAt: Date | null;
@@ -264,6 +295,9 @@ export class ProfileService {
 			firstName: row.firstName,
 			lastName: row.lastName,
 			alias: row.alias,
+			fieldOfStudy: row.fieldOfStudy,
+			degreeLevel: row.degreeLevel,
+			experienceLevel: row.experienceLevel,
 			customInstruction: row.customInstruction,
 			behaviorSummary: row.behaviorSummary,
 			summaryGeneratedAt: row.summaryGeneratedAt,

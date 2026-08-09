@@ -22,14 +22,26 @@ async function bootstrap() {
 	const port = await resolvePort(process.env, process.argv);
 	const host = process.env.HOST ?? "127.0.0.1";
 
+	const fastify = new FastifyAdapter({
+		logger: false,
+		// SSE endpoints keep the underlying socket open indefinitely.
+		keepAliveTimeout: 0,
+		bodyLimit: 4 * 1024 * 1024,
+	});
+	// Fastify has no default parser for application/octet-stream — the
+	// .vorynth-plugin install endpoint uploads its file bytes with that type
+	// and needs the raw Buffer (parseAs: "buffer"), still capped by bodyLimit.
+	fastify
+		.getInstance()
+		.addContentTypeParser(
+			"application/octet-stream",
+			{ parseAs: "buffer" },
+			(_req, body, done) => done(null, body),
+		);
+
 	const app = await NestFactory.create<NestFastifyApplication>(
 		AppModule,
-		new FastifyAdapter({
-			logger: false,
-			// SSE endpoints keep the underlying socket open indefinitely.
-			keepAliveTimeout: 0,
-			bodyLimit: 4 * 1024 * 1024,
-		}),
+		fastify,
 		{ bufferLogs: true },
 	);
 

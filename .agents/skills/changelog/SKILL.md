@@ -99,7 +99,7 @@ Rules for the `changes` array:
 
 ### 4. Bump the version everywhere
 
-**Delegate to the `/version-sync` skill** — it owns the mechanical workflow (root `package.json` → `pnpm version:sync` → README/docs/codenames → rebuild types → `pnpm version:check`). This skill's job is the *content* (entry + bump level); `/version-sync`'s job is the *mechanics*.
+**Delegate to the `/version-sync` skill** — it owns the mechanical workflow (root `package.json` → `pnpm version:sync` → README/docs/codenames → rebuild types → `pnpm version:check`). This skill's job is the _content_ (entry + bump level); `/version-sync`'s job is the _mechanics_.
 
 One reminder: after syncing, if you touched `@vorynth/types`, rebuild it (`pnpm --filter @vorynth/types build`) — `nest start --watch` does not hot-reload workspace deps, and a stale constant makes the Changelog page point at the wrong release.
 
@@ -109,7 +109,7 @@ One reminder: after syncing, if you touched `@vorynth/types`, rebuild it (`pnpm 
 
 After editing:
 
-1. Run Prettier on the changelog data file only — `npx prettier --write apps/desktop/src/features/changelog/changelog-data.ts` (NOT `pnpm format` from root: that would reformat `docs/index.html`, which isn't Prettier-clean and produces a ~2500-line diff).
+1. Run Prettier on the changelog data file only — `npx prettier --write apps/desktop/src/features/changelog/changelog-data.ts`.
 2. Run `pnpm --filter @vorynth/desktop typecheck` — the `Release` / `ChangeEntry` types are strict; a typo in `type` will fail the build.
 3. Skim the rendered Changelog page mentally: does the newest entry sit at the top? Does the codename match the theme of what actually shipped?
 

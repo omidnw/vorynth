@@ -36,10 +36,14 @@ export function createAnalyzerNode(llm: LlmService, cap = 10) {
 		for (const item of selected) {
 			const a = item.article;
 			try {
+				// v1.8.0 — bilingual generation: when the story's source language
+				// differs from the target, the same call returns the source-language
+				// version too (stored as the insight's `original*` fields).
 				const draft = await llm.analyze({
 					articleTitle: a.title,
 					articleContent: a.content,
 					outputLanguage: targetLanguage,
+					sourceLanguage: a.language ?? undefined,
 					topics,
 				});
 				insights.push({
@@ -52,6 +56,10 @@ export function createAnalyzerNode(llm: LlmService, cap = 10) {
 					importanceScore: draft.importanceScore || item.score,
 					importanceTier: tierFor(draft.importanceScore || item.score),
 					category: (draft.category as SourceCategory) || "other",
+					originalSummary: draft.originalSummary,
+					originalSignificance: draft.originalSignificance,
+					originalImpact: draft.originalImpact,
+					originalRecommendedAction: draft.originalRecommendedAction,
 				});
 			} catch (err) {
 				// Per-item failure: log and skip. Other items still get analyzed.

@@ -16,7 +16,10 @@ function renderCard(props: {
 	return render(
 		<MemoryRouter initialEntries={["/archive/collections"]}>
 			<Routes>
-				<Route path="/archive/collections" element={<DocsTipCard {...props} />} />
+				<Route
+					path="/archive/collections"
+					element={<DocsTipCard {...props} />}
+				/>
 				<Route path="/docs" element={<div>DOCS PAGE</div>} />
 			</Routes>
 		</MemoryRouter>,
@@ -32,7 +35,9 @@ describe("DocsTipCard", () => {
 		});
 		expect(screen.getByText("How Collections work")).toBeInTheDocument();
 		expect(
-			screen.getByText("Categories, folders, adding and removing items — explained"),
+			screen.getByText(
+				"Categories, folders, adding and removing items — explained",
+			),
 		).toBeInTheDocument();
 	});
 

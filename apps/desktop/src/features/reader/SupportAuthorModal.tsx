@@ -78,7 +78,7 @@ export function SupportAuthorModal({
 				if (e.target === e.currentTarget) readHere();
 			}}
 		>
-			<div className="w-full max-w-lg rounded-lg border border-outline-variant bg-surface-container p-8 shadow-2xl">
+			<div className="max-h-[85vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border border-outline-variant bg-surface-container p-8 shadow-2xl">
 				<div className="mb-6 flex items-start gap-4">
 					<span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
 						<Icon name="favorite" fill className="text-[24px]" />

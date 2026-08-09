@@ -1,0 +1,6 @@
+/* Vorynth design tokens — imported straight from the desktop app so the
+ * landing page always renders the app's real palette:
+ *   dark  = Obsidian Intelligence   (theme.css `.dark`)
+ *   light = Precision Minimalism    (theme.css `:root, .light`)
+ * Toggling <html class="dark"> flips the whole palette — no component edits. */
+@import "../../desktop/src/styles/theme.css";

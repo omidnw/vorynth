@@ -10,6 +10,7 @@ import {
 	type DocsBlock,
 	type DocsSection,
 } from "@/features/docs/docs-data.js";
+import { usePluginDocsSections } from "@/plugins/plugin-hooks.js";
 
 /**
  * Documentation & Tutorial page (v1.6.0).
@@ -22,6 +23,8 @@ import {
  */
 export function DocsPage() {
 	const [activeId, setActiveId] = useState("");
+	// v1.9.0 — docs sections contributed by enabled runtime UI plugins.
+	const pluginSections = usePluginDocsSections();
 
 	// Scroll to the `#<id>` section on load and on hash change.
 	useEffect(() => {
@@ -42,6 +45,8 @@ export function DocsPage() {
 		return () => window.removeEventListener("hashchange", scrollToHash);
 	}, []);
 
+	const allSections = [...DOCS_SECTIONS, ...pluginSections];
+
 	return (
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
 			<header className="mb-10">
@@ -58,12 +63,8 @@ export function DocsPage() {
 			<div className="min-w-0 space-y-8">
 				{/* Per-page guides */}
 				<div className="space-y-4">
-					{DOCS_SECTIONS.map((s) => (
-						<SectionCard
-							key={s.id}
-							section={s}
-							active={activeId === s.id}
-						/>
+					{allSections.map((s) => (
+						<SectionCard key={s.id} section={s} active={activeId === s.id} />
 					))}
 				</div>
 
@@ -106,7 +107,10 @@ function SectionCard({
 	return (
 		<GhostCard
 			id={section.id}
-			className={cn("scroll-mt-24", active ? "ring-2 ring-primary/40" : undefined)}
+			className={cn(
+				"scroll-mt-24",
+				active ? "ring-2 ring-primary/40" : undefined,
+			)}
 		>
 			{/* Heading with the section's icon */}
 			<div className="mb-3 flex items-center gap-3">

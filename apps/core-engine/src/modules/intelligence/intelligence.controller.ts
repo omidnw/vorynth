@@ -3,6 +3,7 @@ import {
 	Controller,
 	Get,
 	Inject,
+	NotFoundException,
 	Param,
 	Post,
 	Query,
@@ -20,6 +21,10 @@ import { IntelligenceService } from "./intelligence.service.js";
  *   GET  /reports/range?period=         ranked feed filtered to a period.
  *   POST /reports/summarize?period=     ONE cohesive LLM briefing over a period.
  *   GET  /insights/:id                  a single AI insight (detail view).
+ *   POST /articles/:id/translate       translate one story in place (reader button).
+ *   POST /articles/:id/insight         generate one story's AI insight on demand
+ *                                      (brief card button; 400 when no LLM or the
+ *                                      story has no body text).
  *
  * `period` is one of: today | week | month | all.
  */
@@ -74,5 +79,39 @@ export class IntelligenceController {
 	@Get("insights/:id")
 	async getInsight(@Param("id") id: string) {
 		return this.intelligence.getInsight(id);
+	}
+
+	@Post("articles/:id/translate")
+	async translateArticle(
+		@Param("id") id: string,
+		@Body() body: { force?: boolean } = {},
+	) {
+		const detail = await this.intelligence.translateStory(id, {
+			force: body.force === true,
+		});
+		if (!detail) {
+			throw new NotFoundException(`Article ${id} not found`);
+		}
+		return detail;
+	}
+
+	/** v1.8.0 — generate one story's AI insight on demand (brief card button). */
+	@Post("articles/:id/insight")
+	async generateArticleInsight(@Param("id") id: string) {
+		return this.intelligence.generateInsight(id);
+	}
+
+	/**
+	 * v1.8.0 — per-story Re-collect: re-fetch the origin, refresh the full
+	 * text, repair a stale/incomplete translation, and fill a missing insight
+	 * (the Re-collect button next to Save).
+	 */
+	@Post("articles/:id/recollect")
+	async recollectArticle(@Param("id") id: string) {
+		const detail = await this.intelligence.recollectStory(id);
+		if (!detail) {
+			throw new NotFoundException(`Article ${id} not found`);
+		}
+		return detail;
 	}
 }

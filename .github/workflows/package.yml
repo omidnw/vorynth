@@ -37,24 +37,103 @@ permissions:
   contents: write
 
 jobs:
+  # ── Stage 1: security ──────────────────────────────────────────────────────
+  # Semgrep static analysis runs FIRST — packaging must not start until the
+  # security scan is clean (free community ruleset + the repo's custom
+  # plugin-bundle rules). No SEMGREP_APP_TOKEN needed on public repos.
+  security:
+    name: Semgrep · Security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v2
+        with:
+          config: |
+            auto
+            .semgrep/plugin-bundles.yml
+
+  # ── Stage 2: tests + lint + build ──────────────────────────────────────────
+  # Full verification gate. Packaging (below) waits on both this and security.
+  verify:
+    name: Tests · Lint · Build
+    needs: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native (better-sqlite3)
+        run: pnpm rebuild better-sqlite3
+
+      # Version files must stay in sync — catches drift early.
+      - name: Version check
+        run: pnpm version:check
+
+      # @vorynth/types needs its dist/ emitted before dependent packages
+      # can resolve it via exports.
+      - name: Build shared types
+        run: pnpm --filter @vorynth/types build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Build
+        run: pnpm build
+
   package:
+    # Security scan + tests/lint/build must pass before any installer is built.
+    needs: [security, verify]
     strategy:
       fail-fast: false
       matrix:
         include:
           # ── macOS ────────────────────────────────────────────────────────
+          # Intel is cross-compiled on an Apple Silicon runner (macos-14) —
+          # the macos-13 Intel runners are slow and flaky. node_arch: x64 makes
+          # setup-node + pnpm rebuild (better-sqlite3) + the embedded portable
+          # node all produce x86_64 artifacts; Rust cross-compiles natively.
           - os: macos-14
             target: aarch64-apple-darwin
             label: macOS (Apple Silicon)
             artifact: vorynth-macos-arm64
             use-cross: false
             is-harmonyos: false
-          - os: macos-13
+            node_arch: ""
+          - os: macos-14
             target: x86_64-apple-darwin
-            label: macOS (Intel)
+            label: macOS (Intel — cross-compiled on Apple Silicon)
             artifact: vorynth-macos-x64
             use-cross: false
             is-harmonyos: false
+            node_arch: x64
 
           # ── Linux ─────────────────────────────────────────────────────────
           - os: ubuntu-22.04
@@ -109,6 +188,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          # macOS Intel is cross-compiled on an arm64 runner — pin the x64 node
+          # build so native rebuilds (better-sqlite3) and the embedded portable
+          # node match the x86_64 target. Empty on every other job = host arch.
+          architecture: ${{ matrix.node_arch }}
           cache: pnpm
 
       - name: Setup Rust
@@ -260,6 +343,12 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing (v1.8.0): when present, tauri-cli signs every bundle
+          # (`.sig` files) and tauri-action merges them into latest.json — the
+          # manifest the in-app updater reads. Store the private key (contents
+          # of apps/desktop/src-tauri/.tauri/vorynth.key, password empty) as a
+          # GitHub secret of this name.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
@@ -268,7 +357,113 @@ jobs:
           releaseDraft: true
           prerelease: false
           overwrite: true
+          # NSIS (setup.exe) over WiX (msi) for Windows updates: NSIS supports
+          # per-user installs without admin elevation, so self-update works
+          # for every user, not just admins.
+          updaterJsonPreferNsis: true
           args: --target ${{ matrix.target }}
+
+      # ── Smoke tests (desktop builds) ──────────────────────────────────────────
+      # Stage 3a verification: the packaged app's shell must find and spawn its
+      # bundled engine. A regression here (v1.8.0 shipped with the engine
+      # unreachable because the shell searched the wrong resource dir) silently
+      # cripples every packaged build. Each OS launches its real packaged
+      # artifact and waits for GET /health. (HarmonyOS is a raw bundle, not a
+      # runnable package — skipped.)
+      - name: Smoke test — Linux AppImage engine /health
+        if: startsWith(matrix.os, 'ubuntu') && matrix.is-harmonyos == false
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq xvfb >/dev/null
+          APPIMAGE="$(find "apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage" -name '*.AppImage' | head -1)"
+          test -n "$APPIMAGE" || { echo "no AppImage produced"; exit 1; }
+          echo "Smoke-testing: $APPIMAGE"
+          cd "$(dirname "$APPIMAGE")"
+          BASE="$(basename "$APPIMAGE")"
+          chmod +x "$BASE"
+          # APPIMAGE_EXTRACT_AND_RUN: GitHub runners have no FUSE. The shell
+          # probes ports upward from 34117; on a clean runner 34117 is free.
+          APPIMAGE_EXTRACT_AND_RUN=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+            WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+            xvfb-run -a "./$BASE" >/tmp/vorynth-smoke.log 2>&1 &
+          APP_PID=$!
+          OK=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:34117/health >/dev/null 2>&1; then
+              echo "ENGINE_HEALTH_OK after ${i}s"
+              OK=1
+              break
+            fi
+            sleep 1
+          done
+          kill "$APP_PID" 2>/dev/null || true
+          wait "$APP_PID" 2>/dev/null || true
+          if [ "$OK" != "1" ]; then
+            echo "Engine never became healthy. Log tail:"
+            tail -40 /tmp/vorynth-smoke.log
+            exit 1
+          fi
+
+      - name: Smoke test — macOS .app engine /health
+        if: startsWith(matrix.os, 'macos') && matrix.is-harmonyos == false
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$(find "apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos" -maxdepth 1 -type d -name '*.app' | head -1)"
+          test -n "$APP" || { echo "no .app produced"; exit 1; }
+          BIN="$APP/Contents/MacOS/vorynth-desktop"
+          test -x "$BIN" || { echo "binary missing: $BIN"; exit 1; }
+          echo "Smoke-testing: $BIN"
+          "$BIN" >/tmp/vorynth-smoke.log 2>&1 &
+          APP_PID=$!
+          OK=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:34117/health >/dev/null 2>&1; then
+              echo "ENGINE_HEALTH_OK after ${i}s"
+              OK=1
+              break
+            fi
+            sleep 1
+          done
+          kill "$APP_PID" 2>/dev/null || true
+          wait "$APP_PID" 2>/dev/null || true
+          if [ "$OK" != "1" ]; then
+            echo "Engine never became healthy. Log tail:"
+            tail -40 /tmp/vorynth-smoke.log
+            exit 1
+          fi
+
+      - name: Smoke test — Windows installer engine /health
+        if: startsWith(matrix.os, 'windows') && matrix.is-harmonyos == false
+        shell: bash
+        run: |
+          set -euo pipefail
+          SETUP="$(find "apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle" -name '*-setup.exe' | head -1)"
+          test -n "$SETUP" || { echo "no NSIS setup found"; exit 1; }
+          echo "Installing: $SETUP"
+          # MSYS_NO_PATHCONV stops Git Bash from mangling /S and /D= into paths.
+          MSYS_NO_PATHCONV=1 "$SETUP" /S "/D=C:\\vorynth-smoke"
+          INSTALLED="$(find "C:/vorynth-smoke" -maxdepth 1 -name '*.exe' 2>/dev/null | head -1)"
+          test -n "$INSTALLED" || { echo "installed exe not found"; exit 1; }
+          echo "Smoke-testing: $INSTALLED"
+          "$INSTALLED" >/tmp/vorynth-smoke.log 2>&1 &
+          APP_PID=$!
+          OK=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:34117/health >/dev/null 2>&1; then
+              echo "ENGINE_HEALTH_OK after ${i}s"
+              OK=1
+              break
+            fi
+            sleep 1
+          done
+          taskkill //F //PID "$APP_PID" 2>/dev/null || true
+          if [ "$OK" != "1" ]; then
+            echo "Engine never became healthy. Log tail:"
+            tail -40 /tmp/vorynth-smoke.log
+            exit 1
+          fi
 
       # ── Release (HarmonyOS build) ─────────────────────────────────────────────
       # Stage 3b: cross-compile the Rust shell as a shared library and package it
@@ -349,6 +544,8 @@ jobs:
   # Linux x86_64 binary is the recommended fallback (works via Linux ABI).
   freebsd:
     name: FreeBSD x86_64
+    # Gated like the rest of packaging: semgrep + tests/lint/build first.
+    needs: [security, verify]
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 

@@ -35,7 +35,7 @@ Test the UI the way a user experiences it — by role, accessible name, and visi
 
 - **Never add `data-test-id` (or `data-testid`, `data-cy`, …).** Tests use roles/aria-labels/standard tags. A missing accessible name is a real a11y bug — surface it, don't test around it.
 - **Prefer semantic HTML**: `button`, `a`, `nav`, `main`, `h1`–`h6`, `label`, `ul/li` — roles come free from real elements. Reserve `role="..."` overrides for composite widgets (tabs, dialog, combobox).
-- **Every user-facing string goes through `useTranslation()`** (i18n R-A07, `en.ts`) — tests assert on the *key-resolved* text.
+- **Every user-facing string goes through `useTranslation()`** (i18n R-A07, `en.ts`) — tests assert on the _key-resolved_ text.
 - **Keep unit tests fast and isolated** — mock API calls (TanStack Query fetchers) rather than booting a server.
 - **Playwright = journeys, not page loads** — one broad journey that exercises the real flow beats twenty smoke page-loads.
 

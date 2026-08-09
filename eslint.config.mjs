@@ -54,4 +54,17 @@ export default tseslint.config(
 			},
 		},
 	},
+	{
+		files: ["apps/landing/src/**/*.{ts,tsx}"],
+		languageOptions: {
+			globals: {
+				window: "readonly",
+				document: "readonly",
+				localStorage: "readonly",
+				navigator: "readonly",
+				fetch: "readonly",
+				console: "readonly",
+			},
+		},
+	},
 );

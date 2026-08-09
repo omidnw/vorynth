@@ -1,6 +1,13 @@
-import { sqliteTable, text, integer, real, primaryKey } from "drizzle-orm/sqlite-core";
+import {
+	sqliteTable,
+	text,
+	integer,
+	real,
+	primaryKey,
+} from "drizzle-orm/sqlite-core";
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import type { PluginSecurityReport } from "@vorynth/types";
 
 /**
  * Vorynth database schema (project-details.md §21).
@@ -23,6 +30,37 @@ export const sources = sqliteTable("sources", {
 		.default("rss"),
 	category: text("category").notNull().default("other"),
 	adapter: text("adapter").notNull().default("rss"),
+	/**
+	 * Source list this source belongs to (v1.8.0) — NULL = a user-created
+	 * source ("My sources"). No DB FK: integrity is enforced in the service
+	 * layer (mirrors the plugins↔sources coupling). When a list is turned off
+	 * its sources keep their rows but are hidden from the page and the crawler.
+	 */
+	listId: text("list_id"),
+	/**
+	 * Optional geography/language tags (v1.8.0) — ISO 3166-1 alpha-2 country
+	 * code, free-text city/region, ISO 639-1 language code. NULL = untagged.
+	 * Used by the Sources page to group/browse by country, city, and language.
+	 */
+	country: text("country"),
+	city: text("city"),
+	language: text("language"),
+	/**
+	 * Semantic metadata (v1.8.0) — how broadly the source matters (`scope`),
+	 * its credibility class (`authority`), and the fields it touches
+	 * (`impactAreas`, JSON array of lowercase slugs). NULL = not yet
+	 * classified. Stored today; the ranking layer reasons over them later.
+	 */
+	scope: text("scope"),
+	authority: text("authority"),
+	impactAreas: text("impact_areas", { mode: "json" }).$type<string[]>(),
+	/**
+	 * Free-form user tags (v1.8.0) — lowercase slugs ("cloud", "ai"), JSON
+	 * array, NULL = none. The curated vocabulary (tech-catalog + app vocab) is
+	 * a UI suggestion, never a constraint — same free-form policy as
+	 * `impactAreas`.
+	 */
+	tags: text("tags", { mode: "json" }).$type<string[]>(),
 	/** Opaque per-adapter JSON: feed URL, HTML selectors, etc. */
 	configuration: text("configuration", { mode: "json" })
 		.$type<Record<string, unknown>>()
@@ -43,6 +81,74 @@ export const sources = sqliteTable("sources", {
 	fetchFrom: integer("fetch_from", { mode: "timestamp_ms" }),
 	fetchTo: integer("fetch_to", { mode: "timestamp_ms" }),
 	lastCheckedAt: integer("last_checked_at", { mode: "timestamp_ms" }),
+	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
+// ── Source lists (v1.8.0 — curated collections) ────────────────────────────
+// Official lists seed in-app code (trusted); community lists are contributed
+// through the GitHub repo and downloaded once into `sources_json` — the cached
+// catalog works offline. `enabled` is the master switch: turning a list off
+// hides its sources from the page and the crawler, rows kept (re-enable
+// restores them with edits intact — R-A10).
+
+export const sourceLists = sqliteTable("source_lists", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	description: text("description").notNull().default(""),
+	/** "official" | "community". */
+	origin: text("origin").notNull().default("official"),
+	/** 18+ flag — age unknown, surfaced as a badge + confirm-to-enable. */
+	nsfw: integer("nsfw", { mode: "boolean" }).notNull().default(false),
+	/** Master switch — off hides the list's sources from page + crawler. */
+	enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+	/** List definition version (community lists carry one from the catalog). */
+	version: text("version"),
+	/**
+	 * The list's source definitions, cached as JSON (SourceListSourceDefinition
+	 * []). Present once the list has been seeded or downloaded — this is the
+	 * offline catalog a community refresh never clears on failure.
+	 */
+	sourcesJson: text("sources_json", { mode: "json" })
+		.$type<unknown[]>()
+		.default(sql`'[]'`),
+	/** Community lists only — curator derived from their repo path. */
+	curator: text("curator"),
+	updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
+/**
+ * Official connector manifests cached from the GitHub connector registry
+ * (v1.8.0 — `connectors/registry.json`). These rows ARE the offline catalog:
+ * a failed registry fetch never clears them, and a registered connector
+ * resolves exactly like a built-in (tier "official", configFields for the Add
+ * Source form). Adapter implementations stay compiled in the engine — the
+ * registry distributes definitions, not executable code (R-A13).
+ */
+export const connectorManifests = sqliteTable("connector_manifests", {
+	/** Stable connector id — equals the adapter registry name. */
+	id: text("id").primaryKey(),
+	/** The source type this connector serves (e.g. "arxiv"). */
+	sourceType: text("source_type").notNull(),
+	name: text("name").notNull(),
+	description: text("description").notNull().default(""),
+	version: text("version").notNull(),
+	/** ConfigField[] — the Add Source form schema for this connector. */
+	configFields: text("config_fields", { mode: "json" })
+		.$type<unknown[]>()
+		.notNull()
+		.default(sql`'[]'`),
+	icon: text("icon"),
+	iconSrc: text("icon_src"),
+	/** Trust tier — "official" for registry connectors. */
+	tier: text("tier").notNull().default("official"),
+	/** Minimum Vorynth version this connector definition targets. */
+	minVorynthVersion: text("min_vorynth_version"),
+	updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
@@ -123,6 +229,13 @@ export const aiInsights = sqliteTable("ai_insights", {
 	category: text("category").notNull().default("other"),
 	recommendedAction: text("recommended_action").notNull().default(""),
 	generatedLanguage: text("generated_language").notNull().default("en"),
+	// v1.8.0 — the insight's text as first written (before a translation
+	// rewrote it), mirroring the article's `original_title`. Translation
+	// preserves these; regenerate (a fresh analysis) clears them.
+	originalSummary: text("original_summary"),
+	originalSignificance: text("original_significance"),
+	originalImpact: text("original_impact"),
+	originalRecommendedAction: text("original_recommended_action"),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
@@ -177,6 +290,16 @@ export const userProfile = sqliteTable("user_profile", {
 	firstName: text("first_name"),
 	lastName: text("last_name"),
 	alias: text("alias"),
+	/**
+	 * Education + experience (v1.9.0) — the user's field of study (free text),
+	 * degree level (stable slug: high-school | associate | bachelor | master |
+	 * phd | other), and experience level (beginner | intermediate | advanced |
+	 * expert). Stored today; a future feature will suggest sources, categories,
+	 * and tags matched to them.
+	 */
+	fieldOfStudy: text("field_of_study"),
+	degreeLevel: text("degree_level"),
+	experienceLevel: text("experience_level"),
 	customInstruction: text("custom_instruction").notNull().default(""),
 	behaviorSummary: text("behavior_summary").notNull().default(""),
 	summaryGeneratedAt: integer("summary_generated_at", {
@@ -220,6 +343,48 @@ export const plugins = sqliteTable("plugins", {
 		.default(sql`'{}'`),
 	enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
+});
+
+/**
+ * User-installed plugins (v1.8.0) — full manifests for plugins that don't ship
+ * in code. Built-in manifests live in ADAPTER_MANIFESTS (R-A09); installed
+ * plugins have no code manifest, so their manifest is persisted here, keyed by
+ * the same plugin id used everywhere else. The bundle itself lives on disk in
+ * the engine's data/plugins/<id>/ dir and is served by GET /plugins/:id/bundle.
+ * Installed plugins are UI-only today — they contribute nav/docs/settings/
+ * themes at runtime, never a source type.
+ */
+export const installedPlugins = sqliteTable("installed_plugins", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	description: text("description").notNull().default(""),
+	version: text("version").notNull(),
+	/** Always "ui" today — adapter plugins can't be installed (R-A03 boundary). */
+	kind: text("kind").notNull().default("ui"),
+	/** UI-plugin tag ("custom", "theme", "icons", …). */
+	type: text("type").notNull().default("custom"),
+	/** Contribution tags — same meaning as PluginInfo.contributions. */
+	contributions: text("contributions", { mode: "json" })
+		.$type<string[]>()
+		.notNull()
+		.default(sql`'[]'`),
+	configuration: text("configuration", { mode: "json" })
+		.$type<Record<string, unknown>>()
+		.notNull()
+		.default(sql`'{}'`),
+	enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+	/** Directory name under the data dir, e.g. "my-plugin". */
+	bundlePath: text("bundle_path").notNull(),
+	/**
+	 * Static-analysis report of bundle.js (v1.8.0) — the security scan's JSON
+	 * output, null until the plugin has been scanned. Built-ins never get one.
+	 */
+	securityScan: text("security_scan", {
+		mode: "json",
+	}).$type<PluginSecurityReport | null>(),
+	installedAt: integer("installed_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),
 });
@@ -297,6 +462,26 @@ export const briefHistory = sqliteTable("brief_history", {
 	contentItemId: text("content_item_id").references(() => contentItems.id),
 	/** Trash (v1.7.0): NULL = live; set = soft-deleted, hidden, restorable. */
 	deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+});
+
+// ── Story view history (v1.8.0) ────────────────────────────────────────────
+// One row per story-opening session. Opening the insight page records
+// scope='insight'; opening the article records 'article'; opening the OTHER
+// surface within the merge window upgrades the same row to 'both' (the user
+// saw the analysis AND the full text in one sitting). Raw, user-owned data
+// the app can later build richer reading surfaces on. The article title is
+// never duplicated here — the list view joins `articles` at read time (R-A09).
+
+export const storyViews = sqliteTable("story_views", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	articleId: text("article_id")
+		.notNull()
+		.references(() => articles.id, { onDelete: "cascade" }),
+	/** 'insight' | 'article' | 'both' — what the user saw in this sitting. */
+	scope: text("scope", { enum: ["insight", "article", "both"] }).notNull(),
+	viewedAt: integer("viewed_at", { mode: "timestamp_ms" })
+		.notNull()
+		.default(sql`(unixepoch() * 1000)`),
 });
 
 // ── App settings (key/value) ────────────────────────────────────────────────
@@ -505,6 +690,7 @@ export const jobs = sqliteTable("jobs", {
 // ── Convenience type re-exports ────────────────────────────────────────────
 
 export type SourceRow = typeof sources.$inferSelect;
+export type SourceListRow = typeof sourceLists.$inferSelect;
 export type ArticleRow = typeof articles.$inferSelect;
 export type ArticleClusterRow = typeof articleClusters.$inferSelect;
 export type AiInsightRow = typeof aiInsights.$inferSelect;
@@ -512,6 +698,8 @@ export type ReportRow = typeof reports.$inferSelect;
 export type UserProfileRow = typeof userProfile.$inferSelect;
 export type LlmProviderRow = typeof llmProviders.$inferSelect;
 export type PluginRow = typeof plugins.$inferSelect;
+export type InstalledPluginRow = typeof installedPlugins.$inferSelect;
+export type ConnectorManifestRow = typeof connectorManifests.$inferSelect;
 export type UsageEventRow = typeof usageEvents.$inferSelect;
 export type SearchHistoryRow = typeof searchHistory.$inferSelect;
 export type BriefHistoryRow = typeof briefHistory.$inferSelect;

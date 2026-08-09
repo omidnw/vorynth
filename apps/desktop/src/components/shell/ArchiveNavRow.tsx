@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
@@ -11,27 +12,32 @@ import { Icon } from "@/components/ui/Icon";
  * row owns switching between the family's sub-pages; the sidebar owns global
  * navigation, so the two don't duplicate each other.
  */
-const ARCHIVE_NAV_ITEMS: Array<{
-	to: string;
-	label: string;
-	icon: string;
-	/** Exact match — don't highlight "Items" while inside /archive/search… */
-	end?: boolean;
-}> = [
-	{ to: "/archive", label: "Items", icon: "inventory_2", end: true },
-	{ to: "/archive/collections", label: "Collections", icon: "folder_special" },
-	{ to: "/bookmarks", label: "Bookmarks", icon: "bookmark" },
-	{ to: "/archive/search", label: "Search", icon: "search" },
-	{ to: "/archive/trash", label: "Trash", icon: "delete" },
-];
-
 export function ArchiveNavRow({ className }: { className?: string }) {
+	const { t } = useTranslation();
+	const items: Array<{
+		to: string;
+		label: string;
+		icon: string;
+		/** Exact match — don't highlight "Items" while inside /archive/search… */
+		end?: boolean;
+	}> = [
+		{ to: "/archive", label: t("nav.items"), icon: "inventory_2", end: true },
+		{
+			to: "/archive/collections",
+			label: t("nav.collections"),
+			icon: "folder_special",
+		},
+		{ to: "/bookmarks", label: t("nav.bookmarks"), icon: "bookmark" },
+		{ to: "/archive/search", label: t("nav.search"), icon: "search" },
+		{ to: "/media", label: t("nav.media"), icon: "photo_library" },
+		{ to: "/archive/trash", label: t("nav.trash"), icon: "delete" },
+	];
 	return (
 		<nav
-			aria-label="Archive sections"
+			aria-label={t("nav.archiveSections")}
 			className={cn("flex flex-wrap gap-1", className)}
 		>
-			{ARCHIVE_NAV_ITEMS.map((item) => (
+			{items.map((item) => (
 				<NavLink
 					key={item.to}
 					to={item.to}

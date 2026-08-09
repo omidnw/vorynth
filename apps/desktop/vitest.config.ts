@@ -17,6 +17,12 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": fileURLToPath(new URL("./src", import.meta.url)),
+			// The plugin SDK — aliased the same way the bundle builder aliases it
+			// (esbuild `alias: { "@vorynth/plugin-host": host-bridge.ts }`), so
+			// plugin source imports resolve identically in tests.
+			"@vorynth/plugin-host": fileURLToPath(
+				new URL("./src/plugins/host/host-bridge.ts", import.meta.url),
+			),
 		},
 	},
 	test: {

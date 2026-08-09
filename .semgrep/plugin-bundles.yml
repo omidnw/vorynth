@@ -1,0 +1,171 @@
+# Custom Semgrep rules — first-party plugin source (apps/desktop/plugins/**).
+#
+# Mirrors the runtime security scanner in
+# apps/core-engine/src/modules/plugins/security-scan.ts: the same checklist the
+# engine applies to user-installed bundle.js files is enforced here on Vorynth's
+# own plugin source, so a first-party plugin can never ship the risky patterns
+# either. Keep this file and the scanner's RULES table in sync when adding or
+# changing a pattern.
+#
+# Run as part of CI (`.github/workflows/ci.yml` semgrep job) alongside the free
+# `p/default` community ruleset.
+
+rules:
+  # ── HIGH severity (code injection) ─────────────────────────────────────────
+  - id: vorynth-plugin-no-eval
+    languages: [ts]
+    severity: ERROR
+    message: >-
+      eval() executes strings as code. First-party plugins must never use it.
+    pattern: eval(...)
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-function-constructor
+    languages: [ts]
+    severity: ERROR
+    message: >-
+      The Function constructor compiles code at runtime — banned in plugins.
+    patterns:
+      - pattern-either:
+          - pattern: new Function(...)
+          - pattern: Function(...)
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-string-timer
+    languages: [ts]
+    severity: ERROR
+    message: >-
+      setTimeout/setInterval with a string payload compiles code — use a
+      function callback instead.
+    patterns:
+      - pattern-either:
+          - pattern: setTimeout($CODE, ...)
+          - pattern: setInterval($CODE, ...)
+      - metavariable-regex:
+          metavariable: $CODE
+          regex: '^["'']'
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-remote-import
+    languages: [ts]
+    severity: ERROR
+    message: >-
+      Dynamic import of a remote URL fetches arbitrary code at runtime — banned.
+    patterns:
+      - pattern: import($URL)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: '^["'']https?://'
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-script-injection
+    languages: [ts]
+    severity: ERROR
+    message: >-
+      Injecting <script> elements (or a remote src) runs arbitrary code — banned.
+    patterns:
+      - pattern-either:
+          - pattern: document.createElement("script")
+          - pattern: document.createElement('script')
+          - pattern-regex: '\.src\s*=\s*["'']https?://'
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  # ── MEDIUM severity (DOM sinks, network egress, hardcoded IPs) ─────────────
+  - id: vorynth-plugin-no-dom-xss-sinks
+    languages: [ts]
+    severity: WARNING
+    message: >-
+      These DOM-injection sinks write raw HTML and bypass React's escaping.
+      Prefer React elements / textContent.
+    patterns:
+      - pattern-either:
+          - pattern: document.write(...)
+          - pattern: $X.innerHTML = ...
+          - pattern: $X.outerHTML = ...
+          - pattern: $X.insertAdjacentHTML(...)
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-external-fetch
+    languages: [ts]
+    severity: WARNING
+    message: >-
+      fetch() to a hardcoded external URL. Plugins may only talk to the local
+      engine (http://127.0.0.1:34117) and their own same-origin assets — use a
+      relative path for plugin assets.
+    patterns:
+      - pattern: fetch($URL, ...)
+      - metavariable-pattern:
+          metavariable: $URL
+          patterns:
+            - pattern-regex: '^["'']https?://'
+            - pattern-not-regex: '^["'']https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?[/'']'
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-network-apis
+    languages: [ts]
+    severity: WARNING
+    message: >-
+      Opening raw network sockets (XMLHttpRequest/WebSocket/EventSource) sends
+      data outside the engine boundary. Plugins should not need these.
+    patterns:
+      - pattern-either:
+          - pattern: new XMLHttpRequest()
+          - pattern: new WebSocket(...)
+          - pattern: new EventSource(...)
+          - pattern: navigator.sendBeacon(...)
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-hardcoded-ip
+    languages: [generic]
+    severity: WARNING
+    message: >-
+      Hardcoded IP address. Plugins should only ever address the local engine
+      (127.0.0.1) or named hosts — a raw IPv4/IPv6 target is suspicious.
+    pattern-regex: '(?<![\d.])(?!(?:127\.0\.0\.1|0\.0\.0\.0)\b)(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  # ── LOW severity (inert in a webview, still suspicious) ────────────────────
+  - id: vorynth-plugin-no-node-builtins
+    languages: [ts]
+    severity: INFO
+    message: >-
+      Node.js built-ins (require/process/child_process) are inert in the
+      webview — remove them; they don't work and indicate copied code.
+    patterns:
+      - pattern-either:
+          - pattern: require(...)
+          - pattern: process.env
+          - pattern: process.versions
+          - pattern: process.argv
+          - pattern: child_process
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"
+
+  - id: vorynth-plugin-no-crypto-mining
+    languages: [generic]
+    severity: INFO
+    message: >-
+      Crypto-mining fingerprint. Never ship mining code in a plugin.
+    pattern-regex: "cryptonight|coinhive"
+    paths:
+      include:
+        - "**/apps/desktop/plugins/**"

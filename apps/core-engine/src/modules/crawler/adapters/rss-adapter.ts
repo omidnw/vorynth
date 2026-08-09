@@ -7,6 +7,7 @@ import type {
 	RawFetchedItem,
 	SourceAdapter,
 } from "../source-adapter.js";
+import { htmlToReadableText } from "./html-extract.js";
 import { articleHash } from "../hashing.js";
 
 /**
@@ -42,9 +43,16 @@ export class RssAdapter implements SourceAdapter {
 			if (!title) continue;
 			items.push({
 				title,
-				content: entry.contentSnippet ?? entry.content ?? entry.summary ?? "",
+				// v1.8.0 readability: prefer the feed's HTML body (content:encoded)
+				// and convert it with the same block/table-aware extraction the
+				// page crawlers use — rss-parser's contentSnippet naively strips
+				// tags, flattening tables into a wall of line-separated cells.
+				// Fall back to the plain snippet/summary when no body exists.
+				content: entry.content
+					? htmlToReadableText(entry.content)
+					: (entry.contentSnippet ?? entry.summary ?? ""),
 				url: entry.link ?? "",
-				author: entry.creator ?? undefined,
+				author: toCreatorName(entry.creator),
 				publishedAt: entry.isoDate
 					? new Date(entry.isoDate)
 					: entry.pubDate
@@ -76,4 +84,33 @@ export class RssAdapter implements SourceAdapter {
 			}),
 		};
 	}
+}
+
+/**
+ * Coerce a feed's `<dc:creator>` value to a plain string author name.
+ *
+ * rss-parser hands most feeds back a string, but feeds that nest elements
+ * inside `<dc:creator>` (e.g. blog.google's structured author block) come back
+ * as an object like `{ name: ["News from Google Team"], title: [""], ... }`.
+ * The Article type says author is `string | null` — an object must never reach
+ * the DB write path (better-sqlite3 rejects it and the whole source collect
+ * rolls back), so extract the name from whatever shape we get (R-A06).
+ */
+export function toCreatorName(creator: unknown): string | undefined {
+	if (typeof creator === "string") {
+		const t = creator.trim();
+		return t || undefined;
+	}
+	if (Array.isArray(creator)) {
+		const t = creator
+			.map((c) => toCreatorName(c))
+			.filter((c): c is string => Boolean(c))
+			.join(", ");
+		return t || undefined;
+	}
+	if (creator && typeof creator === "object") {
+		const name = (creator as Record<string, unknown>)["name"];
+		return toCreatorName(Array.isArray(name) ? name[0] : name);
+	}
+	return undefined;
 }

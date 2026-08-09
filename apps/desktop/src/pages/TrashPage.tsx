@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
@@ -14,12 +15,12 @@ import {
 } from "@/features/trash/trash-api.js";
 import type { TrashEntry, TrashKind } from "@vorynth/types";
 
-/** Badge meta per trash kind — the entry's own icon + label. */
-const KIND_META: Record<TrashKind, { label: string; icon: string }> = {
-	collection: { label: "Collection", icon: "folder_special" },
-	search: { label: "Search", icon: "search" },
-	brief: { label: "Briefing", icon: "summarize" },
-	generated: { label: "Generated", icon: "auto_awesome" },
+/** Badge meta per trash kind — the entry's own icon + label key. */
+const KIND_META: Record<TrashKind, { labelKey: string; icon: string }> = {
+	collection: { labelKey: "trash.kindCollection", icon: "folder_special" },
+	search: { labelKey: "trash.kindSearch", icon: "search" },
+	brief: { labelKey: "trash.kindBrief", icon: "summarize" },
+	generated: { labelKey: "trash.kindGenerated", icon: "auto_awesome" },
 };
 
 /**
@@ -34,6 +35,7 @@ const KIND_META: Record<TrashKind, { label: string; icon: string }> = {
  * (saved items inside require explicit confirmation).
  */
 export function TrashPage() {
+	const { t } = useTranslation();
 	const queryClient = useQueryClient();
 	const [purgeTarget, setPurgeTarget] = useState<TrashEntry | null>(null);
 	const [emptyOpen, setEmptyOpen] = useState(false);
@@ -55,18 +57,25 @@ export function TrashPage() {
 	const entries = trashData?.items ?? [];
 
 	const retentionHint = useMemo(() => {
-		const value = (settings?.["trash.retentionValue"] as number | undefined) ?? 7;
-		const unit = (settings?.["trash.retentionUnit"] as string | undefined) ?? "days";
+		const value =
+			(settings?.["trash.retentionValue"] as number | undefined) ?? 7;
+		const unit =
+			(settings?.["trash.retentionUnit"] as string | undefined) ?? "days";
 		if (value <= 0) {
-			return "Trash is kept until you empty it (auto-delete is off in Settings → Trash).";
+			return t("trash.retentionOff");
 		}
-		return `Entries are auto-deleted after ${value} ${value === 1 ? unit.slice(0, -1) : unit} (Settings → Trash).`;
-	}, [settings]);
+		const unitLabel = value === 1 ? unit.slice(0, -1) : unit;
+		return t("trash.retentionHint", { value, unit: unitLabel });
+	}, [settings, t]);
 
-	const totalBookmarked = entries.reduce((sum, e) => sum + e.bookmarkedCount, 0);
+	const totalBookmarked = entries.reduce(
+		(sum, e) => sum + e.bookmarkedCount,
+		0,
+	);
 
 	const restoreMutation = useMutation({
-		mutationFn: (e: TrashEntry) => restoreTrashEntry({ kind: e.kind, id: e.id }),
+		mutationFn: (e: TrashEntry) =>
+			restoreTrashEntry({ kind: e.kind, id: e.id }),
 		onSuccess: invalidate,
 	});
 	const purgeMutation = useMutation({
@@ -87,19 +96,19 @@ export function TrashPage() {
 
 	return (
 		<ArchiveLayout
-			title="Trash"
-			subtitle="Deleted collections and history entries live here — nothing is lost until you delete it forever."
+			title={t("trash.title")}
+			subtitle={t("trash.subtitle")}
 			docsSectionId="trash"
 			actions={
 				entries.length > 0 ? (
 					<button
 						type="button"
 						onClick={() => setEmptyOpen(true)}
-						title="Permanently delete everything in the trash"
+						title={t("trash.emptyTrashHint")}
 						className="inline-flex cursor-pointer items-center justify-center gap-2 rounded px-3 py-1.5 font-label text-label-sm uppercase text-error transition-colors hover:bg-error/10"
 					>
 						<Icon name="delete_sweep" className="text-[18px]" />
-						Empty trash
+						{t("trash.emptyTrash")}
 					</button>
 				) : undefined
 			}
@@ -114,7 +123,7 @@ export function TrashPage() {
 				<div className="mb-4 flex flex-wrap items-center gap-3">
 					<h3 className="flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 						<Icon name="delete" className="text-base" />
-						{entries.length} {entries.length === 1 ? "entry" : "entries"}
+						{t("trash.entryCount", { count: entries.length })}
 					</h3>
 				</div>
 
@@ -125,8 +134,7 @@ export function TrashPage() {
 							className="text-[48px] text-on-tertiary-container"
 						/>
 						<p className="font-body text-body-md text-on-surface-variant">
-							The trash is empty. Deleting a collection or history entry moves
-							it here instead of destroying it.
+							{t("trash.emptyBody")}
 						</p>
 					</div>
 				) : (
@@ -147,43 +155,47 @@ export function TrashPage() {
 			{/* Delete-forever confirmation */}
 			<ConfirmDialog
 				open={purgeTarget !== null}
-				title={`Delete "${purgeTarget?.name ?? ""}" forever?`}
+				title={t("trash.deleteForeverTitle", {
+					name: purgeTarget?.name ?? "",
+				})}
 				message={
 					purgeTarget
 						? purgeTarget.bookmarkedCount > 0
-							? `${purgeTarget.bookmarkedCount} saved ${
-									purgeTarget.bookmarkedCount === 1 ? "item" : "items"
-								} inside will be permanently removed too — including its bookmark. This can't be undone.`
+							? t("trash.purgeBookmarkedMessage", {
+									count: purgeTarget.bookmarkedCount,
+								})
 							: purgeTarget.kind === "collection"
-								? "The folder and its sub-folders are permanently removed. Stories inside move to uncategorized — no articles are deleted, but the organization is gone for good."
-								: "The history entry and its cached data are permanently deleted. This can't be undone."
+								? t("trash.purgeCollectionMessage")
+								: t("trash.purgeEntryMessage")
 						: ""
 				}
-				confirmLabel="Delete forever"
+				confirmLabel={t("trash.deleteForeverConfirm")}
 				icon="delete"
 				danger
 				confirming={purgeMutation.isPending}
-				confirmingLabel="Deleting…"
-				onConfirm={() => purgeTarget && purgeMutation.mutate({ e: purgeTarget, force: true })}
+				confirmingLabel={t("trash.deleting")}
+				onConfirm={() =>
+					purgeTarget && purgeMutation.mutate({ e: purgeTarget, force: true })
+				}
 				onCancel={() => setPurgeTarget(null)}
 			/>
 
 			{/* Empty-trash confirmation */}
 			<ConfirmDialog
 				open={emptyOpen}
-				title="Empty trash?"
+				title={t("trash.emptyTrashConfirmTitle")}
 				message={
 					totalBookmarked > 0
-						? `${totalBookmarked} saved ${
-								totalBookmarked === 1 ? "item" : "items"
-							} in the trash will be permanently removed too — including their bookmarks. This can't be undone.`
-						: "Every entry in the trash is permanently deleted. This can't be undone."
+						? t("trash.emptyBookmarkedMessage", {
+								count: totalBookmarked,
+							})
+						: t("trash.emptyMessage")
 				}
-				confirmLabel="Empty trash"
+				confirmLabel={t("trash.emptyTrash")}
 				icon="delete_sweep"
 				danger
 				confirming={emptyMutation.isPending}
-				confirmingLabel="Emptying…"
+				confirmingLabel={t("trash.emptying")}
 				onConfirm={() => emptyMutation.mutate(true)}
 				onCancel={() => setEmptyOpen(false)}
 			/>
@@ -204,15 +216,17 @@ function TrashEntryRow({
 	onRestore: () => void;
 	onPurge: () => void;
 }) {
+	const { t } = useTranslation();
 	const meta = KIND_META[entry.kind];
+	const label = t(meta.labelKey);
 	return (
 		<div className="flex flex-wrap items-center gap-3 rounded border border-outline-variant bg-surface-container-low p-4 transition-colors hover:bg-surface-container">
 			<span
 				className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-container-high px-2.5 py-1 font-label text-label-sm text-on-tertiary-container"
-				title={`Type: ${meta.label}`}
+				title={t("trash.typeBadgeTitle", { label })}
 			>
 				<Icon name={meta.icon} className="text-[15px]" />
-				{meta.label}
+				{label}
 			</span>
 			<div className="min-w-0 flex-1">
 				<span className="block truncate font-body text-body-md font-medium text-on-surface">
@@ -221,7 +235,8 @@ function TrashEntryRow({
 				<span className="flex flex-wrap items-center gap-2 font-body text-body-sm text-on-surface-variant">
 					{entry.subtitle ? <span>{entry.subtitle}</span> : null}
 					<span className="h-1 w-1 rounded-full bg-outline-variant" />
-					Deleted {new Date(entry.deletedAt).toLocaleDateString("en-US", {
+					{t("trash.deletedOn")}{" "}
+					{new Date(entry.deletedAt).toLocaleDateString("en-US", {
 						day: "numeric",
 						month: "short",
 						year: "numeric",
@@ -230,8 +245,7 @@ function TrashEntryRow({
 						<>
 							<span className="h-1 w-1 rounded-full bg-outline-variant" />
 							<span className="text-secondary">
-								{entry.bookmarkedCount} saved{" "}
-								{entry.bookmarkedCount === 1 ? "item" : "items"}
+								{t("trash.savedCount", { count: entry.bookmarkedCount })}
 							</span>
 						</>
 					) : null}
@@ -244,19 +258,19 @@ function TrashEntryRow({
 					icon="restore"
 					onClick={onRestore}
 					disabled={busy}
-					title="Restore to its original place"
+					title={t("trash.restoreTitle")}
 				>
-					Restore
+					{t("trash.restore")}
 				</Button>
 				<button
 					type="button"
 					onClick={onPurge}
 					disabled={busy}
-					title="Permanently delete"
+					title={t("trash.permanentlyDelete")}
 					className="inline-flex cursor-pointer items-center justify-center gap-2 rounded px-3 py-1.5 font-label text-label-sm uppercase text-error transition-colors hover:bg-error/10 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					<Icon name="delete" className="text-[18px]" />
-					Delete forever
+					{t("trash.deleteForeverConfirm")}
 				</button>
 			</div>
 		</div>

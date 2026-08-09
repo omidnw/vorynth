@@ -11,9 +11,11 @@ import {
 } from "@nestjs/common";
 import { SourcesService } from "./sources.service.js";
 import type {
+	BulkSourceEnableInput,
 	CreateSourceInput,
 	SourceRange,
 	UpdateSourceInput,
+	VerifySourceInput,
 } from "@vorynth/types";
 
 /**
@@ -23,6 +25,8 @@ import type {
  *   GET    /sources/:id                   get one
  *   GET    /sources/:id/articles          articles within a range window
  *   POST   /sources                       create
+ *   POST   /sources/verify                dry-run a config (Test button, v1.8.0)
+ *   POST   /sources/bulk-enabled          bulk enable/disable a group (v1.8.0)
  *   PATCH  /sources/:id                   update enabled flag, fetchWindowDays, name, …
  *   DELETE /sources/:id                   remove (409 when bookmarked articles
  *                                         exist; `?force=true` confirms)
@@ -36,6 +40,18 @@ export class SourcesController {
 	@Get()
 	async list() {
 		return this.sources.list();
+	}
+
+	/** v1.8.0 — dry-run a source config without saving (Add form "Test"). */
+	@Post("verify")
+	async verify(@Body() body: VerifySourceInput) {
+		return this.sources.verify(body);
+	}
+
+	/** v1.8.0 — bulk enable/disable every source in a category/country/city/language group. */
+	@Post("bulk-enabled")
+	async bulkEnabled(@Body() body: BulkSourceEnableInput) {
+		return this.sources.bulkEnable(body);
 	}
 
 	@Get(":id")

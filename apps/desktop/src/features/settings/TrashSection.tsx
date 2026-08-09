@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Icon } from "@/components/ui/Icon";
-import { Select } from "@/components/ui/Select";
-import { fetchSettings, patchSettings } from "@/features/history/history-api.js";
+import { Select, type SelectOption } from "@/components/ui/Select";
+import {
+	fetchSettings,
+	patchSettings,
+} from "@/features/history/history-api.js";
 import type { AppSettings } from "@vorynth/types";
 
-const UNITS: Array<{ value: string; label: string }> = [
-	{ value: "days", label: "Days" },
-	{ value: "weeks", label: "Weeks" },
-	{ value: "months", label: "Months" },
-	{ value: "years", label: "Years" },
+const UNIT_KEYS: Array<{ value: string; labelKey: string }> = [
+	{ value: "days", labelKey: "trashUnits.days" },
+	{ value: "weeks", labelKey: "trashUnits.weeks" },
+	{ value: "months", labelKey: "trashUnits.months" },
+	{ value: "years", labelKey: "trashUnits.years" },
 ];
 
 /**
@@ -21,6 +25,7 @@ const UNITS: Array<{ value: string; label: string }> = [
  * the trash. Saved (bookmarked) items are never auto-purged (R-A10).
  */
 export function TrashSection() {
+	const { t } = useTranslation();
 	const queryClient = useQueryClient();
 	const { data: settings } = useQuery({
 		queryKey: ["app-settings"],
@@ -35,7 +40,8 @@ export function TrashSection() {
 
 	const patch = useMutation({
 		mutationFn: (changes: Partial<AppSettings>) => patchSettings(changes),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
 	});
 
 	const save = () => {
@@ -48,17 +54,19 @@ export function TrashSection() {
 	};
 
 	const unitLabel = value === 1 ? unit.slice(0, -1) : unit;
+	const units: SelectOption[] = UNIT_KEYS.map((u) => ({
+		value: u.value,
+		label: t(u.labelKey),
+	}));
 
 	return (
 		<GhostCard>
 			<h3 className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 				<Icon name="delete" className="text-base" />
-				Trash
+				{t("trash.title")}
 			</h3>
 			<p className="mb-4 font-body text-body-md leading-relaxed text-on-surface-variant">
-				Deleting a collection or history entry moves it to the Trash instead of
-				destroying it. After the retention window below, trashed entries are
-				permanently deleted — saved items are never auto-deleted.
+				{t("trash.body")}
 			</p>
 
 			<div className="flex flex-col gap-1.5">
@@ -66,7 +74,7 @@ export function TrashSection() {
 					htmlFor="trash-retention"
 					className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant"
 				>
-					Keep deleted items for
+					{t("trash.keepLabel")}
 				</label>
 				<div className="flex flex-wrap items-center gap-2">
 					<input
@@ -75,15 +83,15 @@ export function TrashSection() {
 						min={0}
 						value={draftValue || String(value)}
 						onChange={(e) => setDraftValue(e.target.value)}
-						placeholder="e.g. 7"
-						aria-label="Keep deleted items for (value)"
+						placeholder={t("trash.examplePlaceholder")}
+						aria-label={t("trash.keepAria")}
 						className="w-24 rounded border border-outline-variant bg-surface-container-low px-3 py-2 font-body text-body-md text-on-surface outline-none focus:border-primary"
 					/>
 					<Select
 						value={draftUnit || unit}
 						onChange={(v) => setDraftUnit(v)}
-						aria-label="Trash retention unit"
-						options={UNITS}
+						aria-label={t("trash.unitAria")}
+						options={units}
 						className="w-32"
 					/>
 					<button
@@ -91,13 +99,13 @@ export function TrashSection() {
 						onClick={save}
 						className="rounded bg-primary px-3 py-1.5 font-label text-label-sm text-on-primary"
 					>
-						Apply
+						{t("trash.apply")}
 					</button>
 				</div>
 				<p className="font-body text-body-sm text-on-tertiary-container">
 					{value > 0
-						? `e.g. 7 days removes trash entries older than 7 days. Currently ${value} ${unitLabel}.`
-						: "0 keeps everything in the trash until you empty it. Currently off."}
+						? t("trash.sectionRetentionHint", { value, unit: unitLabel })
+						: t("trash.sectionRetentionOff")}
 				</p>
 			</div>
 		</GhostCard>

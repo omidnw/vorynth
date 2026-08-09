@@ -42,18 +42,16 @@ apps/desktop/src/features/docs/
 import type { DocsSection } from "../types.js";
 
 export const myPageSection: DocsSection = {
-	id: "my-page",            // stable slug → /docs#my-page
+	id: "my-page", // stable slug → /docs#my-page
 	title: "My Page",
 	summary: "One-line summary shown under the title.",
-	icon: "widgets",          // Material Symbols name for the heading badge + sidebar
-	pageRoute: "/my-page",    // link back to the page (bidirectional)
+	icon: "widgets", // Material Symbols name for the heading badge + sidebar
+	pageRoute: "/my-page", // link back to the page (bidirectional)
 	blocks: [
 		{ type: "paragraph", text: "Plain explanation." },
 		{
 			type: "features",
-			items: [
-				{ icon: "bolt", label: "A capability", text: "What it does." },
-			],
+			items: [{ icon: "bolt", label: "A capability", text: "What it does." }],
 		},
 		{
 			type: "flow",
@@ -71,12 +69,12 @@ export const myPageSection: DocsSection = {
 
 ## Block types — pick the right one
 
-| Block | Use for |
-| --- | --- |
-| `paragraph` | Prose explanation (the 'why', mechanics, caveats). |
-| `features` | **Buttons, options, and capabilities** — one row per item with a Material icon + label + short text. This is where "what does this button do" belongs. |
-| `flow` | **Step-by-step visual diagrams** (Collect → Rank → Analyze → Read). Shows how a thing works at a glance. |
-| `bullets` | Short list of facts — use `chevron_right` rendering is automatic; one idea per item. |
+| Block       | Use for                                                                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `paragraph` | Prose explanation (the 'why', mechanics, caveats).                                                                                                     |
+| `features`  | **Buttons, options, and capabilities** — one row per item with a Material icon + label + short text. This is where "what does this button do" belongs. |
+| `flow`      | **Step-by-step visual diagrams** (Collect → Rank → Analyze → Read). Shows how a thing works at a glance.                                               |
+| `bullets`   | Short list of facts — use `chevron_right` rendering is automatic; one idea per item.                                                                   |
 
 **Every button/option/capability a page has should appear as a `features` row or in a `bullets` list — not hidden in prose.** If a user asks "دکمهها چی هستند", the answer must be findable as icon-labeled rows.
 

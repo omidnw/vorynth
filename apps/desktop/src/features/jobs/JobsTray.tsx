@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Job, JobKind } from "@vorynth/types";
 import { Icon } from "@/components/ui/Icon";
 import { useJobsStore } from "./jobs-store.js";
+import { aiErrorCode, aiErrorMessage } from "@/features/llm/ai-error.js";
 
 /**
  * Floating jobs tray — mounted once inside the shell so it survives route
@@ -12,6 +14,7 @@ import { useJobsStore } from "./jobs-store.js";
  */
 export function JobsTray() {
 	const { jobs, startPolling, stopPolling, cancel, refresh } = useJobsStore();
+	const { t } = useTranslation();
 	const [expanded, setExpanded] = useState(false);
 
 	// Start the polling loop once for the whole app.
@@ -24,21 +27,21 @@ export function JobsTray() {
 	if (activeCount === 0 && !expanded) return null;
 
 	return (
-		<div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]">
+		<div className="fixed bottom-4 end-4 z-50 w-80 max-w-[calc(100vw-2rem)]">
 			{/* Active jobs summary — click to expand */}
 			<button
 				onClick={() => setExpanded((v) => !v)}
-				className="flex w-full items-center justify-between rounded border border-outline-variant bg-surface-container-lowest px-4 py-3 text-left shadow-lg transition-colors hover:bg-surface-container-low"
+				className="flex w-full items-center justify-between rounded border border-outline-variant bg-surface-container-lowest px-4 py-3 text-start shadow-lg transition-colors hover:bg-surface-container-low"
 			>
 				<span className="flex items-center gap-2">
 					<Icon
 						name={activeCount > 0 ? "sync" : "check_circle"}
-						className={`text-[18px] ${activeCount > 0 ? "animate-spin text-secondary" : "text-primary"}`}
+						className={`text-[18px] ${activeCount > 0 ? "animate-spin-reverse text-secondary" : "text-primary"}`}
 					/>
 					<span className="font-label text-label-md text-on-surface">
 						{activeCount > 0
-							? `${activeCount} job${activeCount > 1 ? "s" : ""} running`
-							: "Jobs"}
+							? t("jobs.running", { count: activeCount })
+							: t("jobs.title")}
 					</span>
 				</span>
 				<Icon
@@ -54,7 +57,7 @@ export function JobsTray() {
 					{jobs.active.length > 0 ? (
 						<div className="border-b border-outline-variant p-3">
 							<p className="mb-2 font-label text-label-sm uppercase tracking-widest text-secondary">
-								Active
+								{t("jobs.active")}
 							</p>
 							<div className="space-y-3">
 								{jobs.active.map((job) => (
@@ -65,7 +68,7 @@ export function JobsTray() {
 					) : (
 						<div className="p-3">
 							<p className="font-body text-body-md text-on-tertiary-container">
-								No active jobs.
+								{t("jobs.noActive")}
 							</p>
 						</div>
 					)}
@@ -74,7 +77,7 @@ export function JobsTray() {
 					{jobs.recent.length > 0 ? (
 						<div className="p-3">
 							<p className="mb-2 font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-								Recent
+								{t("jobs.recent")}
 							</p>
 							<div className="space-y-2">
 								{jobs.recent.slice(0, 8).map((job) => (
@@ -90,7 +93,7 @@ export function JobsTray() {
 							className="flex w-full items-center justify-center gap-1 py-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant hover:text-primary"
 						>
 							<Icon name="refresh" className="text-[14px]" />
-							Refresh
+							{t("jobs.refresh")}
 						</button>
 					</div>
 				</div>
@@ -108,6 +111,7 @@ function JobRow({
 	onCancel: (id: string) => void;
 	compact?: boolean;
 }) {
+	const { t } = useTranslation();
 	const pct = Math.round(
 		(job.progress.fraction < 0 ? 0 : job.progress.fraction) * 100,
 	);
@@ -125,7 +129,7 @@ function JobRow({
 					<button
 						onClick={() => onCancel(job.id)}
 						className="p-1 text-on-surface-variant hover:text-error"
-						title="Cancel"
+						title={t("jobs.cancel")}
 					>
 						<Icon name="cancel" className="text-[16px]" />
 					</button>
@@ -154,6 +158,15 @@ function JobRow({
 				<p className="mt-0.5 font-mono text-[10px] text-on-tertiary-container">
 					{job.progress.message}
 					{job.durationMs ? ` · ${Math.round(job.durationMs / 1000)}s` : ""}
+				</p>
+			) : null}
+			{/* The "why" for a failed job (v1.9.0): a localized reason from a known
+			    LLM error code, otherwise the engine's own (clear English) message. */}
+			{job.status === "error" && job.error ? (
+				<p className="mt-1 font-mono text-[10px] text-error">
+					{aiErrorCode(job.error)
+						? aiErrorMessage(t, job.error, "llmError.error")
+						: job.error}
 				</p>
 			) : null}
 		</div>
@@ -193,6 +206,11 @@ function kindIcon(kind: JobKind): string {
 			return "bolt";
 		case "summarize":
 			return "auto_awesome";
+		case "translate":
+		case "translate-one":
+			return "translate";
+		case "recollect-one":
+			return "refresh";
 		default:
 			return "task";
 	}

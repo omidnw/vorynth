@@ -32,7 +32,7 @@ export const archiveSection: DocsSection = {
 				{
 					icon: "folder_special",
 					label: "Collections page",
-					text: "Organizing lives on its own page — categories (semantic roots) and folders (max depth 3) in a Windows-Explorer style icon view: big folder cards (each showing its sub-folder and item counts), a breadcrumb, and the selected folder's items listed below. Reach it from the Archive section tabs (Items · Collections · Bookmarks · Search · Trash) shown on every Archive page — see the Collections docs.",
+					text: "Organizing lives on its own page — categories (semantic roots) and folders (max depth 3) in a Windows-Explorer style icon view: big folder cards (each showing its sub-folder and item counts), a breadcrumb, and the selected folder's items listed below. Reach it from the Archive section tabs (Items · Collections · Bookmarks · Search · Media · Trash) shown on every Archive page — see the Collections docs.",
 				},
 				{
 					icon: "edit_note",
@@ -50,6 +50,11 @@ export const archiveSection: DocsSection = {
 					text: "Type filters with icons (All / Stories / Saved / Summaries / Searches / AI asks), a text filter by title or note, and a 'Show archived' toggle. Paginated — 'Show more' loads the next batch.",
 				},
 				{
+					icon: "archive",
+					label: "Archive & delete (v1.8.0)",
+					text: "The Archive action moves an item into the archived view ('Show archived'), where a Delete action permanently removes it after an explicit confirmation — its note, tags, and any bookmark go with it. Archiving first, deleting later keeps the main view clean.",
+				},
+				{
 					icon: "edit_note",
 					label: "Notes & tags",
 					text: "Every item can carry a free-form note and tags; both are searchable from the filter box.",
@@ -61,7 +66,7 @@ export const archiveSection: DocsSection = {
 			items: [
 				"A story opens the article reader; a summary opens the briefing detail; a search or AI ask opens the full cached result.",
 				"Bookmarks get their own page and also appear under 'Saved' in the Archive.",
-				"Save, Note, and Archive actions live on each item row.",
+				"Save, Note, and Archive actions live on each item row; archived items add a permanent Delete (confirmed first).",
 				"Naming: a folder and a category with the same name can sit side by side (they're different types). Two folders — or two categories — with the same name in the same place are refused.",
 			],
 		},

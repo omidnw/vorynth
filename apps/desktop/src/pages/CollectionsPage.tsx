@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Icon } from "@/components/ui/Icon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -47,6 +48,7 @@ const PAGE_SIZE = 20;
  * (item stays in the archive).
  */
 export function CollectionsPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const invalidate = () =>
@@ -250,8 +252,8 @@ export function CollectionsPage() {
 
 	return (
 		<ArchiveLayout
-			title="Collections"
-			subtitle="Organize everything you collect into categories and folders — like a file explorer."
+			title={t("collections.title")}
+			subtitle={t("collections.subtitle")}
 			docsSectionId="collections"
 		>
 			<GhostCard className="min-w-0">
@@ -259,7 +261,7 @@ export function CollectionsPage() {
 				    Segments jump to that folder (grid moves in); "Collections"
 				    returns to root. */}
 				<nav
-					aria-label="Breadcrumb"
+					aria-label={t("collections.breadcrumbAria")}
 					className="mb-5 flex flex-wrap items-center gap-1 font-label text-label-sm"
 				>
 					{viewPath ? (
@@ -268,11 +270,11 @@ export function CollectionsPage() {
 							onClick={() => goTo(null)}
 							className="cursor-pointer rounded px-1 py-0.5 text-on-surface-variant transition-colors hover:text-primary"
 						>
-							Collections
+							{t("collections.title")}
 						</button>
 					) : (
 						<span className="px-1 py-0.5 font-medium text-primary">
-							Collections
+							{t("collections.title")}
 						</span>
 					)}
 					{viewPath
@@ -348,8 +350,8 @@ export function CollectionsPage() {
 							onClick={startCreate}
 							title={
 								currentCollectionId
-									? "Create a folder inside this folder"
-									: "Create a top-level category"
+									? t("collections.createFolderInside")
+									: t("collections.createTopLevelCategory")
 							}
 							className="group flex min-w-0 flex-col items-center gap-1.5 rounded-lg border border-dashed border-outline-variant px-3 py-4 text-center transition-colors hover:border-primary/60 hover:bg-surface-container-high"
 						>
@@ -357,7 +359,9 @@ export function CollectionsPage() {
 								<Icon name="add" className="text-[28px]" />
 							</span>
 							<span className="w-full truncate font-body text-body-sm font-medium text-on-surface-variant group-hover:text-primary">
-								{currentCollectionId ? "New folder" : "New category"}
+								{currentCollectionId
+									? t("collections.newFolder")
+									: t("collections.newCategory")}
 							</span>
 						</button>
 					</div>
@@ -369,8 +373,8 @@ export function CollectionsPage() {
 						/>
 						<p className="font-body text-body-md text-on-surface-variant">
 							{currentCollectionId
-								? "This folder is empty."
-								: "No collections yet."}
+								? t("collections.folderEmpty")
+								: t("collections.noCollectionsYet")}
 						</p>
 						<button
 							type="button"
@@ -378,7 +382,9 @@ export function CollectionsPage() {
 							className="inline-flex cursor-pointer items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
 						>
 							<Icon name="add" className="text-[16px]" />
-							{currentCollectionId ? "New folder" : "New category"}
+							{currentCollectionId
+								? t("collections.newFolder")
+								: t("collections.newCategory")}
 						</button>
 					</div>
 				)}
@@ -409,7 +415,7 @@ export function CollectionsPage() {
 					<AddItemsPanel
 						collectionName={
 							collections.find((c) => c.id === addItemsFor)?.name ??
-							"collection"
+							t("collections.collection")
 						}
 						search={addSearch}
 						onSearch={setAddSearch}
@@ -429,11 +435,11 @@ export function CollectionsPage() {
 					<div className="mb-3 flex flex-wrap items-center gap-3">
 						<h3 className="flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 							<Icon name="inventory_2" className="text-base" />
-							Items
+							{t("collections.items")}
 						</h3>
 						<span className="font-mono text-[11px] tracking-widest text-on-tertiary-container">
 							{viewCollectionId
-								? `${total} ${total === 1 ? "item" : "items"}`
+								? t("collections.itemCount", { count: total })
 								: ""}
 						</span>
 						{viewCollectionId ? (
@@ -443,11 +449,13 @@ export function CollectionsPage() {
 									setAddItemsFor(viewCollectionId);
 									setAddSearch("");
 								}}
-								className="ml-auto inline-flex shrink-0 items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
-								title={`Move archive items into "${viewNode?.name ?? "this folder"}"`}
+								className="ms-auto inline-flex shrink-0 items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
+								title={t("collections.moveItemsInto", {
+									name: viewNode?.name ?? t("collections.thisFolder"),
+								})}
 							>
 								<Icon name="add" className="text-[16px]" />
-								Add items
+								{t("collections.addItems")}
 							</button>
 						) : null}
 					</div>
@@ -459,13 +467,12 @@ export function CollectionsPage() {
 								className="text-[48px] text-on-tertiary-container"
 							/>
 							<p className="font-body text-body-md text-on-surface-variant">
-								Click a folder to see everything inside it — double-click to go
-								inside.
+								{t("collections.clickFolderHint")}
 							</p>
 						</div>
 					) : isPending ? (
 						<p className="py-10 text-center font-body text-body-sm text-on-surface-variant">
-							Loading items…
+							{t("collections.loadingItems")}
 						</p>
 					) : items.length === 0 ? (
 						<div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -475,8 +482,12 @@ export function CollectionsPage() {
 							/>
 							<p className="font-body text-body-md text-on-surface-variant">
 								{viewNode && viewNode.children.length > 0
-									? `No items directly in this folder — its sub-folders (${viewNode.children.map((c) => `"${c.name}"`).join(", ")}) hold their own items. Double-click one to go inside.`
-									: 'No items here yet. Use "Add items" to move archive items into this folder.'}
+									? t("collections.subfoldersHint", {
+											folders: viewNode.children
+												.map((c) => `"${c.name}"`)
+												.join(", "),
+										})
+									: t("collections.noItemsHere")}
 							</p>
 						</div>
 					) : (
@@ -490,8 +501,9 @@ export function CollectionsPage() {
 										onRemove={() =>
 											setRemoveTarget({
 												itemId: item.contentItemId,
-												title: item.title ?? "Untitled",
-												collectionName: viewNode?.name ?? "collection",
+												title: item.title ?? t("collections.untitled"),
+												collectionName:
+													viewNode?.name ?? t("collections.collection"),
 											})
 										}
 									/>
@@ -505,20 +517,26 @@ export function CollectionsPage() {
 										className="inline-flex cursor-pointer items-center gap-1.5 rounded font-label text-label-md text-primary transition-colors hover:text-secondary"
 									>
 										<Icon name="expand_more" className="text-[18px]" />
-										Show more ({total - items.length} remaining)
+										{t("collections.showMore", {
+											remaining: total - items.length,
+										})}
 									</button>
 								</div>
 							) : null}
 						</>
 					)}
-					</div>
-				</GhostCard>
+				</div>
+			</GhostCard>
 
 			<ConfirmDialog
 				open={Boolean(deleteTarget)}
-				title={`Move "${deleteTarget?.name ?? "collection"}" to Trash?`}
-				message={`The collection "${deleteTarget?.name ?? ""}" and all its sub-folders are moved to the Trash — you can restore them from the Trash page. No stories or data are deleted.`}
-				confirmLabel="Move to Trash"
+				title={t("collections.moveToTrashTitle", {
+					name: deleteTarget?.name ?? t("collections.collection"),
+				})}
+				message={t("collections.moveToTrashMessage", {
+					name: deleteTarget?.name ?? "",
+				})}
+				confirmLabel={t("collections.moveToTrashConfirm")}
 				icon="delete"
 				danger
 				onConfirm={() => {
@@ -531,9 +549,13 @@ export function CollectionsPage() {
 
 			<ConfirmDialog
 				open={Boolean(removeTarget)}
-				title={`Remove from "${removeTarget?.collectionName ?? "collection"}"?`}
-				message={`"${removeTarget?.title ?? "This item"}" will leave this collection. The item itself stays in your archive — nothing is deleted.`}
-				confirmLabel="Remove from collection"
+				title={t("collections.removeFromTitle", {
+					name: removeTarget?.collectionName ?? t("collections.collection"),
+				})}
+				message={t("collections.removeFromMessage", {
+					title: removeTarget?.title ?? t("collections.thisItem"),
+				})}
+				confirmLabel={t("collections.removeFromConfirm")}
 				icon="link_off"
 				danger={false}
 				onConfirm={() => {
@@ -560,6 +582,7 @@ function CollectionItemRow({
 	onOpen: () => void;
 	onRemove: () => void;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="rounded border border-outline-variant bg-surface-container-low p-4 transition-colors hover:bg-surface-container">
 			<div className="flex flex-wrap items-start gap-3">
@@ -570,14 +593,18 @@ function CollectionItemRow({
 				<button
 					type="button"
 					onClick={onOpen}
-					className="min-w-0 flex-1 cursor-pointer text-left"
-					title="Open item"
+					className="min-w-0 flex-1 cursor-pointer text-start"
+					title={t("collections.openItem")}
 				>
 					<span className="block truncate font-body text-body-md font-medium text-on-surface">
-						{item.title ?? "Untitled"}
+						{item.title ?? t("collections.untitled")}
 					</span>
 					<span className="flex flex-wrap items-center gap-2 font-body text-body-sm text-on-surface-variant">
-						{item.author ? <span>by {item.author}</span> : null}
+						{item.author ? (
+							<span>
+								{t("article.by")} {item.author}
+							</span>
+						) : null}
 						{item.publishedAt ? (
 							<>
 								<span className="h-1 w-1 rounded-full bg-outline-variant" />
@@ -597,7 +624,7 @@ function CollectionItemRow({
 										fill
 										className="text-[14px]"
 									/>
-									{BOOKMARK_META.label}
+									{t("types.saved")}
 								</span>
 							</>
 						) : null}
@@ -608,8 +635,8 @@ function CollectionItemRow({
 				<button
 					type="button"
 					onClick={onRemove}
-					aria-label="Remove from collection"
-					title="Remove from collection"
+					aria-label={t("collections.removeFromConfirm")}
+					title={t("collections.removeFromConfirm")}
 					className={cn(
 						"shrink-0 cursor-pointer rounded p-1.5 text-on-surface-variant",
 						"transition-colors hover:bg-surface-container-high hover:text-error",

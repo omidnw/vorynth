@@ -16,9 +16,11 @@ import { createTestDb, type TestDb } from "../helpers/db.js";
 const DAY = 86_400_000;
 
 function bookmark(raw: Database.Database, spineId: string): void {
-	raw.prepare(
-		"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
-	).run(randomUUID(), spineId, Date.now());
+	raw
+		.prepare(
+			"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
+		)
+		.run(randomUUID(), spineId, Date.now());
 }
 
 function makeServices(db: TestDb) {
@@ -47,9 +49,9 @@ describe("trash: retention sweep (v1.7.0)", () => {
 			})!;
 			history.deleteSearch([old.id, fresh.id]);
 			// Backdate only the old one beyond the window.
-			raw.prepare(
-				"UPDATE search_history SET deleted_at = ? WHERE id = ?",
-			).run(Date.now() - 10 * DAY, old.id);
+			raw
+				.prepare("UPDATE search_history SET deleted_at = ? WHERE id = ?")
+				.run(Date.now() - 10 * DAY, old.id);
 
 			trash.run();
 
@@ -74,12 +76,13 @@ describe("trash: retention sweep (v1.7.0)", () => {
 				result: { storyCount: 1 } as never,
 			})!;
 			history.deleteBrief([entry.id]);
-			raw.prepare("UPDATE brief_history SET deleted_at = ? WHERE id = ?").run(
-				Date.now() - 30 * DAY,
-				entry.id,
-			);
+			raw
+				.prepare("UPDATE brief_history SET deleted_at = ? WHERE id = ?")
+				.run(Date.now() - 30 * DAY, entry.id);
 			const spineId = (
-				raw.prepare("SELECT content_item_id FROM brief_history WHERE id = ?").get(entry.id) as { content_item_id: string }
+				raw
+					.prepare("SELECT content_item_id FROM brief_history WHERE id = ?")
+					.get(entry.id) as { content_item_id: string }
 			).content_item_id;
 			bookmark(raw, spineId);
 
@@ -104,10 +107,9 @@ describe("trash: retention sweep (v1.7.0)", () => {
 				kind: "category",
 			});
 			await archive.deleteCollection(cat.id);
-			raw.prepare("UPDATE collections SET deleted_at = ? WHERE id = ?").run(
-				Date.now() - 30 * DAY,
-				cat.id,
-			);
+			raw
+				.prepare("UPDATE collections SET deleted_at = ? WHERE id = ?")
+				.run(Date.now() - 30 * DAY, cat.id);
 
 			trash.run();
 
@@ -131,10 +133,9 @@ describe("trash: retention sweep (v1.7.0)", () => {
 				result: { items: [] },
 			})!;
 			history.deleteSearch([entry.id]);
-			raw.prepare("UPDATE search_history SET deleted_at = ? WHERE id = ?").run(
-				Date.now() - 100 * DAY,
-				entry.id,
-			);
+			raw
+				.prepare("UPDATE search_history SET deleted_at = ? WHERE id = ?")
+				.run(Date.now() - 100 * DAY, entry.id);
 
 			trash.run();
 			expect(trash.list().items).toHaveLength(1);

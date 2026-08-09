@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { GhostCard } from "@/components/ui/GhostCard";
@@ -20,6 +21,8 @@ import { fetchSearchHistory } from "@/features/history/history-api.js";
 import { findSearchEntryId } from "@/features/history/use-history-id.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
 import { useTextDirection } from "@/i18n";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import { usePluginStoryExports } from "@/plugins/plugin-hooks";
 import type {
 	AdvancedSearchQuery,
 	ImportanceTier,
@@ -50,6 +53,7 @@ type Mode = SearchMode;
  * entry.
  */
 export function SearchPage() {
+	const { t } = useTranslation();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const [q, setQ] = useState("");
@@ -135,8 +139,8 @@ export function SearchPage() {
 
 	return (
 		<ArchiveLayout
-			title="Search"
-			subtitle="Search across everything Vorynth has collected. Keyword is always available; Ask AI uses RAG over your stories."
+			title={t("search.title")}
+			subtitle={t("search.subtitle")}
 			docsSectionId="search"
 		>
 			{/* Hero search */}
@@ -165,7 +169,7 @@ export function SearchPage() {
 						name={showAdvanced ? "expand_less" : "tune"}
 						className="text-[16px]"
 					/>
-					{showAdvanced ? "Hide advanced search" : "Advanced search"}
+					{showAdvanced ? t("search.hideAdvanced") : t("search.advanced")}
 				</button>
 			</div>
 
@@ -182,15 +186,14 @@ export function SearchPage() {
 
 			{/* Ask-AI background notice */}
 			{mode === "ai" && askActive ? (
-				<GhostCard className="mt-6 border-l-2 border-l-secondary">
+				<GhostCard className="mt-6 border-s-2 border-s-secondary">
 					<div className="flex items-center gap-3">
 						<Icon
 							name="hourglass_top"
 							className="animate-pulse text-secondary"
 						/>
 						<span className="font-body text-body-md text-on-surface">
-							Asking AI in the background — you can navigate away; the answer
-							appears here when it's ready (rate-limited at 5 req/min).
+							{t("search.askingBackground")}
 						</span>
 					</div>
 				</GhostCard>
@@ -257,22 +260,23 @@ function SearchHero({
 	busy: boolean;
 	intelligenceEnabled: boolean;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="space-y-4">
 			{/* Big rounded search input + submit, Google-style */}
 			<div className="flex gap-2">
 				<div className="relative flex-1">
-					<span className="material-symbols-outlined pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-[24px] text-on-surface-variant">
+					<span className="material-symbols-outlined pointer-events-none absolute start-5 top-1/2 -translate-y-1/2 text-[24px] text-on-surface-variant">
 						search
 					</span>
 					<input
 						value={q}
 						onChange={(e) => onQChange(e.target.value)}
 						onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-						placeholder="Search stories…"
+						placeholder={t("search.placeholder")}
 						autoFocus
 						className={cn(
-							"h-14 w-full rounded-full border border-outline-variant bg-surface-container-low pl-14 pr-5",
+							"h-14 w-full rounded-full border border-outline-variant bg-surface-container-low ps-14 pe-5",
 							"font-body text-body-lg text-on-surface outline-none transition-all",
 							"placeholder:text-on-tertiary-container",
 							"focus:border-primary focus:bg-surface-container-lowest focus:shadow-[0_1px_6px_rgba(0,0,0,0.08)]",
@@ -287,7 +291,7 @@ function SearchHero({
 					className="h-14 rounded-full px-6"
 				>
 					<span className="hidden sm:inline">
-						{busy ? "Searching…" : "Search"}
+						{busy ? t("search.searching") : t("search.search")}
 					</span>
 				</Button>
 			</div>
@@ -298,7 +302,7 @@ function SearchHero({
 				{mode === "ai" && !intelligenceEnabled ? (
 					<span className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
 						<Icon name="info" className="text-[14px]" />
-						News mode — add an LLM provider to use Ask AI
+						{t("search.newsModeHint")}
 					</span>
 				) : null}
 			</div>
@@ -313,9 +317,10 @@ function ModeToggle({
 	mode: Mode;
 	onChange: (m: Mode) => void;
 }) {
+	const { t } = useTranslation();
 	const options: { value: Mode; label: string; icon: string }[] = [
-		{ value: "keyword", label: "Keyword", icon: "search" },
-		{ value: "ai", label: "Ask AI", icon: "auto_awesome" },
+		{ value: "keyword", label: t("search.modeKeyword"), icon: "search" },
+		{ value: "ai", label: t("search.modeAskAi"), icon: "auto_awesome" },
 	];
 	const activeIndex = mode === "keyword" ? 0 : 1;
 	return (
@@ -323,7 +328,7 @@ function ModeToggle({
 			{/* Sliding indicator — rounded pill that transitions left */}
 			<div
 				className="absolute inset-0 w-1/2 rounded-full bg-primary shadow-sm transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-				style={{ left: `${activeIndex * 50}%` }}
+				style={{ insetInlineStart: `${activeIndex * 50}%` }}
 			/>
 			{options.map((opt) => {
 				const active = mode === opt.value;
@@ -361,24 +366,29 @@ function AiAnswerCard({
 	historyFetching: boolean;
 	onViewFull: () => void;
 }) {
+	const { t } = useTranslation();
 	const [expanded, setExpanded] = useState(false);
+	const [showExport, setShowExport] = useState(false);
 	const textDir = useTextDirection();
+	const storyExports = usePluginStoryExports();
 	return (
-		<GhostCard className="border-l-2 border-l-primary">
+		<GhostCard className="border-s-2 border-s-primary">
 			<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
 				<h3 className="flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-primary">
 					<Icon name="auto_awesome" className="text-[18px]" />
-					Answer
+					{t("search.answer")}
 				</h3>
 				<div className="flex flex-wrap items-center gap-2">
 					<CountChip
 						icon="format_quote"
-						label={`${result.citations.length} cited`}
+						label={t("search.citedCount", { count: result.citations.length })}
 					/>
 					{result.tokensUsed > 0 ? (
 						<CountChip
 							icon="token"
-							label={`${result.tokensUsed.toLocaleString()} tokens`}
+							label={t("search.tokensUsed", {
+								count: result.tokensUsed.toLocaleString(),
+							})}
 						/>
 					) : null}
 				</div>
@@ -391,7 +401,11 @@ function AiAnswerCard({
 				)}
 				dir={textDir(result.answer)}
 			>
-				<CitedText text={result.answer} citations={result.citations} />
+				<CitedText
+					text={result.answer}
+					citations={result.citations}
+					titleFormatter={(title) => t("search.openCitation", { title })}
+				/>
 			</p>
 
 			{/* Citation preview — first 3 inline */}
@@ -404,7 +418,7 @@ function AiAnswerCard({
 							target="_blank"
 							rel="noreferrer"
 							className="inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-low px-2.5 py-1 font-label text-label-sm text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
-							title={`Open: ${c.title}`}
+							title={t("search.openCitation", { title: c.title })}
 						>
 							<span className="font-mono text-secondary">[{c.n}]</span>
 							<span className="max-w-[16ch] truncate">{c.sourceName}</span>
@@ -413,7 +427,9 @@ function AiAnswerCard({
 					))}
 					{result.citations.length > 3 ? (
 						<span className="inline-flex items-center rounded-full bg-surface-container px-2.5 py-1 font-mono text-[11px] text-on-tertiary-container">
-							+{result.citations.length - 3} more
+							{t("search.moreCitations", {
+								count: result.citations.length - 3,
+							})}
 						</span>
 					) : null}
 				</div>
@@ -421,17 +437,29 @@ function AiAnswerCard({
 
 			{/* Footer actions */}
 			<div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-4">
-				<button
-					type="button"
-					onClick={() => setExpanded((v) => !v)}
-					className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:text-primary"
-				>
-					<Icon
-						name={expanded ? "unfold_less" : "unfold_more"}
-						className="text-[16px]"
-					/>
-					{expanded ? "Show less" : "Expand inline"}
-				</button>
+				<div className="flex flex-wrap items-center gap-3">
+					<button
+						type="button"
+						onClick={() => setExpanded((v) => !v)}
+						className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:text-primary"
+					>
+						<Icon
+							name={expanded ? "unfold_less" : "unfold_more"}
+							className="text-[16px]"
+						/>
+						{expanded ? t("search.showLess") : t("search.expandInline")}
+					</button>
+					{storyExports.length > 0 ? (
+						<button
+							type="button"
+							onClick={() => setShowExport(true)}
+							className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:text-primary"
+						>
+							<Icon name="file_download" className="text-[16px]" />
+							{t("search.export")}
+						</button>
+					) : null}
+				</div>
 				<Button
 					variant="secondary"
 					size="sm"
@@ -439,16 +467,39 @@ function AiAnswerCard({
 					disabled={!entryId}
 					title={
 						entryId
-							? "Open the full result"
+							? t("search.viewFullResult")
 							: historyFetching
-								? "Saving to history…"
-								: "Full result unavailable"
+								? t("search.savingToHistory")
+								: t("search.fullResultUnavailable")
 					}
 					onClick={onViewFull}
 				>
-					{entryId ? "View full result" : "Saving…"}
+					{entryId ? t("search.viewFullResult") : t("search.saving")}
 				</Button>
 			</div>
+
+			{/* Export — the Ask-AI answer with its cited sources (v1.8.0). */}
+			{showExport ? (
+				<ExportDialog
+					content={{
+						kind: "other",
+						title: result.query,
+						body: [
+							result.answer,
+							result.citations.length > 0
+								? `${t("search.exportSourcesHeader")}:\n${result.citations
+										.map(
+											(c) => `[${c.n}] ${c.title} — ${c.sourceName}\n${c.url}`,
+										)
+										.join("\n")}`
+								: undefined,
+						]
+							.filter(Boolean)
+							.join("\n\n"),
+					}}
+					onClose={() => setShowExport(false)}
+				/>
+			) : null}
 		</GhostCard>
 	);
 }
@@ -466,6 +517,7 @@ function KeywordResults({
 	historyFetching: boolean;
 	onViewFull: () => void;
 }) {
+	const { t } = useTranslation();
 	const visible = result.hits.slice(0, KEYWORD_PREVIEW_HITS);
 	const hiddenCount = result.hits.length - visible.length;
 	return (
@@ -475,10 +527,13 @@ function KeywordResults({
 					<span className="font-headline text-headline-md text-primary normal-case tracking-normal">
 						{result.totalMatches}
 					</span>{" "}
-					match{result.totalMatches !== 1 ? "es" : ""}
+					{t("search.matches", { count: result.totalMatches })}
 				</p>
 				<p className="font-mono text-[11px] text-on-tertiary-container">
-					showing {visible.length} of {result.hits.length}
+					{t("search.showingOf", {
+						shown: visible.length,
+						total: result.hits.length,
+					})}
 				</p>
 			</div>
 
@@ -497,14 +552,16 @@ function KeywordResults({
 						disabled={!entryId}
 						title={
 							entryId
-								? "Open the full result list"
+								? t("search.viewFullResult")
 								: historyFetching
-									? "Saving to history…"
-									: "Full result unavailable"
+									? t("search.savingToHistory")
+									: t("search.fullResultUnavailable")
 						}
 						onClick={onViewFull}
 					>
-						{entryId ? `View all ${result.hits.length} results` : "Saving…"}
+						{entryId
+							? t("search.viewAllResults", { count: result.hits.length })
+							: t("search.saving")}
 					</Button>
 				</div>
 			) : null}
@@ -513,6 +570,7 @@ function KeywordResults({
 }
 
 function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
+	const { t } = useTranslation();
 	const textDir = useTextDirection();
 	return (
 		<GhostCard
@@ -522,7 +580,7 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 			<div className="mb-2 flex flex-wrap items-center gap-2">
 				<span className="inline-flex items-center gap-1 rounded-full bg-secondary-container px-2 py-0.5 font-mono text-[11px] uppercase tracking-widest text-on-secondary-container">
 					<Icon name="trending_up" className="text-[12px]" />
-					score {hit.score.toFixed(1)}
+					{t("search.score", { value: hit.score.toFixed(1) })}
 				</span>
 				{hit.article.publishedAt ? (
 					<span className="inline-flex items-center gap-1 font-mono text-[11px] text-on-tertiary-container">
@@ -543,6 +601,21 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 				<Link to={`/articles/${hit.article.id}`}>{hit.article.title}</Link>
 			</h3>
 
+			{/* A translated story keeps its source title searchable + visible
+			    (v1.8.0) — the original sits muted under the translated title. */}
+			{hit.article.originalTitle &&
+			hit.article.originalTitle !== hit.article.title ? (
+				<p
+					className="-mt-0.5 mb-1.5 truncate font-body text-body-sm text-on-surface-variant"
+					dir={textDir(hit.article.originalTitle)}
+				>
+					<span className="me-1 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container">
+						{t("article.original")}
+					</span>
+					{hit.article.originalTitle}
+				</p>
+			) : null}
+
 			{hit.highlight ? (
 				<p
 					className="mt-2 font-body text-body-md text-on-surface-variant line-clamp-3"
@@ -558,7 +631,7 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 					className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-primary hover:underline"
 				>
 					<Icon name="menu_book" className="text-[14px]" />
-					Read
+					{t("article.read")}
 				</Link>
 				<a
 					href={hit.article.url}
@@ -567,7 +640,7 @@ function KeywordHitCard({ hit }: { hit: SearchResult["hits"][number] }) {
 					className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-secondary hover:text-primary hover:underline"
 				>
 					<Icon name="open_in_new" className="text-[14px]" />
-					Read source
+					{t("search.readSource")}
 				</a>
 			</div>
 		</GhostCard>
@@ -595,6 +668,7 @@ function AdvancedSearchPanel({
 }: {
 	onResult: (result: SearchResult) => void;
 }) {
+	const { t } = useTranslation();
 	const [q, setQ] = useState("");
 	const [domains, setDomains] = useState<SourceCategory[]>([]);
 	const [importance, setImportance] = useState<ImportanceTier[]>([]);
@@ -642,44 +716,43 @@ function AdvancedSearchPanel({
 		<GhostCard className="mt-4">
 			<h3 className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 				<Icon name="tune" className="text-base" />
-				Advanced search
+				{t("search.advanced")}
 			</h3>
 			<p className="mb-6 font-body text-body-sm text-on-tertiary-container">
-				Structured filters over the collected corpus — for research-grade
-				queries.
+				{t("search.advancedHint")}
 			</p>
 
 			{/* Row 1: keywords + author */}
 			<div className="mb-4 grid gap-3 sm:grid-cols-2">
 				<div className="space-y-1.5">
 					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-						Keywords
+						{t("search.keywords")}
 					</label>
 					<div className="relative">
-						<span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">
+						<span className="material-symbols-outlined pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">
 							search
 						</span>
 						<input
 							value={q}
 							onChange={(e) => setQ(e.target.value)}
-							placeholder="Full-text terms (optional)"
-							className="w-full rounded border border-outline-variant bg-surface-container-low py-2 pl-9 pr-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
+							placeholder={t("search.fullTextTermsPlaceholder")}
+							className="w-full rounded border border-outline-variant bg-surface-container-low py-2 ps-9 pe-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
 						/>
 					</div>
 				</div>
 				<div className="space-y-1.5">
 					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-						Author
+						{t("search.author")}
 					</label>
 					<div className="relative">
-						<span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">
+						<span className="material-symbols-outlined pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">
 							person
 						</span>
 						<input
 							value={author}
 							onChange={(e) => setAuthor(e.target.value)}
-							placeholder="e.g. BrianKrebs"
-							className="w-full rounded border border-outline-variant bg-surface-container-low py-2 pl-9 pr-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
+							placeholder={t("search.authorPlaceholder")}
+							className="w-full rounded border border-outline-variant bg-surface-container-low py-2 ps-9 pe-3 font-body text-body-md text-on-surface outline-none transition-colors focus:border-secondary"
 						/>
 					</div>
 				</div>
@@ -689,19 +762,19 @@ function AdvancedSearchPanel({
 			<div className="mb-4 grid gap-3 sm:grid-cols-3">
 				<div className="space-y-1.5">
 					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-						Source
+						{t("search.source")}
 					</label>
 					<Select
 						value={sourceId}
 						onChange={setSourceId}
-						aria-label="Filter by source"
-						placeholder="All sources"
+						aria-label={t("search.filterBySourceAria")}
+						placeholder={t("search.allSources")}
 						options={sourceOptions}
 					/>
 				</div>
 				<div className="space-y-1.5">
 					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-						Collected from
+						{t("search.collectedFrom")}
 					</label>
 					<input
 						type="date"
@@ -712,7 +785,7 @@ function AdvancedSearchPanel({
 				</div>
 				<div className="space-y-1.5">
 					<label className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-						to
+						{t("search.to")}
 					</label>
 					<input
 						type="date"
@@ -726,7 +799,7 @@ function AdvancedSearchPanel({
 			{/* Row 3: domain chips */}
 			<fieldset className="mb-4">
 				<legend className="mb-2 font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-					Domains
+					{t("search.domains")}
 				</legend>
 				<div className="flex flex-wrap gap-1.5">
 					{ADVANCED_DOMAINS.map((d) => {
@@ -738,13 +811,13 @@ function AdvancedSearchPanel({
 								onClick={() => toggle(domains, setDomains, d)}
 								aria-pressed={active}
 								className={cn(
-									"rounded-full px-3 py-1 font-label text-label-sm capitalize transition-colors",
+									"rounded-full px-3 py-1 font-label text-label-sm transition-colors",
 									active
 										? "bg-primary text-on-primary"
 										: "border border-outline-variant text-on-surface-variant hover:border-primary",
 								)}
 							>
-								{d.replace(/-/g, " ")}
+								{t(`categories.${d}`)}
 							</button>
 						);
 					})}
@@ -755,7 +828,7 @@ function AdvancedSearchPanel({
 			<div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
 				<fieldset>
 					<legend className="mb-2 font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-						Importance
+						{t("brief.importance")}
 					</legend>
 					<div className="flex flex-wrap gap-1.5">
 						{ADVANCED_IMPORTANCE.map((i) => {
@@ -767,13 +840,13 @@ function AdvancedSearchPanel({
 									onClick={() => toggle(importance, setImportance, i)}
 									aria-pressed={active}
 									className={cn(
-										"rounded-full px-3 py-1 font-label text-label-sm capitalize transition-colors",
+										"rounded-full px-3 py-1 font-label text-label-sm transition-colors",
 										active
 											? "bg-primary text-on-primary"
 											: "border border-outline-variant text-on-surface-variant hover:border-primary",
 									)}
 								>
-									{i.replace(/-/g, " ")}
+									{t(`tiers.${i}`)}
 								</button>
 							);
 						})}
@@ -786,14 +859,16 @@ function AdvancedSearchPanel({
 						onChange={(e) => setHasInsight(e.target.checked)}
 						className="h-4 w-4 accent-secondary"
 					/>
-					Has AI analysis
+					{t("search.hasAiAnalysis")}
 				</label>
 			</div>
 
 			{/* Search button */}
 			<div className="flex items-center gap-3">
 				<Button icon="search" onClick={runSearch} disabled={mutation.isPending}>
-					{mutation.isPending ? "Searching…" : "Search with filters"}
+					{mutation.isPending
+						? t("search.searching")
+						: t("search.searchWithFilters")}
 				</Button>
 				{domains.length > 0 ||
 				importance.length > 0 ||
@@ -816,7 +891,7 @@ function AdvancedSearchPanel({
 						}}
 						className="font-label text-label-sm text-on-surface-variant transition-colors hover:text-primary"
 					>
-						Clear filters
+						{t("search.clearFilters")}
 					</button>
 				) : null}
 			</div>
@@ -839,6 +914,7 @@ function SearchEmptyState({
 	mode: Mode;
 	intelligenceEnabled: boolean;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
 			<Icon
@@ -846,14 +922,16 @@ function SearchEmptyState({
 				className="text-[48px] text-on-tertiary-container"
 			/>
 			<h3 className="font-headline text-headline-md text-on-surface">
-				{mode === "ai" ? "Ask anything" : "Find stories"}
+				{mode === "ai"
+					? t("search.emptyTitleAi")
+					: t("search.emptyTitleKeyword")}
 			</h3>
 			<p className="max-w-md font-body text-body-md text-on-surface-variant">
 				{mode === "ai"
 					? intelligenceEnabled
-						? "Ask a question in natural language — Vorynth answers from your collected stories, with citations."
-						: "Ask AI needs an LLM provider. Add one in Settings, or switch to Keyword for instant results."
-					: "Keyword search runs instantly over every title and body Vorynth has collected. Press Enter or hit Search."}
+						? t("search.emptyAiEnabled")
+						: t("search.emptyAiNeedsProvider")
+					: t("search.emptyKeyword")}
 			</p>
 		</div>
 	);

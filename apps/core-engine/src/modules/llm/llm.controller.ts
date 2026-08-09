@@ -47,9 +47,7 @@ export class LlmController {
 	}
 
 	@Post("llm/mode")
-	async setMode(
-		@Body() body: { mode: "intelligence" | "news" },
-	) {
+	async setMode(@Body() body: { mode: "intelligence" | "news" }) {
 		this.llm.setMode(body.mode);
 		return { mode: this.llm.getMode() };
 	}
@@ -105,6 +103,7 @@ export class LlmController {
 		return {
 			configured: ok,
 			providerKind: ok ? this.llm.activeKind : null,
+			unavailableReason: ok ? null : this.llm.unavailableReason(),
 			rateLimit: this.llm.rateLimit,
 		};
 	}
@@ -141,15 +140,15 @@ export class LlmController {
 			.select({ count: sql<number>`count(*)` })
 			.from(articles);
 
-			return {
-				ready: true,
-				version: VORYNTH_VERSION,
-				llm: {
-					configured,
-					providerKind: configured ? this.llm.activeKind : null,
-					mode: this.llm.getMode(),
-				},
-				sources: {
+		return {
+			ready: true,
+			version: VORYNTH_VERSION,
+			llm: {
+				configured,
+				providerKind: configured ? this.llm.activeKind : null,
+				mode: this.llm.getMode(),
+			},
+			sources: {
 				total: Number(totalSources[0]?.count ?? 0),
 				enabled: Number(enabledSources[0]?.count ?? 0),
 			},

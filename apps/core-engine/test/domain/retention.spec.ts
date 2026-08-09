@@ -21,10 +21,12 @@ describe("auto-delete retention", () => {
 		fresh: string;
 	} {
 		const raw = db.service.rawDb;
-		raw.prepare(
-			`INSERT INTO sources (id, name, url, type, category, adapter)
+		raw
+			.prepare(
+				`INSERT INTO sources (id, name, url, type, category, adapter)
 			 VALUES ('src-ret', 'Ret', 'https://e.com', 'rss', 'other', 'rss')`,
-		).run();
+			)
+			.run();
 		const old = randomUUID();
 		const oldBookmarked = randomUUID();
 		const oldInCollection = randomUUID();
@@ -34,10 +36,12 @@ describe("auto-delete retention", () => {
 
 		const insert = (id: string, at: number) => {
 			const spine = createSpine(raw, "article", new Date(at));
-			raw.prepare(
-				`INSERT INTO articles (id, source_id, title, content, url, hash, collected_at)
+			raw
+				.prepare(
+					`INSERT INTO articles (id, source_id, title, content, url, hash, collected_at)
 				 VALUES (?, 'src-ret', 't', 'c', 'u', ?, ?)`,
-			).run(id, randomUUID(), at);
+				)
+				.run(id, randomUUID(), at);
 			attachSpine(raw, "articles", id, spine);
 			return spine;
 		};
@@ -47,22 +51,28 @@ describe("auto-delete retention", () => {
 		insert(fresh, now);
 
 		// Bookmark one old story; put another in a collection.
-		raw.prepare(
-			"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
-		).run(randomUUID(), sOldBookmarked, now);
-		raw.prepare(
-			"INSERT INTO collections (id, name, kind) VALUES (?, ?, ?)",
-		).run("col-ret", "Reading", "category");
-		raw.prepare("UPDATE content_items SET collection_id = 'col-ret' WHERE id = ?").run(
-			sOldInCollection,
-		);
+		raw
+			.prepare(
+				"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
+			)
+			.run(randomUUID(), sOldBookmarked, now);
+		raw
+			.prepare("INSERT INTO collections (id, name, kind) VALUES (?, ?, ?)")
+			.run("col-ret", "Reading", "category");
+		raw
+			.prepare(
+				"UPDATE content_items SET collection_id = 'col-ret' WHERE id = ?",
+			)
+			.run(sOldInCollection);
 		return { old, oldBookmarked, oldInCollection, fresh };
 	}
 
 	const count = (db: TestDb, id: string) =>
-		(db.service.rawDb
-			.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?")
-			.get(id) as { c: number }).c;
+		(
+			db.service.rawDb
+				.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?")
+				.get(id) as { c: number }
+		).c;
 
 	it("removes only unprotected old stories (bookmarks + collections protected by default)", () => {
 		const db = createTestDb();

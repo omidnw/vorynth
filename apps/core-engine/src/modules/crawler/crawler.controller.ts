@@ -7,7 +7,9 @@ import { CrawlerService } from "./crawler.service.js";
  *   POST /crawl/sources/:id   collect from one source
  *   POST /crawl/sources        collect from all enabled sources
  *
- * The frontend "Collect Now" button hits `POST /crawl/sources`.
+ * The frontend "Collect Now" button hits `POST /crawl/sources`. A `force`
+ * body flag re-processes items that already exist (content refresh — used to
+ * repair stored content after extraction fixes), not just new ones.
  */
 @Controller("crawl")
 export class CrawlerController {
@@ -16,9 +18,10 @@ export class CrawlerController {
 	) {}
 
 	@Post("sources/:id")
-	async collectOne(@Param("id") id: string) {
-		const collected = await this.crawler.collectSource(id);
-		return { sourceId: id, collected: collected.length };
+	async collectOne(@Param("id") id: string, @Body() body: { force?: boolean }) {
+		const force = Boolean(body?.force);
+		const collected = await this.crawler.collectSource(id, { force });
+		return { sourceId: id, collected: collected.length, force };
 	}
 
 	@Post("sources")

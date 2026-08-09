@@ -1,0 +1,85 @@
+/* ── App preview frame — the WINDOW that contains the real desktop app
+ *   (ShellLayout + BriefPage). The desktop shell uses `fixed` positioning for
+ *   its sidebar/top bar; a `transform` on this container makes those elements
+ *   position against the window instead of the viewport. The window is
+ *   viewport-sized (720px) with the content column scrolling internally —
+ *   exactly how the app behaves — so the preview reads as a real screenshot.
+ *   Everything else comes from the desktop's own Tailwind classes (compiled by
+ *   the landing Tailwind build). */
+
+.preview-window {
+	position: relative;
+	transform: translateZ(0);
+	height: 720px;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+	background: rgb(var(--color-background));
+}
+.dark .preview-window {
+	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+/* The shell root's `min-h-screen` and the sidebar's `h-screen` (100vh) become
+   the window's height; the main content column scrolls internally so the
+   sidebar + top bar stay pinned (like the real app). */
+.preview-window .h-screen {
+	height: 100%;
+}
+.preview-window .min-h-screen {
+	height: 100%;
+	min-height: 100%;
+}
+.preview-window main {
+	height: 100%;
+	overflow-y: auto;
+}
+
+/* Mobile: the desktop sidebar doesn't fit — hide it and let content use the
+   full window (the app is a desktop app; this keeps the preview readable). */
+@media (max-width: 760px) {
+	.preview-window {
+		height: 520px;
+	}
+	.preview-window aside {
+		display: none;
+	}
+	.preview-window main {
+		margin-left: 0;
+	}
+	.preview-window header {
+		left: 0;
+	}
+}
+
+.app-mock {
+	margin: 52px auto 0;
+	max-width: 880px;
+	text-align: left;
+	position: relative;
+}
+.app-mock::before {
+	content: "";
+	position: absolute;
+	inset: -48px -80px -24px;
+	background: radial-gradient(
+		ellipse 520px 260px at 50% 100%,
+		var(--accent-glow) 0%,
+		transparent 70%
+	);
+	pointer-events: none;
+}
+.app-mock > * {
+	position: relative;
+	z-index: 1;
+}
+
+@media (max-width: 768px) {
+	.app-mock {
+		margin-top: 40px;
+	}
+	.app-mock::before {
+		inset: -28px -24px -12px;
+	}
+}

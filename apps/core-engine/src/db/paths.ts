@@ -52,6 +52,20 @@ export function resolveArticleMediaDir(
 	return join(resolveMediaDir(env), articleId);
 }
 
+/**
+ * User-installed plugin bundles dir — one subdirectory per installed plugin
+ * (`data/plugins/<id>/bundle.js` + `plugin.json`). Local-first install path:
+ * dropping a plugin folder here (and pressing "Scan" in the app) installs it.
+ * Sits under the data dir so it travels with backups and is fully user-owned.
+ */
+export function resolvePluginsDir(
+	env: NodeJS.ProcessEnv = process.env,
+): string {
+	const dir = join(resolveDataDir(env), "plugins");
+	mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
 export function resolveDirFor(
 	file: string,
 	_env: NodeJS.ProcessEnv = process.env,

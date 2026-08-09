@@ -17,7 +17,19 @@ export const transparencySections: DocsSection[] = [
 			},
 			{
 				type: "paragraph",
-				text: "Titles and descriptions come straight from the source — Vorynth doesn't rewrite them. If a title or body looks different from the article you open, it's usually the source's own summary or a translation (Translate Stories keeps the original title and body one toggle away — the original is never overwritten).",
+				text: "Many feeds only publish a short description per item. When that happens, Vorynth also fetches the article's own page and extracts its full text, so stories carry the complete body instead of just the snippet — falling back to the feed's description when the page can't be read. Some sites block every automated reader (openai.com, Cloudflare-fronted blogs); for those, an archived copy of the page is fetched from the Wayback Machine instead. Titles and descriptions always come from the source; Vorynth doesn't rewrite them. If a title or body looks different from the article you open, it's usually the source's own summary or a translation (Translate Stories keeps the original title and body one toggle away — the original is never overwritten).",
+			},
+			{
+				type: "paragraph",
+				text: "A daily Data health check (Settings, on by default) repairs stories stored before full-text fetching existed: it completes snippet-only texts, detects and re-extracts damaged bodies (pages whose extraction once leaked inline JSON or media-player chrome into the text), re-translates — or honestly clears — translations that went stale when an origin was upgraded, re-translates translations that look incomplete (truncated or carrying leftover placeholders), and when Intelligence mode is on it generates the missing AI insights. The check runs as a visible job in the tray, respects the LLM rate limit, never fabricates content, and can be turned off — nothing is hidden, and a story whose page can't be read simply keeps its snippet.",
+			},
+			{
+				type: "paragraph",
+				text: "Every story also has a per-story Re-collect button (next to Save, in the reader and on the Brief card): it re-fetches that one story's origin, refreshes its full text, re-translates anything that went stale, and fills a missing AI analysis. When a translation is detected as incomplete a Re-translate option appears in its place — so a broken translation always has an honest fix, never a dead end.",
+			},
+			{
+				type: "paragraph",
+				text: "Feeds that publish full HTML bodies are stored and shown with their formatting — the reader renders bold, links, lists, and quotes so a story never appears as raw markup. That markup comes from untrusted sources, so it is sanitized before rendering (scripts, styles, and remote images are stripped, and links always open in a new tab) — presentation only, the stored text is never rewritten.",
 			},
 		],
 	},

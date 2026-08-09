@@ -1,0 +1,377 @@
+/* @vorynth/ui — preview.css
+ *
+ * A static CSS shim that defines exactly the Tailwind utility classes used by
+ * the extracted components (Icon, Badge, SidebarNavItem, BriefItemView), so
+ * they render correctly in a host that does NOT run Tailwind (the landing
+ * page). Colors/spacing read from the same `--color-*` tokens the app defines
+ * (theme.css), so light/dark stay in lockstep.
+ *
+ * ⚠️ Maintenance: if you add a new Tailwind utility to one of these components,
+ * add the matching rule here too. The desktop app is unaffected (Tailwind
+ * generates its own copy there); this shim only covers the landing build.
+ *
+ * Token reference: the app stores colors as `R G B` triplets in theme.css so
+ * Tailwind can layer alpha; here we wrap them in rgb(). */
+
+/* ── Color utilities (mapped to the app's --color-* vars) ──────────────── */
+.bg-primary {
+	background-color: rgb(var(--color-primary));
+}
+.bg-outline-variant {
+	background-color: rgb(var(--color-outline-variant));
+}
+.bg-surface-container-low {
+	background-color: rgb(var(--color-surface-container-low));
+}
+
+.text-primary {
+	color: rgb(var(--color-primary));
+}
+.text-on-surface {
+	color: rgb(var(--color-on-surface));
+}
+.text-on-surface-variant {
+	color: rgb(var(--color-on-surface-variant));
+}
+.text-on-tertiary-container {
+	color: rgb(var(--color-on-tertiary-container));
+}
+.text-outline-variant {
+	color: rgb(var(--color-outline-variant));
+}
+.text-secondary {
+	color: rgb(var(--color-secondary));
+}
+
+.dark .text-primary-fixed {
+	color: rgb(var(--color-primary-fixed));
+}
+
+.hover\:bg-surface-container-high:hover {
+	background-color: rgb(var(--color-surface-container-high));
+}
+.hover\:border-secondary:hover {
+	border-color: rgb(var(--color-secondary));
+}
+.hover\:text-primary:hover {
+	color: rgb(var(--color-primary));
+}
+.hover\:text-secondary:hover {
+	color: rgb(var(--color-secondary));
+}
+.hover\:underline:hover {
+	text-decoration: underline;
+}
+.group:hover .group-hover\:bg-primary {
+	background-color: rgb(var(--color-primary));
+}
+.group:hover .group-hover\:opacity-100 {
+	opacity: 1;
+}
+
+/* ── Border utilities ──────────────────────────────────────────────────── */
+.border {
+	border-width: 1px;
+}
+.border-l-2 {
+	border-left-width: 2px;
+}
+.border-s-2 {
+	border-inline-start-width: 2px;
+}
+.border-t {
+	border-top-width: 1px;
+}
+.border-outline-variant {
+	border-color: rgb(var(--color-outline-variant));
+}
+.border-primary {
+	border-color: rgb(var(--color-primary));
+}
+
+/* ── Display / flex / grid ─────────────────────────────────────────────── */
+.flex {
+	display: flex;
+}
+.inline-flex {
+	display: inline-flex;
+}
+.grid {
+	display: grid;
+}
+.hidden {
+	display: none;
+}
+.flex-col {
+	flex-direction: column;
+}
+.flex-wrap {
+	flex-wrap: wrap;
+}
+.flex-1 {
+	flex: 1 1 0%;
+}
+.flex-none {
+	flex: none;
+}
+.items-center {
+	align-items: center;
+}
+.items-start {
+	align-items: flex-start;
+}
+.justify-center {
+	justify-content: center;
+}
+.grid-cols-1 {
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.gap-1 {
+	gap: 4px;
+}
+.gap-2 {
+	gap: 8px;
+}
+.gap-3 {
+	gap: 12px;
+}
+.gap-4 {
+	gap: 16px;
+}
+.gap-8 {
+	gap: 32px;
+}
+.space-y-1 > * + * {
+	margin-top: 4px;
+}
+.space-y-4 > * + * {
+	margin-top: 16px;
+}
+
+/* ── Sizing ────────────────────────────────────────────────────────────── */
+.h-0\.5 {
+	height: 2px;
+}
+.h-full {
+	height: 100%;
+}
+.w-12 {
+	width: 48px;
+}
+.w-px {
+	width: 1px;
+}
+.shrink-0 {
+	flex-shrink: 0;
+}
+
+/* ── Spacing (margin / padding) ────────────────────────────────────────── */
+.mb-2 {
+	margin-bottom: 8px;
+}
+.mb-3 {
+	margin-bottom: 12px;
+}
+.mb-4 {
+	margin-bottom: 16px;
+}
+.mb-6 {
+	margin-bottom: 24px;
+}
+.mb-8 {
+	margin-bottom: 32px;
+}
+.ml-auto {
+	margin-left: auto;
+}
+.ms-auto {
+	margin-inline-start: auto;
+}
+.mt-1 {
+	margin-top: 4px;
+}
+.mt-4 {
+	margin-top: 16px;
+}
+.mt-6 {
+	margin-bottom: 24px;
+}
+.p-1 {
+	padding: 4px;
+}
+.p-6 {
+	padding: 24px;
+}
+.pb-16 {
+	padding-bottom: 64px;
+}
+.pt-1 {
+	padding-top: 4px;
+}
+.pt-4 {
+	padding-top: 16px;
+}
+.px-2 {
+	padding-left: 8px;
+	padding-right: 8px;
+}
+.py-0\.5 {
+	padding-top: 2px;
+	padding-bottom: 2px;
+}
+
+/* ── Typography ────────────────────────────────────────────────────────── */
+.font-headline {
+	font-family: "Newsreader", Georgia, serif;
+}
+.font-body {
+	font-family: "Geist", "Inter", system-ui, sans-serif;
+}
+.font-label {
+	font-family: "Geist", "Inter", system-ui, sans-serif;
+}
+.font-mono {
+	font-family: "Geist", ui-monospace, "SF Mono", monospace;
+}
+
+/* Type scale (ported from the app's tailwind.config). */
+.text-headline-lg {
+	font-size: 32px;
+	line-height: 40px;
+	letter-spacing: -0.01em;
+	font-weight: 500;
+}
+.text-headline-md {
+	font-size: 24px;
+	line-height: 32px;
+	font-weight: 500;
+}
+.text-body-lg {
+	font-size: 18px;
+	line-height: 28px;
+	font-weight: 400;
+}
+.text-body-md {
+	font-size: 16px;
+	line-height: 24px;
+	font-weight: 400;
+}
+.text-label-md {
+	font-size: 14px;
+	line-height: 20px;
+	letter-spacing: 0.02em;
+	font-weight: 600;
+}
+.text-label-sm {
+	font-size: 12px;
+	line-height: 16px;
+	letter-spacing: 0.05em;
+	font-weight: 500;
+}
+.text-mono-technical {
+	font-size: 13px;
+	line-height: 20px;
+	font-weight: 400;
+}
+
+.text-\[10px\] {
+	font-size: 10px;
+}
+.text-\[11px\] {
+	font-size: 11px;
+}
+.text-\[14px\] {
+	font-size: 14px;
+}
+.text-\[16px\] {
+	font-size: 16px;
+}
+.text-\[20px\] {
+	font-size: 20px;
+}
+
+.uppercase {
+	text-transform: uppercase;
+}
+.italic {
+	font-style: italic;
+}
+.tracking-wide {
+	letter-spacing: 0.025em;
+}
+.tracking-wider {
+	letter-spacing: 0.05em;
+}
+.tracking-widest {
+	letter-spacing: 0.1em;
+}
+.leading-tight {
+	line-height: 1.25;
+}
+.leading-relaxed {
+	line-height: 1.625;
+}
+
+/* ── Misc ──────────────────────────────────────────────────────────────── */
+.rounded {
+	border-radius: 4px;
+}
+.cursor-pointer {
+	cursor: pointer;
+}
+.opacity-50 {
+	opacity: 0.5;
+}
+.transition-colors {
+	transition-property: color, background-color, border-color;
+	transition-duration: 200ms;
+}
+.transition-opacity {
+	transition-property: opacity;
+	transition-duration: 200ms;
+}
+.disabled\:opacity-30:disabled {
+	opacity: 0.3;
+}
+.group {
+	/* marker class only — hover effects target .group:hover .group-hover\:* */
+}
+
+.end-0 {
+	inset-inline-end: 0;
+}
+.text-start {
+	text-align: start;
+}
+
+/* Responsive: the brief triad collapses to one column under md (768px). */
+@media (min-width: 768px) {
+	.md\:grid-cols-2 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* Material Symbols base — the app defines this in globals.css; the landing
+   loads the font via Google Fonts but needs the base class rules. */
+.material-symbols-outlined {
+	font-family: "Material Symbols Outlined";
+	font-weight: normal;
+	font-style: normal;
+	display: inline-block;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	word-wrap: normal;
+	white-space: nowrap;
+	unicode-bidi: isolate;
+	-webkit-font-feature-settings: "liga";
+	-webkit-font-smoothing: antialiased;
+	font-variation-settings:
+		"FILL" 0,
+		"wght" 400,
+		"GRAD" 0,
+		"opsz" 24;
+}
+.select-none {
+	user-select: none;
+}

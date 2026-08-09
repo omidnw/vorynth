@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/ui/Icon";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
+import { aiErrorCode, aiErrorMessage } from "@/features/llm/ai-error.js";
 import type { WorkflowNodeName, WorkflowNodeStatus } from "@vorynth/types";
 
 /**
@@ -13,18 +15,19 @@ import type { WorkflowNodeName, WorkflowNodeStatus } from "@vorynth/types";
  * stages). When the job reaches a terminal state (done/error), navigates to
  * the Brief.
  */
-const STAGES: { node: WorkflowNodeName; label: string; icon: string }[] = [
-	{ node: "collector", label: "Collecting sources", icon: "download" },
-	{ node: "normalizer", label: "Normalizing content", icon: "tune" },
-	{ node: "dedup", label: "Detecting duplicates", icon: "filter_alt" },
-	{ node: "classifier", label: "Classifying topics", icon: "category" },
-	{ node: "ranker", label: "Ranking importance", icon: "leaderboard" },
-	{ node: "analyzer", label: "Analyzing impact", icon: "psychology" },
-	{ node: "localizer", label: "Localizing output", icon: "translate" },
-	{ node: "report", label: "Compiling brief", icon: "description" },
+const STAGES: { node: WorkflowNodeName; labelKey: string; icon: string }[] = [
+	{ node: "collector", labelKey: "analyzing.collecting", icon: "download" },
+	{ node: "normalizer", labelKey: "analyzing.normalizing", icon: "tune" },
+	{ node: "dedup", labelKey: "analyzing.dedup", icon: "filter_alt" },
+	{ node: "classifier", labelKey: "analyzing.classifying", icon: "category" },
+	{ node: "ranker", labelKey: "analyzing.ranking", icon: "leaderboard" },
+	{ node: "analyzer", labelKey: "analyzing.analyzing", icon: "psychology" },
+	{ node: "localizer", labelKey: "analyzing.localizing", icon: "translate" },
+	{ node: "report", labelKey: "analyzing.report", icon: "description" },
 ];
 
 export function AnalyzingPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { startGenerate, jobs } = useJobsStore();
 	const [started, setStarted] = useState(false);
@@ -81,10 +84,10 @@ export function AnalyzingPage() {
 					className="mb-4 animate-pulse text-[64px] text-primary"
 				/>
 				<h2 className="font-headline text-headline-lg text-primary dark:text-primary-fixed">
-					Distilling Intelligence
+					{t("analyzing.title")}
 				</h2>
 				<p className="mt-2 font-body text-body-md text-on-surface-variant">
-					{genJob?.progress.message ?? "Starting the engine…"}
+					{genJob?.progress.message ?? t("analyzing.starting")}
 				</p>
 			</header>
 
@@ -119,15 +122,15 @@ export function AnalyzingPage() {
 											: "text-on-surface"
 									}`}
 								>
-									{s.label}
+									{t(s.labelKey)}
 								</span>
 								{status === "running" ? (
-									<span className="ml-auto font-mono text-[11px] uppercase tracking-widest text-primary">
-										Running…
+									<span className="ms-auto font-mono text-[11px] uppercase tracking-widest text-primary">
+										{t("analyzing.running")}
 									</span>
 								) : status === "done" ? (
-									<span className="ml-auto font-mono text-[11px] uppercase tracking-widest text-secondary">
-										Done
+									<span className="ms-auto font-mono text-[11px] uppercase tracking-widest text-secondary">
+										{t("analyzing.done")}
 									</span>
 								) : null}
 							</li>
@@ -137,7 +140,9 @@ export function AnalyzingPage() {
 
 				{genJob?.status === "error" ? (
 					<p className="mt-4 font-mono text-mono-technical text-error">
-						{genJob.error ?? "Generation failed."}
+						{aiErrorCode(genJob.error)
+							? aiErrorMessage(t, genJob.error, "analyzing.generationFailed")
+							: (genJob.error ?? t("analyzing.generationFailed"))}
 					</p>
 				) : null}
 			</GhostCard>

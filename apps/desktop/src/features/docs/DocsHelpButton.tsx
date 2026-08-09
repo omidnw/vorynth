@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -19,12 +20,13 @@ export function DocsHelpButton({
 	className?: string;
 }) {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	return (
-		<Tooltip label="How it works">
+		<Tooltip label={t("docsHelp.howItWorks")}>
 			<button
 				type="button"
 				onClick={() => navigate(`/docs#${sectionId}`)}
-				aria-label="How it works"
+				aria-label={t("docsHelp.howItWorks")}
 				className={cn(
 					"cursor-pointer rounded p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary",
 					className,

@@ -26,6 +26,7 @@ import { SearchService } from "../search/search.service.js";
  *   POST   /jobs/ask          AI search (RAG, background, rate-limited)
  *   POST   /jobs/regenerate-insights  regenerate AI triad for all insights (background)
  *   POST   /jobs/translate-stories  translate story titles + bodies, 5 per request (background)
+ *   POST   /jobs/health-check  data health check: full text + translation repair + missing insights (background)
  *   POST   /jobs/:id/cancel   cancel a running job
  *
  * Runners live in the kind→factory registry (`jobs.runners.ts`) rather than
@@ -70,6 +71,14 @@ export class JobsController {
 						itemsDone: results.length,
 						itemsTotal: enabled,
 					});
+					// Auto-translate (v1.9.0): a collect that pulled in new
+					// stories chains a translation job — only when an LLM is
+					// configured (News mode has no key; R-A03). The translate
+					// runner skips already-translated stories and rides each
+					// story's AI insight along.
+					if (total > 0 && (await this.intelligence.canTranslate())) {
+						this.jobs.start({ kind: "translate" });
+					}
 					return { sources: results.length, totalCollected: total, results };
 				},
 			};
@@ -155,28 +164,26 @@ export class JobsController {
 		});
 
 		registerJobRunner("regenerate", (input) => {
-			const targetLanguage = (
-				input as { targetLanguage?: string } | undefined
-			)?.targetLanguage;
+			const targetLanguage = (input as { targetLanguage?: string } | undefined)
+				?.targetLanguage;
 			const total = this.intelligence.countInsights();
 			return {
 				label: "Regenerating all insights",
 				itemsTotal: total,
 				run: async ({ update, throwIfCanceled, resumeFrom }) => {
-					const regenerated =
-						await this.intelligence.regenerateAllInsights(
-							(done, totalItems) => {
-								update({
-									message: `Regenerating insight ${done}/${totalItems}…`,
-									fraction: totalItems > 0 ? done / totalItems : 1,
-									itemsDone: done,
-									itemsTotal: totalItems,
-								});
-							},
-							targetLanguage,
-							resumeFrom,
-							throwIfCanceled,
-						);
+					const regenerated = await this.intelligence.regenerateAllInsights(
+						(done, totalItems) => {
+							update({
+								message: `Regenerating insight ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						},
+						targetLanguage,
+						resumeFrom,
+						throwIfCanceled,
+					);
 					update({
 						message: `Regenerated ${regenerated} insights`,
 						fraction: 1,
@@ -189,11 +196,14 @@ export class JobsController {
 		});
 
 		registerJobRunner("translate", (input) => {
-			const targetLanguage = (
-				input as { targetLanguage?: string } | undefined
-			)?.targetLanguage;
+			const { targetLanguage, retranslateAll } = (input ?? {}) as {
+				targetLanguage?: string;
+				retranslateAll?: boolean;
+			};
 			return {
-				label: "Translating stories",
+				label: retranslateAll
+					? "Re-translating all stories"
+					: "Translating stories",
 				run: async ({ update, throwIfCanceled }) => {
 					const translated = await this.intelligence.translateAllStories(
 						(done, totalItems) => {
@@ -208,6 +218,7 @@ export class JobsController {
 						0, // resumeFrom — the query already excludes translated
 						// stories, so a restart needs no offset (see service).
 						throwIfCanceled,
+						{ retranslateAll: retranslateAll === true },
 					);
 					update({
 						message: `Translated ${translated} stories`,
@@ -215,6 +226,163 @@ export class JobsController {
 						itemsDone: translated,
 					});
 					return { translated };
+				},
+			};
+		});
+
+		// Per-story Re-translate (v1.8.0) — one story, as a visible background
+		// job so the user sees progress in the jobs tray instead of a silent
+		// request. `force` re-runs the LLM even when a translation exists.
+		registerJobRunner("translate-one", (input) => {
+			const { articleId, force } = (input ?? {}) as {
+				articleId?: string;
+				force?: boolean;
+			};
+			const id = articleId ?? "";
+			return {
+				label: "Re-translating a story",
+				run: async ({ update }) => {
+					if (!id) return { ok: false, reason: "missing articleId" };
+					update({
+						message: "Asking the AI to re-translate…",
+						fraction: 0.4,
+					});
+					const detail = await this.intelligence.translateStory(id, {
+						force: force === true,
+					});
+					if (!detail) {
+						return { ok: false, reason: `Article ${id} not found` };
+					}
+					update({
+						message: detail.article.originalTitle
+							? "Re-translated — original kept"
+							: "Translated",
+						fraction: 1,
+					});
+					return { ok: true, articleId: id };
+				},
+			};
+		});
+
+		// Per-story Re-collect (v1.8.0) — one story's full repair pipeline
+		// (origin → full text → re-translate → missing insight) as a visible job.
+		registerJobRunner("recollect-one", (input) => {
+			const { articleId } = (input ?? {}) as { articleId?: string };
+			const id = articleId ?? "";
+			return {
+				label: "Re-collecting a story",
+				run: async ({ update }) => {
+					if (!id) return { ok: false, reason: "missing articleId" };
+					update({
+						message: "Re-fetching the original article…",
+						fraction: 0.3,
+					});
+					const detail = await this.intelligence.recollectStory(id);
+					if (!detail) {
+						return { ok: false, reason: `Article ${id} not found` };
+					}
+					update({ message: "Re-collected", fraction: 1 });
+					return { ok: true, articleId: id };
+				},
+			};
+		});
+
+		// Data health check (v1.8.0) — self-healing pass over stored
+		// articles: 1) repair damaged bodies (re-extract from the origin), 2)
+		// fetch full text for snippet-only stories, 3) repair translations that
+		// went stale when an origin was upgraded, 4) re-translate (or clear)
+		// translations detected as incomplete, 5) backfill missing AI insights
+		// when Intelligence mode is on. All phases are cancelable; the LLM
+		// phases share the engine rate limiter.
+		registerJobRunner("health-check", () => {
+			return {
+				label: "Data health check",
+				run: async ({ update, throwIfCanceled }) => {
+					const backfillTotal = this.crawler.backfillCandidateCount();
+					const insightTotal = this.intelligence.missingInsightCount();
+
+					const { repaired: repairedBodies, staleTranslationIds } =
+						await this.crawler.backfillCorruptedContent((done, totalItems) => {
+							update({
+								message: `Repairing damaged stories ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						}, throwIfCanceled);
+
+					const { upgraded, staleTranslationIds: staleFromBackfill } =
+						await this.crawler.backfillFullText((done, totalItems) => {
+							update({
+								message: `Fetching full article text ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						}, throwIfCanceled);
+
+					let retranslated = 0;
+					let cleared = 0;
+					const staleIds = [
+						...new Set([...staleTranslationIds, ...staleFromBackfill]),
+					];
+					if (staleIds.length > 0) {
+						const repair = await this.intelligence.repairStaleTranslations(
+							staleIds,
+							(done, totalItems) => {
+								update({
+									message: `Repairing translations ${done}/${totalItems}…`,
+									fraction: totalItems > 0 ? done / totalItems : 1,
+									itemsDone: done,
+									itemsTotal: totalItems,
+								});
+							},
+							throwIfCanceled,
+						);
+						retranslated = repair.retranslated;
+						cleared = repair.cleared;
+					}
+
+					const incomplete =
+						await this.intelligence.repairIncompleteTranslations(
+							(done, totalItems) => {
+								update({
+									message: `Re-translating incomplete stories ${done}/${totalItems}…`,
+									fraction: totalItems > 0 ? done / totalItems : 1,
+									itemsDone: done,
+									itemsTotal: totalItems,
+								});
+							},
+							throwIfCanceled,
+						);
+					retranslated += incomplete.retranslated;
+					cleared += incomplete.cleared;
+
+					const generated = await this.intelligence.backfillMissingInsights(
+						(done, totalItems) => {
+							update({
+								message: `Generating missing insights ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						},
+						throwIfCanceled,
+					);
+
+					update({
+						message: `Checked ${backfillTotal} stories: ${repairedBodies} bodies repaired, ${upgraded} completed, ${retranslated} re-translated, ${cleared} cleared, ${generated} insights added`,
+						fraction: 1,
+						itemsDone: insightTotal,
+					});
+					return {
+						checked: backfillTotal,
+						bodiesRepaired: repairedBodies,
+						upgraded,
+						retranslated,
+						cleared,
+						insightsGenerated: generated,
+					};
 				},
 			};
 		});
@@ -277,9 +445,40 @@ export class JobsController {
 	@Post("translate-stories")
 	async translateStories(
 		@Body()
-		body: { targetLanguage?: string } = {},
+		body: { targetLanguage?: string; retranslateAll?: boolean } = {},
 	) {
-		return this.jobs.start({ kind: "translate", input: body });
+		return this.jobs.start({
+			kind: "translate",
+			input: {
+				targetLanguage: body.targetLanguage,
+				retranslateAll: body.retranslateAll === true,
+			},
+		});
+	}
+
+	/** v1.8.0 — per-story Re-translate as a visible background job. */
+	@Post("translate-one")
+	async translateOne(
+		@Body() body: { articleId?: string; force?: boolean } = {},
+	) {
+		return this.jobs.start({
+			kind: "translate-one",
+			input: { articleId: body.articleId, force: body.force === true },
+		});
+	}
+
+	/** v1.8.0 — per-story Re-collect as a visible background job. */
+	@Post("recollect-one")
+	async recollectOne(@Body() body: { articleId?: string } = {}) {
+		return this.jobs.start({
+			kind: "recollect-one",
+			input: { articleId: body.articleId },
+		});
+	}
+
+	@Post("health-check")
+	async healthCheck() {
+		return this.jobs.start({ kind: "health-check", input: {} });
 	}
 
 	@Post(":id/cancel")

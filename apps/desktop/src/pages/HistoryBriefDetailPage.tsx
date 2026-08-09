@@ -1,14 +1,22 @@
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { locationHasHistory } from "@/lib/router/has-history.js";
+import type { TFunction } from "i18next";
 import type { BriefPeriod, PeriodSummary } from "@vorynth/types";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { cn } from "@/lib/cn";
 import { CitedText, CitationList } from "@/components/ui/CitedText.js";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import { usePluginStoryExports } from "@/plugins/plugin-hooks";
 import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
+import { periodSummaryExportContent } from "@/features/brief/period-summary-export.js";
 import { fetchBriefEntry } from "@/features/history/history-api.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
-import { useTextDirection } from "@/i18n";
+import { useTextDirection, useTranslation } from "@/i18n";
 
 /**
  * Full-page view for a saved brief history entry (Today's Brief summary).
@@ -18,16 +26,22 @@ import { useTextDirection } from "@/i18n";
  */
 export function HistoryBriefDetailPage() {
 	const { id = "" } = useParams();
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const closeDrawer = useHistoryStore((s) => s.closeDrawer);
 	const textDir = useTextDirection();
+	const [showExport, setShowExport] = useState(false);
+	// v1.8.0 — a bilingual summary carries its original-language version; this
+	// toggles between the user's language and the majority-story language.
+	const [showOriginal, setShowOriginal] = useState(false);
+	const storyExports = usePluginStoryExports();
 
 	// Smart back: return to whatever opened this page (Archive, the drawer…)
 	// when there's history; otherwise fall back to the Brief.
 	const goBack = () => {
 		closeDrawer();
-		if (location.key !== "default") navigate(-1);
+		if (locationHasHistory(location.key)) navigate(-1);
 		else navigate("/brief");
 	};
 
@@ -41,9 +55,9 @@ export function HistoryBriefDetailPage() {
 		return (
 			<section className="mx-auto w-full max-w-max-content-width px-gutter py-16">
 				<div className="flex items-center justify-center gap-2 text-on-surface-variant">
-					<Icon name="sync" className="animate-spin text-[18px]" />
+					<Icon name="sync" className="animate-spin-reverse text-[18px]" />
 					<span className="font-mono text-[11px] uppercase tracking-widest">
-						Loading…
+						{t("article.loading")}
 					</span>
 				</div>
 			</section>
@@ -59,17 +73,17 @@ export function HistoryBriefDetailPage() {
 						className="text-[40px] text-on-tertiary-container"
 					/>
 					<h2 className="font-headline text-headline-md text-primary">
-						Briefing not found
+						{t("historyBrief.notFound")}
 					</h2>
 					<p className="font-body text-body-md text-on-surface-variant">
-						This period summary may have been deleted or is no longer available.
+						{t("historyBrief.notFoundBody")}
 					</p>
 					<Button
 						variant="secondary"
 						icon="arrow_back"
 						onClick={() => navigate("/brief")}
 					>
-						Back to Brief
+						{t("article.backToBrief")}
 					</Button>
 				</GhostCard>
 			</section>
@@ -77,6 +91,28 @@ export function HistoryBriefDetailPage() {
 	}
 
 	const summary = entry.result as PeriodSummary;
+
+	// v1.8.0 — the bilingual summary: the translated version is the user's AI
+	// output language; the ORIGINAL is the majority-story language.
+	const hasOriginal = Boolean(
+		summary.originalHeadline && summary.originalHeadline !== summary.headline,
+	);
+	const displayHeadline =
+		showOriginal && hasOriginal
+			? (summary.originalHeadline ?? summary.headline)
+			: summary.headline;
+	const displayThemes =
+		showOriginal && hasOriginal
+			? (summary.originalThemes ?? summary.themes)
+			: summary.themes;
+	const displayTakeaways =
+		showOriginal && hasOriginal
+			? (summary.originalTakeaways ?? summary.takeaways)
+			: summary.takeaways;
+	const displayActions =
+		showOriginal && hasOriginal
+			? (summary.originalRecommendedActions ?? summary.recommendedActions)
+			: summary.recommendedActions;
 
 	return (
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
@@ -89,7 +125,7 @@ export function HistoryBriefDetailPage() {
 						className="inline-flex cursor-pointer items-center gap-2 font-label text-label-md uppercase text-on-surface-variant transition-colors hover:text-primary"
 					>
 						<Icon name="arrow_back" className="text-[18px]" />
-						Back to Brief
+						{t("article.backToBrief")}
 					</button>
 					<DocsHelpButton sectionId="history" />
 				</div>
@@ -97,28 +133,45 @@ export function HistoryBriefDetailPage() {
 				<div className="mb-4 flex flex-wrap items-center gap-3">
 					<PeriodBadge period={entry.period} />
 					<span className="font-mono text-[11px] text-on-tertiary-container">
-						{timeAgo(entry.createdAt)}
+						{timeAgo(entry.createdAt, t)}
 					</span>
 					<span className="h-1 w-1 rounded-full bg-outline-variant" />
 					<span className="font-mono text-[11px] text-on-tertiary-container">
-						{entry.storyCount} stor{entry.storyCount !== 1 ? "ies" : "y"}
+						{t("historyBrief.storyCount", { count: entry.storyCount })}
 					</span>
 					{entry.archived ? (
 						<>
 							<span className="h-1 w-1 rounded-full bg-outline-variant" />
 							<span className="font-mono text-[11px] text-on-tertiary-container">
-								archived
+								{t("historyBrief.archived")}
 							</span>
 						</>
 					) : null}
+					{/* Bilingual summary (v1.8.0): flip between the translated
+						    version and the majority-story (original) version. */}
+					{hasOriginal ? (
+						<button
+							type="button"
+							onClick={() => setShowOriginal((v) => !v)}
+							className="ms-auto shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+							title={t("historyBrief.showOriginalTitle")}
+						>
+							{showOriginal ? t("article.translated") : t("article.original")}
+						</button>
+					) : null}
 				</div>
 
-				<h1 className="font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed">
-					<CitedText text={summary.headline} citations={summary.citations} />
+				<h1
+					className="font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
+					dir={textDir(displayHeadline)}
+				>
+					<CitedText text={displayHeadline} citations={summary.citations} />
 				</h1>
 
 				<p className="mt-4 font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-					{periodLabel(entry.period)} Brief — {summary.storyCount} stories
+					{t(periodTitleKey(entry.period), {
+						count: summary.storyCount,
+					})}
 				</p>
 			</header>
 
@@ -126,43 +179,76 @@ export function HistoryBriefDetailPage() {
 			<div className="mb-10 h-px bg-outline-variant" />
 
 			{/* Themes */}
-			{summary.themes.length > 0 ? (
+			{displayThemes.length > 0 ? (
 				<div className="mb-10">
 					<h3 className="mb-4 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-						<Icon name="category" className="mr-1.5 inline-block text-[16px]" />
-						Themes
+						<Icon name="category" className="me-1.5 inline-block text-[16px]" />
+						{t("historyBrief.themes")}
 					</h3>
-					<div className="flex flex-wrap gap-2">
-						{summary.themes.map((th) => (
-							<span
-								key={th.name}
-								title={th.rationale}
-								className="inline-flex items-center rounded-full border border-outline-variant bg-surface-container-low px-3 py-1 font-label text-label-sm uppercase tracking-widest text-on-tertiary-container transition-colors hover:border-primary hover:text-primary"
-							>
-								{th.name}
-								{typeof th.count === "number" ? (
-									<span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-surface-variant text-[10px] font-mono">
-										{th.count}
-									</span>
-								) : null}
-							</span>
-						))}
+					{/* The chips follow the displayed summary language: in the
+						    translated (RTL) state the whole row must flow right-to-left. */}
+					<div
+						className="flex flex-wrap gap-2"
+						dir={textDir(displayThemes[0]?.name ?? "")}
+					>
+						{displayThemes.map((th) => {
+							// RTL theme names (translated Persian/Arabic) keep their
+							// natural script — no letter-spacing, proper dir.
+							const rtl = textDir(th.name) === "rtl";
+							const chip = (
+								<span
+									dir={textDir(th.name)}
+									className={cn(
+										"inline-flex items-center rounded-full border border-outline-variant bg-surface-container-low px-3 py-1 font-label text-label-sm uppercase text-on-tertiary-container transition-colors hover:border-primary hover:text-primary",
+										rtl ? "tracking-normal" : "tracking-widest",
+										th.rationale ? "cursor-help" : undefined,
+									)}
+								>
+									{th.name}
+									{typeof th.count === "number" ? (
+										<span
+											className={cn(
+												"inline-flex h-4 w-4 items-center justify-center rounded-full bg-surface-variant text-[10px] font-mono",
+												rtl ? "mr-1.5" : "ml-1.5",
+											)}
+										>
+											{th.count}
+										</span>
+									) : null}
+								</span>
+							);
+							// Rationale tooltips are content in the theme's language —
+							// native `title` can't be directed, so use the themed
+							// Tooltip with the label's script direction.
+							return th.rationale ? (
+								<Tooltip
+									key={th.name}
+									label={th.rationale}
+									dir={textDir(th.rationale)}
+									wrap
+								>
+									{chip}
+								</Tooltip>
+							) : (
+								<Fragment key={th.name}>{chip}</Fragment>
+							);
+						})}
 					</div>
 				</div>
 			) : null}
 
 			{/* Takeaways */}
-			{summary.takeaways.length > 0 ? (
+			{displayTakeaways.length > 0 ? (
 				<section className="mb-10">
 					<h3 className="mb-4 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 						<Icon
 							name="lightbulb"
-							className="mr-1.5 inline-block text-[16px]"
+							className="me-1.5 inline-block text-[16px]"
 						/>
-						Takeaways
+						{t("historyBrief.takeaways")}
 					</h3>
-					<GhostCard className="space-y-4 border-l-2 border-l-primary">
-						{summary.takeaways.map((tk, i) => (
+					<GhostCard className="space-y-4 border-s-2 border-s-primary">
+						{displayTakeaways.map((tk, i) => (
 							<div key={i} className="flex gap-3">
 								<span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary-container font-mono text-[11px] font-semibold text-on-primary-container">
 									{i + 1}
@@ -180,21 +266,21 @@ export function HistoryBriefDetailPage() {
 			) : null}
 
 			{/* Recommended Actions */}
-			{summary.recommendedActions.length > 0 ? (
+			{displayActions.length > 0 ? (
 				<section className="mb-10">
 					<h3 className="mb-4 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 						<Icon
 							name="bolt"
-							className="mr-1.5 inline-block text-[16px]"
+							className="me-1.5 inline-block text-[16px]"
 							fill
 						/>
-						Recommended Actions
+						{t("historyBrief.recommendedActions")}
 					</h3>
 					<div className="space-y-3">
-						{summary.recommendedActions.map((a, i) => (
+						{displayActions.map((a, i) => (
 							<GhostCard
 								key={i}
-								className="border-l-2 border-l-primary bg-primary-container/10"
+								className="border-s-2 border-s-primary bg-primary-container/10"
 							>
 								<p
 									className="font-body text-body-lg italic leading-relaxed text-on-surface"
@@ -218,16 +304,18 @@ export function HistoryBriefDetailPage() {
 						<span>
 							<Icon
 								name="menu_book"
-								className="mr-1 inline-block text-[14px]"
+								className="me-1 inline-block text-[14px]"
 							/>
-							{summary.storyCount} stori{summary.storyCount !== 1 ? "es" : "y"}
+							{t("historyBrief.storyCount", {
+								count: summary.storyCount,
+							})}
 						</span>
 						<span>
 							<Icon
 								name="auto_awesome"
-								className="mr-1 inline-block text-[14px]"
+								className="me-1 inline-block text-[14px]"
 							/>
-							AI-generated
+							{t("historyBrief.aiGenerated")}
 						</span>
 					</div>
 					<Button
@@ -239,16 +327,16 @@ export function HistoryBriefDetailPage() {
 							navigate(`/brief`);
 						}}
 					>
-						Regenerate on Brief
+						{t("historyBrief.regenerateOnBrief")}
 					</Button>
 				</div>
 			</div>
 
 			{/* Floating action footer */}
-			<footer className="fixed bottom-12 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-outline-variant bg-surface-container px-6 py-3 shadow-2xl">
+			<footer className="fixed bottom-12 start-1/2 z-50 flex -translate-x-1/2 rtl:translate-x-1/2 items-center gap-2 rounded-full border border-outline-variant bg-surface-container px-6 py-3 shadow-2xl">
 				<ActionBtn
 					icon="refresh"
-					label="Regenerate"
+					label={t("historyBrief.regenerate")}
 					onClick={() => {
 						closeDrawer();
 						navigate("/brief");
@@ -257,14 +345,37 @@ export function HistoryBriefDetailPage() {
 				<div className="mx-2 h-6 w-px bg-outline-variant" />
 				<ActionBtn
 					icon="content_copy"
-					label="Copy headline"
+					label={t("historyBrief.copyHeadline")}
 					onClick={() => {
 						void navigator.clipboard.writeText(summary.headline);
 					}}
 				/>
+				{storyExports.length > 0 ? (
+					<>
+						<div className="mx-2 h-6 w-px bg-outline-variant" />
+						<ActionBtn
+							icon="file_download"
+							label={t("article.export")}
+							onClick={() => setShowExport(true)}
+						/>
+					</>
+				) : null}
 				<div className="mx-2 h-6 w-px bg-outline-variant" />
-				<ActionBtn icon="arrow_back" label="Back" onClick={goBack} />
+				<ActionBtn
+					icon="arrow_back"
+					label={t("common.back")}
+					onClick={goBack}
+				/>
 			</footer>
+
+			{/* Export — the full period briefing as a self-contained document
+			    (headline + themes + takeaways + actions + sources, v1.8.0). */}
+			{showExport ? (
+				<ExportDialog
+					content={periodSummaryExportContent(summary)}
+					onClose={() => setShowExport(false)}
+				/>
+			) : null}
 		</article>
 	);
 }
@@ -272,14 +383,15 @@ export function HistoryBriefDetailPage() {
 // ── Shared bits ──────────────────────────────────────────────────────────────
 
 function PeriodBadge({ period }: { period: BriefPeriod }) {
+	const { t } = useTranslation();
 	const label =
 		period === "today"
-			? "Today"
+			? t("period.today")
 			: period === "week"
-				? "This Week"
+				? t("period.thisWeek")
 				: period === "month"
-					? "This Month"
-					: "All Time";
+					? t("period.thisMonth")
+					: t("period.allTime");
 	const icon =
 		period === "today"
 			? "today"
@@ -318,32 +430,32 @@ function ActionBtn({
 	);
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: TFunction): string {
 	const then = new Date(iso).getTime();
 	if (Number.isNaN(then)) return "—";
 	const diff = Date.now() - then;
 	const sec = Math.round(diff / 1000);
-	if (sec < 60) return "just now";
+	if (sec < 60) return t("historyBrief.justNow");
 	const min = Math.round(sec / 60);
-	if (min < 60) return `${min}m ago`;
+	if (min < 60) return t("historyBrief.minAgo", { count: min });
 	const hr = Math.round(min / 60);
-	if (hr < 24) return `${hr}h ago`;
+	if (hr < 24) return t("historyBrief.hoursAgo", { count: hr });
 	const day = Math.round(hr / 24);
-	if (day < 30) return `${day}d ago`;
+	if (day < 30) return t("historyBrief.daysAgo", { count: day });
 	const mo = Math.round(day / 30);
-	if (mo < 12) return `${mo}mo ago`;
-	return `${Math.round(mo / 12)}y ago`;
+	if (mo < 12) return t("historyBrief.monthsAgo", { count: mo });
+	return t("historyBrief.yearsAgo", { count: Math.round(mo / 12) });
 }
 
-function periodLabel(period: BriefPeriod): string {
+function periodTitleKey(period: BriefPeriod): string {
 	switch (period) {
 		case "today":
-			return "Today's";
+			return "historyBrief.titleToday";
 		case "week":
-			return "This Week's";
+			return "historyBrief.titleWeek";
 		case "month":
-			return "This Month's";
+			return "historyBrief.titleMonth";
 		case "all":
-			return "All-Time";
+			return "historyBrief.titleAll";
 	}
 }

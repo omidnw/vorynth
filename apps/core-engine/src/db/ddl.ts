@@ -1,7 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type {
+	SourceAuthority,
+	SourceListSourceDefinition,
+	SourceScope,
+} from "@vorynth/types";
 import { normalizeText } from "../search/text-normalizer.js";
 import { ensureFtsSchema } from "./fts-sync.js";
+import { sweepOrphanSpines } from "./spine.js";
+import {
+	DEVELOPER_SEED_LIST,
+	DEVELOPER_SEED_SOURCES,
+} from "./developer-seed.generated.js";
 
 /**
  * Idempotent DDL — every statement starts with CREATE TABLE IF NOT EXISTS so
@@ -15,10 +25,54 @@ CREATE TABLE IF NOT EXISTS sources (
   type TEXT NOT NULL DEFAULT 'rss',
   category TEXT NOT NULL DEFAULT 'other',
   adapter TEXT NOT NULL DEFAULT 'rss',
+  list_id TEXT,
+  country TEXT,
+  city TEXT,
+  language TEXT,
+  tags TEXT,
   configuration TEXT NOT NULL DEFAULT '{}',
   enabled INTEGER NOT NULL DEFAULT 1,
   fetch_window_days INTEGER NOT NULL DEFAULT 7,
   last_checked_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+-- v1.8.0 — curated source lists. Official lists seed in-app code (trusted);
+-- community lists are contributed through the GitHub repo and cached here in
+-- sources_json (the offline catalog — a failed refresh never clears it).
+-- The enabled flag is the master switch: off hides the list's sources from the
+-- page AND the crawler, rows kept (re-enabling restores them with edits intact).
+CREATE TABLE IF NOT EXISTS source_lists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  origin TEXT NOT NULL DEFAULT 'official',
+  nsfw INTEGER NOT NULL DEFAULT 0,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  version TEXT,
+  sources_json TEXT NOT NULL DEFAULT '[]',
+  curator TEXT,
+  updated_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+-- Official connector manifests cached from the GitHub connector registry
+-- (v1.8.0, connectors/registry.json). Rows ARE the offline catalog: a failed
+-- fetch never clears them. The registry distributes DEFINITIONS (configFields,
+-- icon, tier, source mapping); adapter implementations stay compiled in the
+-- engine (R-A13).
+CREATE TABLE IF NOT EXISTS connector_manifests (
+  id TEXT PRIMARY KEY,
+  source_type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  version TEXT NOT NULL,
+  config_fields TEXT NOT NULL DEFAULT '[]',
+  icon TEXT,
+  icon_src TEXT,
+  tier TEXT NOT NULL DEFAULT 'official',
+  min_vorynth_version TEXT,
+  updated_at INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 
@@ -83,6 +137,9 @@ CREATE TABLE IF NOT EXISTS user_profile (
   first_name TEXT,
   last_name TEXT,
   alias TEXT,
+  field_of_study TEXT,
+  degree_level TEXT,
+  experience_level TEXT,
   custom_instruction TEXT NOT NULL DEFAULT '',
   behavior_summary TEXT NOT NULL DEFAULT '',
   summary_generated_at INTEGER,
@@ -108,6 +165,20 @@ CREATE TABLE IF NOT EXISTS plugins (
   configuration TEXT NOT NULL DEFAULT '{}',
   enabled INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+CREATE TABLE IF NOT EXISTS installed_plugins (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  version TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'ui',
+  type TEXT NOT NULL DEFAULT 'custom',
+  contributions TEXT NOT NULL DEFAULT '[]',
+  configuration TEXT NOT NULL DEFAULT '{}',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  bundle_path TEXT NOT NULL,
+  installed_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 
 CREATE TABLE IF NOT EXISTS usage_events (
@@ -193,6 +264,14 @@ CREATE TABLE IF NOT EXISTS generated_history (
 CREATE INDEX IF NOT EXISTS idx_generated_history_created_at ON generated_history(created_at);
 CREATE INDEX IF NOT EXISTS idx_generated_history_archived ON generated_history(archived);
 
+CREATE TABLE IF NOT EXISTS story_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  article_id TEXT NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  scope TEXT NOT NULL CHECK (scope IN ('insight', 'article', 'both')),
+  viewed_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_story_views_article ON story_views(article_id, id);
+
 CREATE TABLE IF NOT EXISTS collections (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -272,6 +351,9 @@ export const ADDITIVE_DDLS = [
 	"ALTER TABLE user_profile ADD COLUMN custom_instruction TEXT NOT NULL DEFAULT ''",
 	"ALTER TABLE user_profile ADD COLUMN behavior_summary TEXT NOT NULL DEFAULT ''",
 	"ALTER TABLE user_profile ADD COLUMN summary_generated_at INTEGER",
+	"ALTER TABLE user_profile ADD COLUMN field_of_study TEXT",
+	"ALTER TABLE user_profile ADD COLUMN degree_level TEXT",
+	"ALTER TABLE user_profile ADD COLUMN experience_level TEXT",
 	"ALTER TABLE article_media ADD COLUMN updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)",
 	"ALTER TABLE articles ADD COLUMN original_title TEXT",
 	// v1.6.0 — archive spine. Origin tables gain a nullable content_item_id FK
@@ -299,6 +381,32 @@ export const ADDITIVE_DDLS = [
 	// v1.7.0 — Translate Stories. `translated_content` holds the AI translation
 	// of the body; `content` stays the canonical original (R-A05).
 	"ALTER TABLE articles ADD COLUMN translated_content TEXT",
+	// v1.8.0 — plugin security scan. JSON report of the installed plugin's
+	// bundle.js static analysis; null until scanned (built-ins never get one).
+	"ALTER TABLE installed_plugins ADD COLUMN security_scan TEXT",
+	// v1.8.0 — source lists. Sources belong to a curated list (NULL = a
+	// user-created "My sources" source). No DB FK — service-enforced.
+	"ALTER TABLE sources ADD COLUMN list_id TEXT",
+	// v1.8.0 — geography/language tags for grouping (ISO country/language
+	// codes + free-text city). Nullable — user rows are untagged until set.
+	"ALTER TABLE sources ADD COLUMN country TEXT",
+	"ALTER TABLE sources ADD COLUMN city TEXT",
+	"ALTER TABLE sources ADD COLUMN language TEXT",
+	// v1.8.0 — semantic metadata (the "source intelligence layer" data-holding
+	// layer): how broadly the source matters (scope), its credibility class
+	// (authority), and the fields it touches (impact_areas, JSON slug array).
+	// Nullable — user rows are unclassified until set.
+	"ALTER TABLE sources ADD COLUMN scope TEXT",
+	"ALTER TABLE sources ADD COLUMN authority TEXT",
+	"ALTER TABLE sources ADD COLUMN impact_areas TEXT",
+	"ALTER TABLE sources ADD COLUMN tags TEXT",
+	// v1.8.0 — insight originals. The ai_insights text as first written, before
+	// a translation rewrote it (mirrors articles.original_title). Nullable —
+	// only set by the first translation of a generated insight.
+	"ALTER TABLE ai_insights ADD COLUMN original_summary TEXT",
+	"ALTER TABLE ai_insights ADD COLUMN original_significance TEXT",
+	"ALTER TABLE ai_insights ADD COLUMN original_impact TEXT",
+	"ALTER TABLE ai_insights ADD COLUMN original_recommended_action TEXT",
 ];
 
 /** Seed defaults the freshly migrated database needs to operate. */
@@ -329,6 +437,25 @@ export function seedDefaults(db: Database.Database): void {
 		// 0 = keep in trash until the user empties it. Default 7 days.
 		"trash.retentionValue": 7,
 		"trash.retentionUnit": "days",
+		// v1.8.0 — data health check: daily self-healing job (full text for
+		// snippet-only stories, stale-translation repair, missing-insight
+		// backfill). On by default; users can turn it off from Settings.
+		"dataHealth.autoCheck": true,
+		// v1.8.0 — which story-reader footer actions stay in the primary bar;
+		// the rest move behind the "More ⋮" menu (customizable in Profile).
+		"ui.readerPinnedActions": ["markRead", "save", "share", "back"],
+		// v1.8.0 — the period summary's ORIGINAL version language. "auto" = the
+		// majority language of the summary's stories; otherwise a BCP-47 code.
+		"intelligence.summaryOriginalLanguage": "auto",
+		// v1.8.0 — story-card click behavior. When true (default), dragging the
+		// mouse over a card selects text and does NOT open the story — a clean
+		// click is required. Off = any press-release on a card opens the story.
+		"ui.dragSelectsText": true,
+		// v1.8.0 — advanced features. When true, the Plugins page appears in the
+		// sidebar and its route is reachable. Default false: source connectors
+		// resolve invisibly for non-technical users; "plugin" terminology stays
+		// behind the advanced gate.
+		"ui.showAdvancedFeatures": false,
 	};
 	const seedSetting = db.prepare(
 		"INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
@@ -337,8 +464,21 @@ export function seedDefaults(db: Database.Database): void {
 		seedSetting.run(key, JSON.stringify(value));
 	}
 
-	// Seed 13 default sources so first-run users have real breadth.
+	// Seed the curated source lists (v1.8.0) before their sources — the list
+	// row + cached definitions must exist for enable() to materialize.
+	seedSourceLists(db);
+
+	// Seed 13 (now 24) default sources so first-run users have real breadth.
 	seedSources(db);
+
+	// Tag seed rows that predate the geography/language columns (guarded:
+	// only untagged rows are touched — user edits never overwritten).
+	backfillSeedTags(db);
+
+	// Repair seed-source feed URLs that moved since v1.8.0 shipped (guarded:
+	// only rows still carrying the exact dead URL are touched — see
+	// SEED_URL_REPAIRS).
+	repairSeedUrls(db);
 }
 
 export interface SeedSource {
@@ -349,150 +489,374 @@ export interface SeedSource {
 	category: string;
 	adapter: string;
 	configuration: { feedUrl: string };
+	/**
+	 * Source list this seed belongs to (v1.8.0) — NULL = user-created. Every
+	 * official seed belongs to the "developer" list (see SEED_SOURCE_LISTS).
+	 */
+	listId: string | null;
+	/**
+	 * Geography/language tags (v1.8.0) — ISO 3166-1 alpha-2 country, free-text
+	 * city (null = global/remote), ISO 639-1 language. Shown as badges and used
+	 * to group/browse sources by country, city, and language.
+	 */
+	country: string;
+	city: string | null;
+	language: string;
+	/**
+	 * Semantic metadata (v1.8.0) — scope/authority enums + impact-area slugs.
+	 * Kept in a separate id-keyed map (`SEED_SOURCE_METADATA`) so a seed row
+	 * reads as pure identity; NULL = the source stays unclassified.
+	 */
+	scope?: SourceScope;
+	authority?: SourceAuthority;
+	impactAreas?: string[];
 }
 
-export const SEED_SOURCES: SeedSource[] = [
-	// Artificial Intelligence
-	{
-		id: "src-openai-blog",
-		name: "OpenAI Blog",
-		url: "https://openai.com/blog/rss.xml",
-		type: "rss",
-		category: "ai",
-		adapter: "rss",
-		configuration: { feedUrl: "https://openai.com/blog/rss.xml" },
+export const SEED_SOURCES: SeedSource[] = DEVELOPER_SEED_SOURCES;
+
+/**
+ * Semantic metadata for the 24 official seed sources (v1.8.0) — keyed by seed
+ * id so the seed rows above stay pure identity. These are best-effort curated
+ * classifications (scope/authority from the shared enums, impact areas from
+ * the suggested vocabulary); a user can correct any of them in the Edit form
+ * and their change is never overwritten (guarded backfill).
+ */
+export const SEED_SOURCE_METADATA: Readonly<
+	Record<
+		string,
+		{ scope: SourceScope; authority: SourceAuthority; impactAreas: string[] }
+	>
+> = {
+	"src-openai-blog": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["ai", "ml", "llm", "agents"],
 	},
-	{
-		id: "src-huggingface",
-		name: "Hugging Face Blog",
-		url: "https://huggingface.co/blog/feed.xml",
-		type: "rss",
-		category: "ai",
-		adapter: "rss",
-		configuration: { feedUrl: "https://huggingface.co/blog/feed.xml" },
+	"src-huggingface": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["ai", "ml", "llm", "open-source"],
 	},
-	// Software Engineering
-	{
-		id: "src-github-blog",
-		name: "The GitHub Blog",
-		url: "https://github.blog/feed/",
-		type: "rss",
-		category: "software-engineering",
-		adapter: "rss",
-		configuration: { feedUrl: "https://github.blog/feed/" },
+	"src-github-blog": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["open-source", "devops", "ai"],
 	},
-	{
-		id: "src-martin-fowler",
-		name: "Martin Fowler",
-		url: "https://martinfowler.com/feed.atom",
-		type: "rss",
-		category: "software-engineering",
-		adapter: "rss",
-		configuration: { feedUrl: "https://martinfowler.com/feed.atom" },
+	"src-martin-fowler": {
+		scope: "global",
+		authority: "personal",
+		impactAreas: ["architecture", "backend", "testing"],
 	},
-	// Web Development
-	{
-		id: "src-web-dev",
-		name: "web.dev",
-		url: "https://web.dev/feed.xml",
-		type: "rss",
-		category: "web-development",
-		adapter: "rss",
-		configuration: { feedUrl: "https://web.dev/feed.xml" },
+	"src-web-dev": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["web", "frontend", "performance"],
 	},
-	// Backend
-	{
-		id: "src-cloudflare",
-		name: "Cloudflare Blog",
-		url: "https://blog.cloudflare.com/rss/",
-		type: "rss",
-		category: "backend",
-		adapter: "rss",
-		configuration: { feedUrl: "https://blog.cloudflare.com/rss/" },
+	"src-cloudflare": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["internet", "infrastructure", "networking", "security"],
 	},
-	// DevOps
-	{
-		id: "src-hashicorp",
-		name: "HashiCorp Blog",
-		url: "https://www.hashicorp.com/blog/feed.xml",
-		type: "rss",
-		category: "devops",
-		adapter: "rss",
-		configuration: { feedUrl: "https://www.hashicorp.com/blog/feed.xml" },
+	"src-hashicorp": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["devops", "infrastructure", "cloud"],
 	},
-	// Cloud
-	{
-		id: "src-aws",
-		name: "AWS News Blog",
-		url: "https://aws.amazon.com/blogs/aws/feed/",
-		type: "rss",
-		category: "cloud",
-		adapter: "rss",
-		configuration: { feedUrl: "https://aws.amazon.com/blogs/aws/feed/" },
+	"src-aws": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["cloud", "infrastructure", "compute"],
 	},
-	// Security
-	{
-		id: "src-krebs",
-		name: "Krebs on Security",
-		url: "https://krebsonsecurity.com/feed/",
-		type: "rss",
-		category: "security",
-		adapter: "rss",
-		configuration: { feedUrl: "https://krebsonsecurity.com/feed/" },
+	"src-krebs": {
+		scope: "global",
+		authority: "media",
+		impactAreas: ["security", "privacy", "internet"],
 	},
+	"src-cloudflare-security": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["security", "internet", "infrastructure"],
+	},
+	"src-openssf": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["open-source", "security"],
+	},
+	"src-rust": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["programming-languages", "rust"],
+	},
+	"src-python": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["programming-languages", "python"],
+	},
+	"src-go-blog": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["programming-languages", "go"],
+	},
+	"src-nodejs": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["programming-languages", "javascript", "backend"],
+	},
+	"src-react": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["web", "frontend", "javascript"],
+	},
+	"src-vercel": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["web", "frontend", "cloud"],
+	},
+	"src-simon-willison": {
+		scope: "global",
+		authority: "personal",
+		impactAreas: ["ai", "llm", "data", "open-source"],
+	},
+	"src-jvns": {
+		scope: "global",
+		authority: "personal",
+		impactAreas: ["devops", "databases", "networking"],
+	},
+	"src-smashing": {
+		scope: "global",
+		authority: "media",
+		impactAreas: ["web", "frontend", "design"],
+	},
+	"src-aws-security": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["security", "cloud", "infrastructure"],
+	},
+	"src-ms-devblogs": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["backend", "programming-languages", "cloud"],
+	},
+	"src-google-ai": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["ai", "ml", "llm", "research"],
+	},
+	"src-netflix-tech": {
+		scope: "global",
+		authority: "official",
+		impactAreas: ["backend", "architecture", "infrastructure", "performance"],
+	},
+};
+
+/**
+ * Insert default sources. `INSERT OR IGNORE` means subsequent runs leave
+ * user modifications untouched — only truly new source IDs are added when
+ * the seed list grows across versions. v1.8.0: sources also carry their
+ * source list membership (list_id) and geography/language tags.
+ */
+export function seedSources(db: Database.Database): void {
+	const insert = db.prepare(`
+		INSERT OR IGNORE INTO sources (id, name, url, type, category, adapter, configuration, enabled, list_id, country, city, language, scope, authority, impact_areas)
+		VALUES (@id, @name, @url, @type, @category, @adapter, @configuration, 1, @listId, @country, @city, @language, @scope, @authority, @impactAreas)
+	`);
+	for (const s of SEED_SOURCES) {
+		const meta = SEED_SOURCE_METADATA[s.id];
+		insert.run({
+			...s,
+			configuration: JSON.stringify(s.configuration),
+			listId: s.listId ?? null,
+			country: s.country ?? null,
+			city: s.city ?? null,
+			language: s.language ?? null,
+			scope: meta?.scope ?? null,
+			authority: meta?.authority ?? null,
+			impactAreas: meta?.impactAreas ? JSON.stringify(meta.impactAreas) : null,
+		});
+	}
+}
+
+/**
+ * Backfill geography/language tags onto seed rows that predate the columns
+ * (v1.8.0). `INSERT OR IGNORE` never touches existing rows, so a DB migrated
+ * from an older version keeps its 24 seeded sources with NULL tags — this
+ * fills them in, but only where the row is still untagged (a user's own
+ * country/city/language edit is never overwritten). Semantic metadata
+ * (scope/authority/impact areas) is backfilled the same guarded way.
+ */
+export function backfillSeedTags(db: Database.Database): void {
+	const update = db.prepare(`
+		UPDATE sources
+		SET country = ?, city = ?, language = ?
+		WHERE id = ? AND country IS NULL AND language IS NULL
+	`);
+	let tagged = 0;
+	for (const s of SEED_SOURCES) {
+		const { changes } = update.run(
+			s.country ?? null,
+			s.city ?? null,
+			s.language ?? null,
+			s.id,
+		);
+		tagged += changes;
+	}
+	if (tagged > 0) {
+		console.log(`• Tagged ${tagged} seed source(s) with country/city/language`);
+	}
+
+	// v1.8.0 — semantic metadata (scope/authority/impact areas). Guarded on
+	// scope+authority being NULL so a user's own classification is never
+	// overwritten; re-runs are no-ops.
+	const updateMeta = db.prepare(`
+		UPDATE sources
+		SET scope = ?, authority = ?, impact_areas = ?
+		WHERE id = ? AND scope IS NULL AND authority IS NULL
+	`);
+	let meta = 0;
+	for (const s of SEED_SOURCES) {
+		const m = SEED_SOURCE_METADATA[s.id];
+		if (!m) continue;
+		const { changes } = updateMeta.run(
+			m.scope,
+			m.authority,
+			JSON.stringify(m.impactAreas),
+			s.id,
+		);
+		meta += changes;
+	}
+	if (meta > 0) {
+		console.log(
+			`• Classified ${meta} seed source(s) with scope/authority/impact`,
+		);
+	}
+}
+
+/**
+ * Seed-source feed URL repairs (v1.8.0 data fix).
+ *
+ * `INSERT OR IGNORE` never updates existing rows, so an install that already
+ * has a seeded source with a since-moved feed keeps the dead URL forever. Each
+ * repair only touches a row that still carries the exact dead URL — a user's
+ * custom URL edit is never overwritten. The configuration is rewritten with a
+ * fresh `{ feedUrl }` (all repaired sources are RSS seed rows whose config is
+ * exactly that); a malformed legacy configuration can't crash startup this way.
+ */
+const SEED_URL_REPAIRS: ReadonlyArray<{
+	id: string;
+	deadUrl: string;
+	workingUrl: string;
+}> = [
 	{
 		id: "src-cloudflare-security",
-		name: "Cloudflare Security",
-		url: "https://blog.cloudflare.com/security/feed/",
-		type: "rss",
-		category: "security",
-		adapter: "rss",
-		configuration: { feedUrl: "https://blog.cloudflare.com/security/feed/" },
+		deadUrl: "https://blog.cloudflare.com/security/feed/",
+		workingUrl: "https://blog.cloudflare.com/tag/security/rss/",
 	},
-	// Open Source
+	{
+		id: "src-react",
+		deadUrl: "https://react.dev/blog/rss.xml",
+		workingUrl: "https://react.dev/feed.xml",
+	},
 	{
 		id: "src-openssf",
-		name: "OpenSSF Blog",
-		url: "https://openssf.org/blog/feed/",
-		type: "rss",
-		category: "open-source",
-		adapter: "rss",
-		configuration: { feedUrl: "https://openssf.org/blog/feed/" },
-	},
-	// Programming Languages
-	{
-		id: "src-rust",
-		name: "Rust Blog",
-		url: "https://blog.rust-lang.org/feed.xml",
-		type: "rss",
-		category: "programming-languages",
-		adapter: "rss",
-		configuration: { feedUrl: "https://blog.rust-lang.org/feed.xml" },
-	},
-	{
-		id: "src-python",
-		name: "Python Insider",
-		url: "https://pythoninsider.blogspot.com/feeds/posts/default",
-		type: "rss",
-		category: "programming-languages",
-		adapter: "rss",
-		configuration: {
-			feedUrl: "https://pythoninsider.blogspot.com/feeds/posts/default",
-		},
+		deadUrl: "https://openssf.org/blog/feed/",
+		workingUrl: "https://openssf.org/feed/",
 	},
 ];
 
-/** Insert default sources. `INSERT OR IGNORE` means subsequent runs leave
- * user modifications untouched — only truly new source IDs are added when
- * the seed list grows across versions. */
-export function seedSources(db: Database.Database): void {
-	const insert = db.prepare(`
-		INSERT OR IGNORE INTO sources (id, name, url, type, category, adapter, configuration, enabled)
-		VALUES (@id, @name, @url, @type, @category, @adapter, @configuration, 1)
+export function repairSeedUrls(db: Database.Database): void {
+	const update = db.prepare(`
+		UPDATE sources
+		SET url = ?, configuration = ?
+		WHERE id = ? AND url = ?
 	`);
-	for (const s of SEED_SOURCES) {
-		insert.run({ ...s, configuration: JSON.stringify(s.configuration) });
+	let repaired = 0;
+	for (const { id, deadUrl, workingUrl } of SEED_URL_REPAIRS) {
+		const { changes } = update.run(
+			workingUrl,
+			JSON.stringify({ feedUrl: workingUrl }),
+			id,
+			deadUrl,
+		);
+		repaired += changes;
 	}
+	if (repaired > 0) {
+		console.log(`• Repaired ${repaired} seed source feed URL(s)`);
+	}
+}
+
+/** One curated list definition to seed (v1.8.0 — official lists only). */
+export interface SourceListSeed {
+	id: string;
+	name: string;
+	description: string;
+	origin: "official" | "community";
+	nsfw: boolean;
+	version: string | null;
+}
+
+/**
+ * The official source lists. One for now: the Developer & Software Engineering
+ * starter list (24 sources) — defined in sources/developer.json and bundled
+ * into the app at build time (see developer-seed.generated.ts). `sources_json`
+ * is derived from SEED_SOURCES so the cached catalog stays in sync.
+ */
+export const SEED_SOURCE_LISTS: SourceListSeed[] = [DEVELOPER_SEED_LIST];
+
+/**
+ * Seed the curated lists and backfill membership for pre-v1.8.0 databases.
+ *
+ * The list row is INSERT OR IGNORE (never overwrites user edits). The backfill
+ * UPDATE only touches rows whose list_id is still NULL, so existing seed
+ * sources created before v1.8.0 join the developer list exactly once; every
+ * subsequent run is a no-op.
+ */
+export function seedSourceLists(db: Database.Database): void {
+	const insert = db.prepare(`
+		INSERT OR IGNORE INTO source_lists (id, name, description, origin, nsfw, enabled, version, sources_json, curator)
+		VALUES (?, ?, ?, ?, ?, 1, ?, ?, NULL)
+	`);
+	for (const list of SEED_SOURCE_LISTS) {
+		const defs = SEED_SOURCES.filter((s) => s.listId === list.id).map(
+			toSourceListDef,
+		);
+		insert.run(
+			list.id,
+			list.name,
+			list.description,
+			list.origin,
+			list.nsfw ? 1 : 0,
+			list.version,
+			JSON.stringify(defs),
+		);
+	}
+
+	// Backfill membership for seed sources that predate v1.8.0.
+	const backfill = db.prepare(
+		"UPDATE sources SET list_id = ? WHERE id = ? AND list_id IS NULL",
+	);
+	for (const s of SEED_SOURCES) {
+		if (s.listId) backfill.run(s.listId, s.id);
+	}
+}
+
+function toSourceListDef(s: SeedSource): SourceListSourceDefinition {
+	const meta = SEED_SOURCE_METADATA[s.id];
+	return {
+		id: s.id,
+		name: s.name,
+		url: s.url,
+		type: s.type as SourceListSourceDefinition["type"],
+		category: s.category as SourceListSourceDefinition["category"],
+		adapter: s.adapter,
+		configuration:
+			s.configuration as SourceListSourceDefinition["configuration"],
+		country: s.country,
+		city: s.city,
+		language: s.language,
+		scope: meta?.scope ?? null,
+		authority: meta?.authority ?? null,
+		impactAreas: meta?.impactAreas ?? null,
+	};
 }
 
 /**
@@ -636,17 +1000,6 @@ export function ensureCollectionNameIndex(db: Database.Database): void {
 export function runMigrations(db: Database.Database): void {
 	db.exec(DDL);
 
-	// ── FTS5 (v1.3.0, author column v1.6.0) ─────────────────────────────
-	db.function("normalize_fts", (text: unknown) => {
-		if (typeof text !== "string" || text.length === 0) return "";
-		return normalizeText(text);
-	});
-	const backfilled = ensureFtsSchema(db);
-	if (backfilled > 0) {
-		console.log(`• Backfilled ${backfilled} articles into FTS index`);
-	}
-	// ── end FTS5 ───────────────────────────────────────────────────────
-
 	// Additive column adds — tolerated if the column already exists.
 	for (const stmt of ADDITIVE_DDLS) {
 		try {
@@ -659,10 +1012,32 @@ export function runMigrations(db: Database.Database): void {
 		}
 	}
 
+	// ── FTS5 (v1.3.0, author column v1.6.0, original_title column v1.8.0) ──
+	// Runs AFTER the additive ALTERs: the backfill SELECTs `original_title`,
+	// which is an ADDITIVE_DDLS column (v1.7.0) — a fresh DB lacks it until
+	// the ALTERs above have run.
+	db.function("normalize_fts", (text: unknown) => {
+		if (typeof text !== "string" || text.length === 0) return "";
+		return normalizeText(text);
+	});
+	const backfilled = ensureFtsSchema(db);
+	if (backfilled > 0) {
+		console.log(`• Backfilled ${backfilled} articles into FTS index`);
+	}
+	// ── end FTS5 ───────────────────────────────────────────────────────
+
 	// Archive spine backfill — links every origin row to a content item.
 	const repaired = ensureSpines(db);
 	if (repaired > 0) {
 		console.log(`• Linked ${repaired} archive spine rows (content_items)`);
+	}
+
+	// Archive spine sweep — the inverse invariant: drop spines no origin row
+	// claims (left behind by retention pruning / pre-fix deletes). Runs on every
+	// startup so a ghost "Untitled" Archive item never persists (R-A09).
+	const swept = sweepOrphanSpines(db);
+	if (swept > 0) {
+		console.log(`• Swept ${swept} orphaned archive spine rows (content_items)`);
 	}
 
 	// Collection sibling-name uniqueness backstop (skipped on dirty legacy DBs).

@@ -76,9 +76,38 @@ export async function startRegenerateInsightsJob(
 }
 
 export async function startTranslateStoriesJob(
-	opts: { targetLanguage?: string } = {},
+	opts: { targetLanguage?: string; retranslateAll?: boolean } = {},
 ): Promise<Job> {
 	return apiFetch<Job>("/jobs/translate-stories", {
+		method: "POST",
+		body: JSON.stringify(opts),
+	});
+}
+
+/** Data health check (v1.8.0) — full text + translation repair + insights. */
+export async function startHealthCheckJob(): Promise<Job> {
+	return apiFetch<Job>("/jobs/health-check", {
+		method: "POST",
+		body: JSON.stringify({}),
+	});
+}
+
+/** v1.8.0 — per-story Re-translate as a visible background job. */
+export async function startTranslateOneJob(opts: {
+	articleId: string;
+	force?: boolean;
+}): Promise<Job> {
+	return apiFetch<Job>("/jobs/translate-one", {
+		method: "POST",
+		body: JSON.stringify(opts),
+	});
+}
+
+/** v1.8.0 — per-story Re-collect as a visible background job. */
+export async function startRecollectOneJob(opts: {
+	articleId: string;
+}): Promise<Job> {
+	return apiFetch<Job>("/jobs/recollect-one", {
 		method: "POST",
 		body: JSON.stringify(opts),
 	});

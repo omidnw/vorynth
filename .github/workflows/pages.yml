@@ -1,23 +1,24 @@
 name: Pages
 
-# Deploys the Vorynth landing page and built frontend to GitHub Pages.
+# Builds the Vorynth landing page (apps/landing) and deploys it to GitHub Pages.
 #
 # The site serves as the project homepage at:
 #   https://omidnw.github.io/vorynth/
 #
-# Content:
-#   - docs/index.html   → project landing page (hero, features, architecture)
-#   - (future) built Vite frontend as a live PWA demo
+# Content: the Vite-built landing page (hero, real app mockup, features,
+# architecture, platforms) + the README as a quick-reference page. The built
+# assets are copies of apps/landing/public (favicon, logos) + dist.
 #
 # Requirements:
-#   1. GitHub Pages must be enabled in the repo settings → "Deploy from a branch"
-#      or "GitHub Actions" as the source. The latter is recommended.
+#   1. GitHub Pages must be enabled in the repo settings → "Deploy from a
+#      branch" or "GitHub Actions" as the source. The latter is recommended.
 #   2. The Pages workflow requires the `pages` and `id-token` permissions below.
 
 on:
   push:
     branches: [master]
     paths:
+      - "apps/landing/**"
       - "docs/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -60,16 +61,13 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Rebuild native
-        run: pnpm rebuild better-sqlite3
-
       # @vorynth/types needs its dist/ emitted before dependent packages
       # can resolve it via exports.
       - name: Build shared types
         run: pnpm --filter @vorynth/types build
 
-      - name: Build frontend
-        run: pnpm --filter @vorynth/desktop build
+      - name: Build landing page
+        run: pnpm --filter @vorynth/landing build
         env:
           # Use the Pages base path so asset URLs are correct
           VITE_BASE_URL: /vorynth/
@@ -77,22 +75,15 @@ jobs:
       - name: Prepare Pages artifact
         shell: bash
         run: |
-          # Create the deployment directory
+          # The landing app's dist is the site root.
           mkdir -p _site
+          cp -a apps/landing/dist/* _site/
 
-          # Copy all static assets from docs/ (index.html, favicon, logos, etc.)
-          cp -r docs/* _site/
-
-          # Copy the built frontend assets under /app/ so the landing page
-          # can link to them, or for a future "live demo" sub-page.
-          cp -r apps/desktop/dist _site/app/ 2>/dev/null || true
-
-          # Copy the README as a quick-reference page
+          # Copy the README as a quick-reference page.
           cp README.md _site/README.md 2>/dev/null || true
 
           echo "Pages artifact contents:"
           ls -la _site/
-          # Show subdirs too
           find _site -type f | head -30
 
       - name: Upload Pages artifact

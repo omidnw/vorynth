@@ -6,8 +6,11 @@ import {
 	startAskJob,
 	startCollectJob,
 	startGenerateJob,
+	startHealthCheckJob,
+	startRecollectOneJob,
 	startRegenerateInsightsJob,
 	startSummarizeJob,
+	startTranslateOneJob,
 	startTranslateStoriesJob,
 } from "./jobs-api.js";
 
@@ -51,8 +54,21 @@ interface JobsState {
 		q: string,
 		opts?: { periodDays?: number; budget?: number },
 	) => Promise<Job | null>;
-	startRegenerateInsights: (opts?: { targetLanguage?: string }) => Promise<Job | null>;
-	startTranslateStories: (opts?: { targetLanguage?: string }) => Promise<Job | null>;
+	startRegenerateInsights: (opts?: {
+		targetLanguage?: string;
+	}) => Promise<Job | null>;
+	startTranslateStories: (opts?: {
+		targetLanguage?: string;
+		/** v1.8.0 — re-translate everything into the current language (not just the backlog). */
+		retranslateAll?: boolean;
+	}) => Promise<Job | null>;
+	startHealthCheck: () => Promise<Job | null>;
+	/** v1.8.0 — per-story Re-translate / Re-collect as visible jobs. */
+	startTranslateOne: (opts: {
+		articleId: string;
+		force?: boolean;
+	}) => Promise<Job | null>;
+	startRecollectOne: (opts: { articleId: string }) => Promise<Job | null>;
 	cancel: (id: string) => Promise<void>;
 
 	/** True when any job of the given kind is currently active. */
@@ -167,6 +183,42 @@ export const useJobsStore = create<JobsState>((set, get) => ({
 	startTranslateStories: async (opts) => {
 		try {
 			const job = await startTranslateStoriesJob(opts);
+			await get().refresh();
+			return job;
+		} catch (err) {
+			set({ lastError: (err as Error).message });
+			return null;
+		}
+	},
+
+	/** Data health check — full text + translation repair + missing insights. */
+	startHealthCheck: async () => {
+		try {
+			const job = await startHealthCheckJob();
+			await get().refresh();
+			return job;
+		} catch (err) {
+			set({ lastError: (err as Error).message });
+			return null;
+		}
+	},
+
+	/** v1.8.0 — per-story Re-translate as a visible background job. */
+	startTranslateOne: async (opts) => {
+		try {
+			const job = await startTranslateOneJob(opts);
+			await get().refresh();
+			return job;
+		} catch (err) {
+			set({ lastError: (err as Error).message });
+			return null;
+		}
+	},
+
+	/** v1.8.0 — per-story Re-collect as a visible background job. */
+	startRecollectOne: async (opts) => {
+		try {
+			const job = await startRecollectOneJob(opts);
 			await get().refresh();
 			return job;
 		} catch (err) {

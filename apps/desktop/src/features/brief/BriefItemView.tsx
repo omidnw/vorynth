@@ -1,297 +1,248 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useTranslation, useTextDirection, type TextDirection } from "@/i18n";
 import type { BriefEntry } from "@vorynth/types";
-import { Icon } from "@/components/ui/Icon";
-import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
+import {
+	BriefItemView as BriefItemViewBase,
+	type BriefItemLabels,
+} from "@vorynth/ui";
+import { useTranslation, useTextDirection } from "@/i18n";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
+import { fetchProfile } from "@/features/profile/profile-api.js";
+import { generateArticleInsight } from "@/features/reader/reader-api.js";
+import { useJobsStore } from "@/features/jobs/jobs-store.js";
+import { aiErrorMessage } from "@/features/llm/ai-error.js";
+
+export type { BriefEntry };
 
 /**
- * One ranked row in the Brief list — **news-first**.
- *
- * Always renders the article (title + source + age + summary snippet). When
- * `entry.insight` is present (an LLM analyzed this article), the intelligence
- * triad — Why it matters / Impact / Recommended Action — renders underneath.
- *
- * In zero-config mode (no API key), every entry renders without the triad; the
- * app is a clean multi-source news reader.
- *
- * The card surface is keyboard-clickable and navigates to the focused view
- * (`/insights/:id` when intelligence exists, otherwise the native reader
- * `/articles/:id`). A separate "Read source" link opens the ORIGINAL article
- * URL on the source site in a new tab — clicking it stops propagation so the
- * card navigation doesn't also fire. A bookmark button (v1.6.0) saves the
- * story to the Archive.
+ * Track one per-story background job (v1.8.0). Starting returns the job's id;
+ * `busy` stays true while that job is in the engine's active list, and
+ * `onFinished` fires once it leaves it (done / error / canceled) so the brief
+ * can refresh with the job's result. When the job ended in `status === "error"`,
+ * `error` carries its engine message (null for done / canceled) so the card can
+ * explain why the AI action failed.
  */
-export function BriefItemView({ entry }: { entry: BriefEntry }) {
+function usePerStoryJob(onFinished: () => void) {
+	const [jobId, setJobId] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const jobs = useJobsStore((s) => s.jobs);
+	const finishedRef = useRef(onFinished);
+	finishedRef.current = onFinished;
+
+	const busy = jobId ? jobs.active.some((j) => j.id === jobId) : false;
+
+	useEffect(() => {
+		if (!jobId) return;
+		// The job left the active list — it's done. Fire the refresh once.
+		if (!busy) {
+			const finished = jobs.recent.find((j) => j.id === jobId);
+			setError(finished?.status === "error" ? finished.error : null);
+			finishedRef.current();
+			setJobId(null);
+		}
+	}, [jobId, busy, jobs.recent]);
+
+	return {
+		busy,
+		error,
+		track: (id: string | null) => {
+			setError(null);
+			setJobId(id);
+		},
+	};
+}
+
+/**
+ * Desktop adapter for the shared `BriefItemView`. Restores the app coupling:
+ * card click navigates to the focused view, RTL detection reads the user's
+ * locale, the bookmark toggle hits the Archive API, and the toggle pills use
+ * react-i18next. The shared component is pure-presentational.
+ *
+ * Per-story translate / Re-translate / Re-collect (v1.8.0) run as visible
+ * background jobs (the jobs tray shows live progress) instead of silent
+ * one-off requests — a click starts the job and the card's More menu disables
+ * that action while it's running.
+ *
+ * `intelligenceEnabled` (v1.8.0) feeds the shared card's transparency note:
+ * when a story has no AI insight, the card explains why instead of silently
+ * omitting it (News mode vs not-yet-analyzed). In Intelligence mode a story
+ * with a body gets a Generate pill (`POST /articles/:id/insight`) that creates
+ * its analysis on demand; a story without a body shows the reason instead.
+ */
+export function BriefItemView({
+	entry,
+	intelligenceEnabled,
+	dragSelectsText = true,
+}: {
+	entry: BriefEntry;
+	intelligenceEnabled?: boolean;
+	/** `ui.dragSelectsText` — when on (default) a drag selects text, not opens. */
+	dragSelectsText?: boolean;
+}) {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const { t } = useTranslation();
 	const textDir = useTextDirection();
-	const { article, insight, sourceNames, category, importanceTier } = entry;
-	const rankLabel = String(entry.rank).padStart(2, "0");
-	const hasIntelligence = Boolean(insight);
-	const bookmark = useBookmarkToggle(article.contentItemId);
+	const bookmark = useBookmarkToggle(entry.article.contentItemId);
 
-	const headline = insight?.summary?.split("\n")[0] || article.title;
-	const hasOriginalTitle = Boolean(article.originalTitle);
-	const hasTranslatedBody = Boolean(article.translatedContent);
-	const [showOriginal, setShowOriginal] = useState(false);
-	const [showOriginalBody, setShowOriginalBody] = useState(false);
-	const displayTitle =
-		showOriginal && article.originalTitle ? article.originalTitle : headline;
-	// The story-text snippet defaults to the translated body when one exists
-	// (mirroring the reader) — the original stays one toggle away.
-	const rawSnippet = snippet(
-		hasTranslatedBody && !showOriginalBody
-			? (article.translatedContent ?? article.content)
-			: article.content,
+	const refreshStory = () => {
+		queryClient.invalidateQueries({ queryKey: ["reports"] });
+		queryClient.invalidateQueries({ queryKey: ["article", entry.article.id] });
+		queryClient.invalidateQueries({ queryKey: ["articles", entry.article.id] });
+	};
+
+	// Per-story jobs (v1.8.0) — Translate / Re-translate / Re-collect run as
+	// visible background jobs so the user sees progress in the jobs tray.
+	const startTranslateOne = useJobsStore((s) => s.startTranslateOne);
+	const startRecollectOne = useJobsStore((s) => s.startRecollectOne);
+	const translateJob = usePerStoryJob(refreshStory);
+	const recollectJob = usePerStoryJob(refreshStory);
+
+	const translate = {
+		busy: translateJob.busy,
+		translate: () =>
+			void startTranslateOne({
+				articleId: entry.article.id,
+				force: false,
+			}).then((job) => translateJob.track(job?.id ?? null)),
+	};
+
+	const recollect = {
+		busy: recollectJob.busy,
+		recollect: () =>
+			void startRecollectOne({ articleId: entry.article.id }).then((job) =>
+				recollectJob.track(job?.id ?? null),
+			),
+	};
+
+	const retranslate = {
+		busy: translateJob.busy,
+		retranslate: () =>
+			void startTranslateOne({
+				articleId: entry.article.id,
+				force: true,
+			}).then((job) => translateJob.track(job?.id ?? null)),
+	};
+
+	// Why a per-story AI job failed (v1.9.0): route the engine's structured LLM
+	// error code through the localized `llmError.*` messages, falling back to the
+	// action's generic failure string when no code was sent.
+	const translateError = translateJob.error
+		? aiErrorMessage(t, translateJob.error, "article.translateFailed")
+		: undefined;
+	const retranslateError = translateJob.error
+		? aiErrorMessage(t, translateJob.error, "article.retranslateFailed")
+		: undefined;
+	const recollectError = recollectJob.error
+		? aiErrorMessage(t, recollectJob.error, "article.recollectFailed")
+		: undefined;
+
+	// Per-story insight generation — the card's Generate pill. On success the
+	// brief is invalidated so the card re-renders with the new analysis.
+	const generate = useMutation({
+		mutationFn: () => generateArticleInsight(entry.article.id),
+		onSuccess: refreshStory,
+	});
+
+	/**
+	 * "Fully translated" = the title carries a translation AND there is no body
+	 * left to translate (body empty or body translated). The pill shows whenever
+	 * the story isn't fully translated — including stories that have a title but
+	 * no body text (a feed item with an empty description still translates its
+	 * title), and legacy title-only translations.
+	 */
+	const titleTranslated = Boolean(entry.article.originalTitle);
+	const bodyEmpty = !entry.article.content.trim();
+	const bodyTranslated = Boolean(entry.article.translatedContent);
+	const fullyTranslated = titleTranslated && (bodyEmpty || bodyTranslated);
+
+	// Same-language guard (v1.8.0): a story whose SOURCE language already equals
+	// the user's intelligence language is never translated (the engine skips it
+	// too) — hide the pill so the card never offers a no-op translation.
+	const { data: profile } = useQuery({
+		queryKey: ["profile"],
+		queryFn: fetchProfile,
+	});
+	const targetLang = profile?.preferredIntelligenceLanguage?.toLowerCase();
+	const sourceLang = entry.article.language?.toLowerCase();
+	const sameLanguage = Boolean(
+		sourceLang && targetLang && sourceLang === targetLang,
 	);
-	const standfirst = insight?.significance || rawSnippet;
-	// The body pill only makes sense when the raw story text is what's shown
-	// (an AI significance paragraph is not translated source text).
-	const showBodyToggle = !insight?.significance && hasTranslatedBody;
 
-	// Clicking the card surface navigates to the focused view. Inner links
-	// (article source, "Read") stopPropagation so they work independently.
-	const openCard = () => {
-		if (hasIntelligence && insight) {
-			navigate(`/insights/${insight.id}`);
-		} else {
-			navigate(`/articles/${article.id}`);
-		}
+	// Re-translate (v1.8.0): every story that HAS a translation — complete or
+	// incomplete — offers Re-translate, so the user can force a fresh AI pass
+	// any time (after a language change, or when a translation looks off).
+	// Only a never-translated story shows the plain Translate pill instead.
+	const canRetranslate = bodyTranslated && !sameLanguage;
+
+	const labels: BriefItemLabels = {
+		showOriginalTitle: t("article.showOriginalTitle"),
+		showTranslatedTitle: t("article.showTranslatedTitle"),
+		original: t("article.original"),
+		translated: t("article.translated"),
+		showOriginalBody: t("article.showOriginalBody"),
+		showTranslatedBody: t("article.showTranslatedBody"),
+		translate: t("article.translate"),
+		translating: t("article.translating"),
+		translateHint: t("article.translateHint"),
+		noInsightNews: t("article.noInsightNews"),
+		noInsightPending: t("article.noInsightPending"),
+		generateInsight: t("article.generateInsight"),
+		generateInsightBusy: t("article.generateInsightBusy"),
+		generateInsightHint: t("article.generateInsightHint"),
+		noInsightNoContent: t("article.noInsightNoContent"),
+		recollect: t("article.recollect"),
+		recollecting: t("article.recollecting"),
+		recollectHint: t("article.recollectHint"),
+		retranslate: t("article.retranslate"),
+		retranslating: t("article.retranslating"),
+		retranslateHint: t("article.retranslateHint"),
+		more: t("article.more"),
+		moreAria: t("article.moreAria"),
+		viewArticle: t("article.viewArticle"),
+		viewInsights: t("article.viewInsights"),
+		viewArticleHint: t("article.viewArticleHint"),
+		viewInsightsHint: t("article.viewInsightsHint"),
 	};
 
 	return (
-		<article
-			className="group cursor-pointer"
-			onClick={openCard}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					openCard();
-				}
+		<BriefItemViewBase
+			entry={entry}
+			dir={textDir}
+			labels={labels}
+			hideTranslation={sameLanguage}
+			dragSelectsText={dragSelectsText}
+			bookmark={bookmark}
+			intelligenceEnabled={intelligenceEnabled}
+			translate={{
+				busy: translate.busy,
+				canTranslate: !fullyTranslated && !sameLanguage,
+				translate: () => translate.translate(),
+				error: translateError,
 			}}
-			role="link"
-			tabIndex={0}
-		>
-			<div className="flex items-start gap-10">
-				<div className="rtl-flip-rank-rail flex flex-col items-center pt-1">
-					<span className="font-headline text-headline-md text-outline-variant opacity-50 transition-opacity group-hover:opacity-100">
-						{rankLabel}
-					</span>
-					<div className="mt-4 h-full w-px bg-outline-variant transition-colors group-hover:bg-primary" />
-				</div>
-
-				<div className="flex-1 pb-16">
-					<div className="mb-3 flex flex-wrap items-center gap-3">
-						<ImportanceBadge tier={importanceTier}>
-							{tierLabel(importanceTier)}
-						</ImportanceBadge>
-						<DomainTag>{category}</DomainTag>
-						<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-							{sourceNames.join(" · ")}
-						</span>
-						{article.publishedAt ? (
-							<span className="ml-auto font-mono text-mono-technical text-on-tertiary-container">
-								{timeAgo(article.publishedAt)}
-							</span>
-						) : null}
-					</div>
-
-					<div className="mb-4 flex items-start gap-3">
-						<h3
-							className="font-headline text-headline-lg leading-tight text-primary dark:text-primary-fixed"
-							dir={textDir(displayTitle)}
-						>
-							{displayTitle}
-						</h3>
-						{hasOriginalTitle ? (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									setShowOriginal((v) => !v);
-								}}
-								className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
-								title={
-									showOriginal
-										? t("article.showTranslatedTitle")
-										: t("article.showOriginalTitle")
-								}
-							>
-								{showOriginal ? t("article.translated") : t("article.original")}
-							</button>
-						) : null}
-					</div>
-					<div className="mb-6 h-0.5 w-12 bg-primary" />
-
-					<div className="mb-8 flex items-start gap-3">
-						<p
-							className="flex-1 font-body text-body-lg leading-relaxed text-on-surface"
-							dir={textDir(standfirst)}
-						>
-							{standfirst}
-						</p>
-						{showBodyToggle ? (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									setShowOriginalBody((v) => !v);
-								}}
-								className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
-								title={
-									showOriginalBody
-										? t("article.showTranslatedBody")
-										: t("article.showOriginalBody")
-								}
-							>
-								{showOriginalBody
-									? t("article.translated")
-									: t("article.original")}
-							</button>
-						) : null}
-					</div>
-
-					{hasIntelligence && insight ? (
-						<div className="grid grid-cols-1 gap-8 font-body text-body-md md:grid-cols-2">
-							<div className="space-y-4">
-								<Field
-									label="Why it matters"
-									dir={textDir(insight.significance || "")}
-								>
-									{insight.significance || "—"}
-								</Field>
-								<Field label="Impact" dir={textDir(insight.impact || "")}>
-									{insight.impact || "—"}
-								</Field>
-								{sourceNames.length > 0 ? (
-									<Field label="Sources" dir={textDir(sourceNames.join(" · "))}>
-										{sourceNames.join(" · ")}
-									</Field>
-								) : null}
-							</div>
-							<div className="border-l-2 border-primary bg-surface-container-low p-6 rounded">
-								<h4 className="mb-2 flex items-center gap-2 font-label text-label-md uppercase tracking-wide text-on-surface-variant">
-									<Icon name="lightbulb" fill className="text-[16px]" />
-									Recommended Action
-								</h4>
-								<p
-									className="italic text-on-surface"
-									dir={textDir(insight.recommendedAction || "")}
-								>
-									{insight.recommendedAction || "—"}
-								</p>
-							</div>
-						</div>
-					) : (
-						<div className="flex items-center gap-2 font-mono text-mono-technical text-on-tertiary-container">
-							<Icon name="open_in_new" className="text-[16px]" />
-							<span>Read on {sourceNames[0] ?? "source"}</span>
-						</div>
-					)}
-
-					{/* Always-present footer: open the original article on the
-					    source site in a new tab. Stops propagation so the card
-					    navigation doesn't also fire. */}
-					<div className="mt-6 flex items-center gap-4 border-t border-outline-variant pt-4">
-						<a
-							href={article.url}
-							target="_blank"
-							rel="noreferrer"
-							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-secondary transition-colors hover:text-primary hover:underline"
-						>
-							<Icon name="open_in_new" className="text-[14px]" />
-							Read source
-						</a>
-						<button
-							type="button"
-							onClick={(e) => {
-								e.stopPropagation();
-								bookmark.toggle();
-							}}
-							disabled={!bookmark.enabled}
-							aria-label={
-								bookmark.saved ? "Remove bookmark" : "Bookmark this story"
-							}
-							aria-pressed={bookmark.saved}
-							className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary disabled:opacity-30"
-						>
-							<Icon
-								name={bookmark.saved ? "bookmark" : "bookmark_border"}
-								fill={bookmark.saved}
-								className="text-[16px]"
-							/>
-							{bookmark.saved ? "Saved" : "Save"}
-						</button>
-						<span className="font-mono text-[11px] text-on-tertiary-container">
-							{sourceNameLabel(sourceNames)}
-						</span>
-					</div>
-				</div>
-			</div>
-		</article>
+			generateInsight={{
+				busy: generate.isPending,
+				generate: () => generate.mutate(),
+				error: generate.isError
+					? aiErrorMessage(t, generate.error, "article.generateInsightFailed")
+					: undefined,
+			}}
+			recollect={{
+				busy: recollect.busy,
+				recollect: () => recollect.recollect(),
+				error: recollectError,
+			}}
+			retranslate={{
+				busy: retranslate.busy,
+				canRetranslate: canRetranslate && !sameLanguage,
+				retranslate: () => retranslate.retranslate(),
+				error: retranslateError,
+			}}
+			onOpen={(e) => {
+				if (e.insight) navigate(`/insights/${e.insight.id}`);
+				else navigate(`/articles/${e.article.id}`);
+			}}
+		/>
 	);
-}
-
-function Field({
-	label,
-	children,
-	dir,
-}: {
-	label: string;
-	children: React.ReactNode;
-	dir?: TextDirection;
-}) {
-	return (
-		<div className="space-y-1">
-			<h4 className="font-label text-label-md uppercase tracking-wide text-on-surface-variant">
-				{label}
-			</h4>
-			<p className="text-on-surface" dir={dir ?? "auto"}>
-				{children}
-			</p>
-		</div>
-	);
-}
-
-function tierLabel(tier: BriefEntry["importanceTier"]): string {
-	switch (tier) {
-		case "signal":
-			return "Signal";
-		case "trend":
-			return "Trend";
-		case "low-noise":
-			return "Low Noise";
-		default:
-			return "Info";
-	}
-}
-
-/** Trim + ellipsize content into a standfirst when no LLM summary exists. */
-function snippet(content: string, max = 220): string {
-	const text = (content ?? "").replace(/\s+/g, " ").trim();
-	if (!text) return "";
-	return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
-}
-
-/** Short "on {source}" label for the source link row. */
-function sourceNameLabel(sourceNames: string[]): string {
-	if (sourceNames.length === 0) return "original article";
-	if (sourceNames.length === 1) return `on ${sourceNames[0]}`;
-	return `on ${sourceNames[0]} +${sourceNames.length - 1} more`;
-}
-
-function timeAgo(date: Date): string {
-	const ms = Date.now() - new Date(date).getTime();
-	const h = ms / 3_600_000;
-	if (h < 1) return `${Math.max(1, Math.round(h * 60))}m ago`;
-	if (h < 24) return `${Math.round(h)}h ago`;
-	const d = h / 24;
-	if (d < 7) return `${Math.round(d)}d ago`;
-	return new Date(date).toLocaleDateString("en-US", {
-		day: "numeric",
-		month: "short",
-	});
 }

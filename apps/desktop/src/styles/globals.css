@@ -11,6 +11,18 @@
  */
 
 @layer base {
+	/* v1.8.0 — font customization hooks. Defaults mirror the bundled pairing;
+	   the Settings font picker/slider override these via an injected <style>
+	   (font-store.ts). Tailwind's fontFamily/fontSize consume the vars, so a
+	   single override re-skins the whole app. */
+	:root {
+		--font-body: Geist, ui-sans-serif, system-ui, sans-serif;
+		--font-headline: Newsreader, ui-serif, Georgia, serif;
+		--font-label: Geist, ui-sans-serif, system-ui, sans-serif;
+		--font-mono: Geist, ui-monospace, SFMono-Regular, Menlo, monospace;
+		--font-scale: 1;
+	}
+
 	html {
 		font-family: theme("fontFamily.body");
 		-webkit-font-smoothing: antialiased;
@@ -22,7 +34,12 @@
 		min-height: 100vh;
 	}
 
-	/* Material Symbols defaults — match the example markup. */
+	/* Material Symbols defaults — match the example markup.
+	   `unicode-bidi: isolate` (not `direction: ltr`) keeps the glyph from being
+	   reordered by surrounding RTL text while letting logical positioning
+	   utilities (start/end insets) on the icon resolve against the page
+	   direction — with `direction: ltr` those utilities would always pin to the
+	   physical left even in fa/ar/he. */
 	.material-symbols-outlined {
 		font-family: "Material Symbols Outlined";
 		font-weight: normal;
@@ -33,7 +50,7 @@
 		letter-spacing: normal;
 		word-wrap: normal;
 		white-space: nowrap;
-		direction: ltr;
+		unicode-bidi: isolate;
 		-webkit-font-feature-settings: "liga";
 		-webkit-font-smoothing: antialiased;
 		font-variation-settings:
@@ -71,31 +88,123 @@
 		-ms-overflow-style: none;
 		scrollbar-width: none;
 	}
+	/* Counterclockwise spinner (v1.8.0) — the `sync` arrowheads lead the
+	   motion; Tailwind's default `animate-spin` runs clockwise. Plain CSS so
+	   dev HMR applies it without a dev-server restart. */
+	.animate-spin-reverse {
+		animation: spin-reverse 1s linear infinite;
+	}
 }
 
-/**
- * RTL support (project-details.md §22). Vorynth ships in English; any RTL
- * language the user imports (fa, ar, he, …) sets `<html dir="rtl">` and these
- * rules mirror the fixed shell so the sidebar, top bar offset and content
- * margins flip cleanly. Components written with logical CSS where possible
- * (flex direction, gap, padding-inline) need no overrides.
- */
+@keyframes spin-reverse {
+	from {
+		transform: rotate(360deg);
+	}
+	to {
+		transform: rotate(0deg);
+	}
+}
+
+@layer utilities {
+	/* Keep LTR-sensitive technical text (URLs, paths, version numbers) laid out
+	   left-to-right even inside an RTL interface — isolated from the bidi flow
+	   so punctuation and slashes stay in the right places. */
+	.dir-ltr-isolate {
+		direction: ltr;
+		unicode-bidi: isolate;
+	}
+}
+
+/* RTL (project-details.md §22): the fixed shell (sidebar, top bar, content
+   margin) is written with logical utilities (start-/end-/ms-/me-/border-s) so
+   `<html dir="rtl">` mirrors it natively — no per-class overrides. Directional
+   icons mirror via `rtl:rotate-180` in the Icon component. */
+
+/* Rich-text story bodies (v1.8.0) — the reader renders feed-provided HTML
+   (bold, links, lists, quotes) instead of raw tags. The markup is sanitized
+   by RichContent before it ever reaches the DOM. */
 @layer components {
-	[dir="rtl"] .rtl-flip-sidebar {
-		left: auto !important;
-		right: 0;
-		border-right-width: 0;
-		border-left: 1px solid theme("colors.outline-variant");
+	.rich-content {
+		@apply whitespace-pre-wrap;
 	}
-	[dir="rtl"] .rtl-flip-main {
-		margin-left: 0 !important;
-		margin-right: theme("spacing.sidebar-width");
+	.rich-content > :first-child {
+		margin-top: 0;
 	}
-	[dir="rtl"] .rtl-flip-topbar {
-		left: 0 !important;
-		right: theme("spacing.sidebar-width");
+	.rich-content > :last-child {
+		margin-bottom: 0;
 	}
-	[dir="rtl"] .rtl-flip-rank-rail {
-		order: 2;
+	.rich-content p {
+		@apply mb-4;
+	}
+	.rich-content a {
+		@apply text-secondary underline transition-colors hover:text-primary;
+	}
+	.rich-content strong,
+	.rich-content b {
+		@apply font-bold;
+	}
+	.rich-content em,
+	.rich-content i {
+		font-style: italic;
+	}
+	.rich-content h1,
+	.rich-content h2,
+	.rich-content h3,
+	.rich-content h4,
+	.rich-content h5,
+	.rich-content h6 {
+		@apply mb-3 mt-6 font-headline font-medium leading-tight text-primary dark:text-primary-fixed;
+	}
+	.rich-content h1 {
+		@apply text-2xl;
+	}
+	.rich-content h2 {
+		@apply text-xl;
+	}
+	.rich-content h3 {
+		@apply text-lg;
+	}
+	.rich-content h4,
+	.rich-content h5,
+	.rich-content h6 {
+		@apply text-base;
+	}
+	.rich-content ul,
+	.rich-content ol {
+		@apply mb-4 ps-6;
+	}
+	.rich-content ul {
+		list-style: disc;
+	}
+	.rich-content ol {
+		list-style: decimal;
+	}
+	.rich-content li {
+		@apply mb-1;
+	}
+	.rich-content blockquote {
+		@apply mb-4 border-s-2 border-outline-variant ps-4 italic text-on-surface-variant;
+	}
+	.rich-content code {
+		@apply rounded bg-surface-container-low px-1 py-0.5 font-mono text-[0.9em];
+	}
+	.rich-content pre {
+		@apply mb-4 overflow-x-auto rounded-lg bg-surface-container-low p-4 font-mono text-[0.9em];
+	}
+	.rich-content pre code {
+		@apply bg-transparent p-0;
+	}
+	.rich-content table {
+		@apply mb-4 w-full border-collapse;
+	}
+	.rich-content th,
+	.rich-content td {
+		@apply border border-outline-variant px-3 py-1.5 text-start align-top;
+	}
+	.rich-content th {
+		@apply font-label text-label-sm uppercase tracking-wide;
+	}
+	.rich-content hr {
+		@apply my-6 border-outline-variant;
 	}
 }

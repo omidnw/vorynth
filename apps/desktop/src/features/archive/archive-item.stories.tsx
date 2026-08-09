@@ -23,6 +23,7 @@ const mockItem: ArchiveItem = {
 	createdAt: "2026-08-01T08:00:00.000Z",
 	updatedAt: "2026-08-01T08:05:00.000Z",
 	title: "Read This Before You Buy That TV Streaming Stick",
+	originalTitle: null,
 	url: "https://example.com/story",
 	author: "BrianKrebs",
 	publishedAt: "2026-07-30T16:49:00.000Z",
@@ -49,7 +50,7 @@ function ArchiveCard({ item }: { item: ArchiveItem }) {
 					<Icon name="note" className="text-on-surface-variant" />
 				</div>
 			</div>
-			<p className="border-l-2 border-primary pl-3 font-body text-body-sm italic text-on-surface-variant">
+			<p className="border-s-2 border-s-primary ps-3 font-body text-body-sm italic text-on-surface-variant">
 				{item.note}
 			</p>
 			<div className="flex flex-wrap gap-2">

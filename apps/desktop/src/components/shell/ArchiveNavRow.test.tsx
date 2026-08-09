@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import "@/i18n"; // register the react-i18next instance (English catalog)
 import { ArchiveNavRow } from "@/components/shell/ArchiveNavRow.js";
 
 function renderAt(path: string) {
@@ -18,8 +19,16 @@ describe("ArchiveNavRow — Archive section navigation", () => {
 		renderAt("/archive");
 
 		const nav = screen.getByRole("navigation", { name: "Archive sections" });
-		for (const label of ["Items", "Collections", "Bookmarks", "Search", "Trash"]) {
-			expect(within(nav).getByRole("link", { name: label })).toBeInTheDocument();
+		for (const label of [
+			"Items",
+			"Collections",
+			"Bookmarks",
+			"Search",
+			"Trash",
+		]) {
+			expect(
+				within(nav).getByRole("link", { name: label }),
+			).toBeInTheDocument();
 		}
 	});
 

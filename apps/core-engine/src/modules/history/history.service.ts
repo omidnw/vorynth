@@ -242,12 +242,12 @@ export class HistoryService {
 				.prepare(`DELETE FROM search_history WHERE id IN (${placeholders})`)
 				.run(...ids);
 			for (const s of spines) {
-				raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
-					s.content_item_id,
-				);
-				raw.prepare("DELETE FROM content_items WHERE id = ?").run(
-					s.content_item_id,
-				);
+				raw
+					.prepare("DELETE FROM bookmarks WHERE content_item_id = ?")
+					.run(s.content_item_id);
+				raw
+					.prepare("DELETE FROM content_items WHERE id = ?")
+					.run(s.content_item_id);
 			}
 			return res.changes;
 		})();
@@ -384,12 +384,12 @@ export class HistoryService {
 				.prepare(`DELETE FROM brief_history WHERE id IN (${placeholders})`)
 				.run(...ids);
 			for (const s of spines) {
-				raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
-					s.content_item_id,
-				);
-				raw.prepare("DELETE FROM content_items WHERE id = ?").run(
-					s.content_item_id,
-				);
+				raw
+					.prepare("DELETE FROM bookmarks WHERE content_item_id = ?")
+					.run(s.content_item_id);
+				raw
+					.prepare("DELETE FROM content_items WHERE id = ?")
+					.run(s.content_item_id);
 			}
 			return res.changes;
 		})();
@@ -524,12 +524,12 @@ export class HistoryService {
 				.prepare(`DELETE FROM generated_history WHERE id IN (${placeholders})`)
 				.run(...ids);
 			for (const s of spines) {
-				raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
-					s.content_item_id,
-				);
-				raw.prepare("DELETE FROM content_items WHERE id = ?").run(
-					s.content_item_id,
-				);
+				raw
+					.prepare("DELETE FROM bookmarks WHERE content_item_id = ?")
+					.run(s.content_item_id);
+				raw
+					.prepare("DELETE FROM content_items WHERE id = ?")
+					.run(s.content_item_id);
 			}
 			return res.changes;
 		})();

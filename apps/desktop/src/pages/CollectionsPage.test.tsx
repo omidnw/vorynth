@@ -50,6 +50,7 @@ const item: ArchiveItem = {
 	createdAt: "2026-08-01T00:00:00.000Z",
 	updatedAt: "2026-08-01T00:00:00.000Z",
 	title: "Deep learning paper",
+	originalTitle: null,
 	url: null,
 	author: null,
 	publishedAt: null,
@@ -68,6 +69,7 @@ const directItem: ArchiveItem = {
 	createdAt: "2026-08-01T00:00:00.000Z",
 	updatedAt: "2026-08-01T00:00:00.000Z",
 	title: "Research scratchpad",
+	originalTitle: null,
 	url: null,
 	author: null,
 	publishedAt: null,
@@ -139,7 +141,9 @@ describe("CollectionsPage — Windows icon view", () => {
 		// Root grid shows only root collections — "Papers" is nested inside
 		// "Research", so it must not appear as a card yet.
 		await screen.findByRole("button", { name: "Research" });
-		expect(screen.queryByRole("button", { name: "Papers" })).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Papers" }),
+		).not.toBeInTheDocument();
 		// The card says what's inside at a glance — the sub-folder and both items
 		// (the folder's item + the category's own).
 		expect(screen.getByText("1 folder · 2 items")).toBeInTheDocument();
@@ -183,7 +187,9 @@ describe("CollectionsPage — Windows icon view", () => {
 		// Now "in" Research: its child "Papers" becomes a card, the header
 		// offers "New folder", and the breadcrumb reflects the location.
 		await screen.findByRole("button", { name: "Papers" });
-		expect(screen.getByRole("button", { name: "New folder" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "New folder" }),
+		).toBeInTheDocument();
 		const breadcrumb = screen.getByLabelText("Breadcrumb");
 		expect(within(breadcrumb).getByText("Research")).toBeInTheDocument();
 		// Entering lists the folder's own items — the folder's item is not
@@ -205,7 +211,9 @@ describe("CollectionsPage — Windows icon view", () => {
 		renderPage();
 
 		await screen.findByRole("button", { name: "Research" });
-		await user.click(screen.getByRole("button", { name: "Actions for Research" }));
+		await user.click(
+			screen.getByRole("button", { name: "Actions for Research" }),
+		);
 		await user.click(screen.getByRole("menuitem", { name: "Rename" }));
 
 		const input = screen.getByRole("textbox", { name: "Rename Research" });
@@ -225,7 +233,9 @@ describe("CollectionsPage — Windows icon view", () => {
 		renderPage();
 
 		await screen.findByRole("button", { name: "Research" });
-		await user.click(screen.getByRole("button", { name: "Actions for Research" }));
+		await user.click(
+			screen.getByRole("button", { name: "Actions for Research" }),
+		);
 		await user.click(screen.getByRole("menuitem", { name: "Delete" }));
 
 		const dialog = screen.getByRole("alertdialog");
@@ -247,7 +257,9 @@ describe("CollectionsPage — Windows icon view", () => {
 		renderPage();
 
 		await screen.findByRole("button", { name: "Research" });
-		await user.click(screen.getByRole("button", { name: "Actions for Research" }));
+		await user.click(
+			screen.getByRole("button", { name: "Actions for Research" }),
+		);
 		await user.click(screen.getByRole("menuitem", { name: "Add items" }));
 
 		// The add-items panel opens; searching finds the archive item.
@@ -359,9 +371,7 @@ describe("CollectionsPage — Windows icon view", () => {
 
 		await screen.findByRole("button", { name: "Research" });
 		// One predictable docs entry point in the header (icon-only + aria-label).
-		await user.click(
-			screen.getByRole("button", { name: "How it works" }),
-		);
+		await user.click(screen.getByRole("button", { name: "How it works" }));
 		expect(screen.getByText("DOCS PAGE")).toBeInTheDocument();
 	});
 });

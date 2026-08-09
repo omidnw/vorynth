@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type { UsageSummary } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -18,6 +19,7 @@ import { fetchStatus } from "@/features/llm/llm-api.js";
  *   - live rate-limit state (from the engine's own limiter — not a build-time guess)
  */
 export function UsageSection() {
+	const { t } = useTranslation();
 	const queryClient = useQueryClient();
 	const { data } = useQuery<UsageSummary>({
 		queryKey: ["llm-usage"],
@@ -58,8 +60,8 @@ export function UsageSection() {
 		<GhostCard>
 			<div className="mb-4 flex items-center justify-between">
 				<h3 className="flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-					<Icon name="monitoring" className="text-base" />
-					Usage
+					<Icon name="monitor" className="text-base" />
+					{t("usage.title")}
 				</h3>
 				<Button
 					variant="ghost"
@@ -68,42 +70,49 @@ export function UsageSection() {
 					onClick={() => reset.mutate()}
 					disabled={reset.isPending}
 				>
-					Reset
+					{t("usage.reset")}
 				</Button>
 			</div>
 
 			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
 				<Stat
-					label="Total requests"
+					label={t("usage.totalRequests")}
 					value={u.totalRequests.toLocaleString()}
-					sub={`${u.failedRequests} failed`}
+					sub={t("usage.failed", { count: u.failedRequests })}
 				/>
 				<Stat
-					label="Total tokens"
+					label={t("usage.totalTokens")}
 					value={u.totalTokens.toLocaleString()}
-					sub={`${u.promptTokens.toLocaleString()} in · ${u.completionTokens.toLocaleString()} out`}
+					sub={t("usage.tokenBreakdown", {
+						prompt: u.promptTokens.toLocaleString(),
+						completion: u.completionTokens.toLocaleString(),
+					})}
 				/>
 				<Stat
-					label="Last 30 days"
+					label={t("usage.last30Days")}
 					value={u.last30d.requests.toLocaleString()}
-					sub={`${u.last30d.tokens.toLocaleString()} tokens`}
+					sub={t("search.tokensUsed", {
+						count: u.last30d.tokens.toLocaleString(),
+					})}
 				/>
 				<Stat
-					label="Rate limit"
+					label={t("usage.rateLimit")}
 					value={`${rateLimit.inFlight}/${rateLimit.capacity}`}
-					sub={`${(rateLimit.spacingMs / 1000).toFixed(1)}s between requests`}
+					sub={t("usage.spacing", {
+						seconds: (rateLimit.spacingMs / 1000).toFixed(1),
+					})}
 				/>
 			</div>
 
 			<div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-				<Breakdown title="By operation" data={u.byOperation} />
-				<Breakdown title="By provider" data={u.byProvider} />
+				<Breakdown title={t("usage.byOperation")} data={u.byOperation} />
+				<Breakdown title={t("usage.byProvider")} data={u.byProvider} />
 			</div>
 
 			<p className="mt-4 font-mono text-[11px] text-on-tertiary-container">
-				Counts since {new Date(u.windowStart).toLocaleDateString()}. Token
-				counts are estimated (4 chars ≈ 1 token) when a provider doesn't expose
-				metadata.
+				{t("usage.sinceHint", {
+					date: new Date(u.windowStart).toLocaleDateString(),
+				})}
 			</p>
 		</GhostCard>
 	);
@@ -119,13 +128,15 @@ function Stat({
 	sub?: string;
 }) {
 	return (
-		<div className="border-l-2 border-outline-variant pl-3">
+		<div className="border-s-2 border-s-outline-variant ps-3">
 			<p className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
 				{label}
 			</p>
-			<p className="mt-1 font-mono text-mono-technical text-primary">{value}</p>
+			<p className="mt-1 font-mono text-mono-technical text-primary dir-ltr-isolate">
+				{value}
+			</p>
 			{sub ? (
-				<p className="font-mono text-[11px] text-on-tertiary-container">
+				<p className="font-mono text-[11px] text-on-tertiary-container dir-ltr-isolate">
 					{sub}
 				</p>
 			) : null}
@@ -140,6 +151,7 @@ function Breakdown({
 	title: string;
 	data: Record<string, { requests: number; tokens: number }>;
 }) {
+	const { t } = useTranslation();
 	const entries = Object.entries(data).sort(
 		(a, b) => b[1].tokens - a[1].tokens,
 	);
@@ -150,7 +162,7 @@ function Breakdown({
 			</p>
 			{entries.length === 0 ? (
 				<p className="font-body text-body-md text-on-tertiary-container">
-					No data yet.
+					{t("usage.noData")}
 				</p>
 			) : (
 				<div className="space-y-2">
@@ -160,8 +172,11 @@ function Breakdown({
 							className="flex items-center justify-between border-b border-outline-variant pb-1"
 						>
 							<DomainTag>{name}</DomainTag>
-							<span className="font-mono text-mono-technical text-on-surface">
-								{v.requests} req · {v.tokens.toLocaleString()} tok
+							<span className="font-mono text-mono-technical text-on-surface dir-ltr-isolate">
+								{t("usage.breakdownLine", {
+									requests: v.requests,
+									tokens: v.tokens.toLocaleString(),
+								})}
 							</span>
 						</div>
 					))}

@@ -3,5 +3,10 @@
 	"identifier": "default",
 	"description": "Default capabilities for the Vorynth desktop window.",
 	"windows": ["main"],
-	"permissions": ["core:default", "shell:allow-open"]
+	"permissions": [
+		"core:default",
+		"shell:allow-open",
+		"updater:default",
+		"notification:default"
+	]
 }

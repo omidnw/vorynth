@@ -30,10 +30,12 @@ function seedArticle(
 	const raw = db.service.rawDb;
 	const articleId = randomUUID();
 	const spineId = createSpine(raw, "article");
-	raw.prepare(
-		`INSERT INTO articles (id, source_id, title, content, url, hash, published_at, collected_at)
+	raw
+		.prepare(
+			`INSERT INTO articles (id, source_id, title, content, url, hash, published_at, collected_at)
 		 VALUES (?, ?, 'Test story', 'body', 'https://example.com/a', ?, ?, ?)`,
-	).run(articleId, sourceId, randomUUID(), Date.now(), Date.now());
+		)
+		.run(articleId, sourceId, randomUUID(), Date.now(), Date.now());
 	attachSpine(raw, "articles", articleId, spineId);
 	return { articleId, spineId };
 }
@@ -128,7 +130,11 @@ describe("trash: collections (v1.7.0)", () => {
 			// elsewhere) kept its new home.
 			const raw = db.service.rawDb;
 			const get = (id: string) =>
-				(raw.prepare("SELECT collection_id FROM content_items WHERE id = ?").get(id) as { collection_id: string | null }).collection_id;
+				(
+					raw
+						.prepare("SELECT collection_id FROM content_items WHERE id = ?")
+						.get(id) as { collection_id: string | null }
+				).collection_id;
 			expect(get(itemA)).toBe(other.id);
 			expect(get(itemB)).toBe(cat.id);
 		} finally {
@@ -186,7 +192,11 @@ describe("trash: collections (v1.7.0)", () => {
 				.get(spineId) as { collection_id: string | null };
 			expect(item.collection_id).toBeNull();
 			expect(
-				(raw.prepare("SELECT COUNT(*) AS c FROM content_items WHERE id = ?").get(spineId) as { c: number }).c,
+				(
+					raw
+						.prepare("SELECT COUNT(*) AS c FROM content_items WHERE id = ?")
+						.get(spineId) as { c: number }
+				).c,
 			).toBe(1);
 		} finally {
 			db.close();

@@ -18,11 +18,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS: Record<Variant, string> = {
 	// Primary: deep forest fill, 4px radius, no shadow.
-		primary:
-			"bg-primary text-on-primary hover:brightness-105 dark:hover:brightness-100 dark:hover:bg-primary-fixed active:scale-[0.98] transition-all",
+	primary:
+		"bg-primary text-on-primary hover:brightness-105 dark:hover:brightness-100 dark:hover:bg-primary-fixed active:scale-[0.98] transition-all",
 	// Secondary: transparent, 1px primary outline.
-		secondary:
-			"bg-transparent border border-primary text-primary hover:bg-primary-container hover:text-on-primary dark:hover:bg-secondary-container dark:hover:text-primary transition-colors",
+	secondary:
+		"bg-transparent border border-primary text-primary hover:bg-primary-container hover:text-on-primary dark:hover:bg-secondary-container dark:hover:text-primary transition-colors",
 	// Ghost: transparent, subtle surface fill on hover.
 	ghost:
 		"bg-transparent text-secondary hover:bg-surface-variant dark:hover:bg-tertiary-container transition-colors",

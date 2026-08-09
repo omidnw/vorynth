@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { SidebarNavItem } from "./SidebarNav";
 
 /**
@@ -11,16 +12,22 @@ import { SidebarNavItem } from "./SidebarNav";
  * truth for switching views within a section).
  */
 export function ArchiveNavGroup() {
+	const { t } = useTranslation();
 	return (
 		<SidebarNavItem
 			to="/archive"
 			icon="inventory_2"
-			label="Archive"
-			isActive={(pathname) =>
-				pathname === "/archive" ||
-				pathname.startsWith("/archive/") ||
-				pathname.startsWith("/bookmarks")
-			}
+			label={t("nav.archive")}
+			isActive={(pathname) => {
+				// Trailing-slash tolerant (v1.8.0): `/archive/` must highlight the
+				// archive item exactly like `/archive`.
+				const p = pathname.replace(/\/+$/, "");
+				return (
+					p === "/archive" ||
+					p.startsWith("/archive/") ||
+					p.startsWith("/bookmarks")
+				);
+			}}
 		/>
 	);
 }

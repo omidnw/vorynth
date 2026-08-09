@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { MenuButton, type MenuItem } from "@/components/ui/Select";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
@@ -54,41 +55,43 @@ export function CollectionCard({
 	onStartRename: (c: Collection) => void;
 	onDelete: (id: string) => void;
 }) {
+	const { t } = useTranslation();
 	const isCategory = collection.kind === "category";
 
 	// The count line tells the user at a glance what's inside: sub-folders and
 	// items (e.g. "2 folders · 5 items"), or "Empty" for a bare folder.
 	const countParts: string[] = [];
 	if (folderCount > 0) {
-		countParts.push(`${folderCount} ${folderCount === 1 ? "folder" : "folders"}`);
+		countParts.push(t("collections.folders", { count: folderCount }));
 	}
 	if (itemCount > 0) {
-		countParts.push(`${itemCount} ${itemCount === 1 ? "item" : "items"}`);
+		countParts.push(t("collections.items", { count: itemCount }));
 	}
-	const countLabel = countParts.length > 0 ? countParts.join(" · ") : "Empty";
+	const countLabel =
+		countParts.length > 0 ? countParts.join(" · ") : t("collections.empty");
 
 	const menuItems: MenuItem[] = [
 		{
 			key: "add-items",
-			label: "Add items",
+			label: t("collections.addItems"),
 			icon: "add",
 			onClick: () => onAddItems(collection.id),
 		},
 		{
 			key: "new-folder",
-			label: "New folder",
+			label: t("collections.newFolder"),
 			icon: "create_new_folder",
 			onClick: () => onNewFolder(collection.id),
 		},
 		{
 			key: "rename",
-			label: "Rename",
+			label: t("collections.rename"),
 			icon: "edit",
 			onClick: () => onStartRename(collection),
 		},
 		{
 			key: "delete",
-			label: "Delete",
+			label: t("collections.delete"),
 			icon: "delete",
 			danger: true,
 			onClick: () => onDelete(collection.id),
@@ -101,9 +104,7 @@ export function CollectionCard({
 			tabIndex={0}
 			aria-label={collection.name}
 			title={
-				isCategory
-					? "Category — click to select, double-click to open"
-					: "Folder — click to select, double-click to open"
+				isCategory ? t("collections.categoryHint") : t("collections.folderHint")
 			}
 			onClick={() => onSelect(collection.id)}
 			onFocus={() => onSelect(collection.id)}
@@ -127,12 +128,14 @@ export function CollectionCard({
 			    Clicks are stopped here so opening the menu never double-opens
 			    the folder. */}
 			<div
-				className="absolute right-1.5 top-1.5 hidden shrink-0 group-hover:flex group-focus-within:flex"
+				className="absolute end-1.5 top-1.5 hidden shrink-0 group-hover:flex group-focus-within:flex"
 				onClick={(e) => e.stopPropagation()}
 				onDoubleClick={(e) => e.stopPropagation()}
 			>
 				<MenuButton
-					aria-label={`Actions for ${collection.name}`}
+					aria-label={t("collections.actionsFor", {
+						name: collection.name,
+					})}
 					items={menuItems}
 				/>
 			</div>
@@ -161,7 +164,9 @@ export function CollectionCard({
 						if (e.key === "Escape") onCancelRename();
 					}}
 					onBlur={() => onCommitRename(collection.id)}
-					aria-label={`Rename ${collection.name}`}
+					aria-label={t("collections.renameFor", {
+						name: collection.name,
+					})}
 					className="w-full min-w-0 rounded border border-secondary bg-surface-container-lowest px-1.5 py-0.5 text-center font-body text-body-sm text-on-surface outline-none"
 				/>
 			) : (

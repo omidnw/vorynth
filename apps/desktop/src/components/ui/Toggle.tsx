@@ -48,7 +48,7 @@ export function Toggle({
 				<span
 					className={cn(
 						"absolute top-0.5 h-5 w-5 rounded-full bg-surface-container-lowest transition-all",
-						checked ? "left-[22px]" : "left-0.5",
+						checked ? "start-[22px]" : "start-0.5",
 					)}
 				/>
 			</button>

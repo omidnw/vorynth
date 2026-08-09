@@ -31,15 +31,17 @@ export function ftsInsertArticle(
 	title: string,
 	content: string,
 	author?: string | null,
+	originalTitle?: string | null,
 ): void {
 	const nTitle = normalizeText(title);
 	const nContent = normalizeText(content);
 	const nAuthor = normalizeText(author ?? "");
+	const nOriginalTitle = normalizeText(originalTitle ?? "");
 	rawDb
 		.prepare(
-			"INSERT INTO articles_fts(article_id, title, content, author) VALUES (?, ?, ?, ?)",
+			"INSERT INTO articles_fts(article_id, title, content, author, original_title) VALUES (?, ?, ?, ?, ?)",
 		)
-		.run(articleId, nTitle, nContent, nAuthor);
+		.run(articleId, nTitle, nContent, nAuthor, nOriginalTitle);
 }
 
 /**
@@ -48,7 +50,9 @@ export function ftsInsertArticle(
  * Used when a job rewrites an article's title or content (e.g. Translate
  * Stories changes `title`) so keyword search keeps matching what the live
  * table displays. `content` is passed by the caller — unchanged fields are
- * simply written back with their current values.
+ * simply written back with their current values. `originalTitle` (v1.8.0)
+ * keeps the source title searchable alongside the (possibly translated)
+ * `title`.
  */
 export function ftsUpdateArticle(
 	rawDb: Database.Database,
@@ -56,15 +60,17 @@ export function ftsUpdateArticle(
 	title: string,
 	content: string,
 	author?: string | null,
+	originalTitle?: string | null,
 ): void {
 	rawDb
 		.prepare(
-			"UPDATE articles_fts SET title = ?, content = ?, author = ? WHERE article_id = ?",
+			"UPDATE articles_fts SET title = ?, content = ?, author = ?, original_title = ? WHERE article_id = ?",
 		)
 		.run(
 			normalizeText(title),
 			normalizeText(content),
 			normalizeText(author ?? ""),
+			normalizeText(originalTitle ?? ""),
 			articleId,
 		);
 }
@@ -92,14 +98,19 @@ export function ftsRebuildIndex(rawDb: Database.Database): number {
  * Ensure the FTS5 table matches the current schema, rebuilding when needed.
  *
  * FTS5 virtual tables cannot be ALTERed. If the table predates the `author`
- * column (added v1.6.0), drop and recreate + backfill — derived, rebuildable
- * data (R-A09). Called from `runMigrations` on every startup; idempotent.
+ * column (added v1.6.0) or the `original_title` column (added v1.8.0), drop
+ * and recreate + backfill — derived, rebuildable data (R-A09). Called from
+ * `runMigrations` on every startup; idempotent.
  */
 export function ensureFtsSchema(rawDb: Database.Database): number {
-	const cols = rawDb
-		.prepare(`PRAGMA table_info(${FTS_TABLE})`)
-		.all() as Array<{ name: string }>;
-	if (cols.length > 0 && !cols.some((c) => c.name === "author")) {
+	const cols = rawDb.prepare(`PRAGMA table_info(${FTS_TABLE})`).all() as Array<{
+		name: string;
+	}>;
+	if (
+		cols.length > 0 &&
+		(!cols.some((c) => c.name === "author") ||
+			!cols.some((c) => c.name === "original_title"))
+	) {
 		rawDb.exec(`DROP TABLE IF EXISTS ${FTS_TABLE}`);
 	}
 	rawDb.exec(FTS_VIRTUAL_DDL);

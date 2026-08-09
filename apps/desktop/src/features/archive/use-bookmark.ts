@@ -1,6 +1,10 @@
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createBookmark, deleteBookmark, fetchBookmarks } from "./archive-api.js";
+import {
+	createBookmark,
+	deleteBookmark,
+	fetchBookmarks,
+} from "./archive-api.js";
 
 /**
  * Bookmark toggle for a content item (v1.6.0).
@@ -24,15 +28,13 @@ export function useBookmarkToggle(contentItemId: string | null | undefined) {
 		enabled: Boolean(contentItemId),
 	});
 
-	const saved = Boolean(contentItemId) && Boolean(
-		data?.items.some((i) => i.contentItemId === contentItemId),
-	);
+	const saved =
+		Boolean(contentItemId) &&
+		Boolean(data?.items.some((i) => i.contentItemId === contentItemId));
 
 	const mutation = useMutation({
 		mutationFn: (next: boolean): Promise<unknown> =>
-			next
-				? createBookmark(idRef.current!)
-				: deleteBookmark(idRef.current!),
+			next ? createBookmark(idRef.current!) : deleteBookmark(idRef.current!),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
 			queryClient.invalidateQueries({ queryKey: ["archive"] });

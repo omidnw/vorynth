@@ -16,10 +16,7 @@ import type {
 	JobStatus,
 } from "@vorynth/types";
 import { DatabaseService } from "../../db/database.service.js";
-import {
-	getJobRunner,
-	type JobRunnerDef,
-} from "./jobs.runners.js";
+import { getJobRunner, type JobRunnerDef } from "./jobs.runners.js";
 
 /**
  * A raw `jobs` row as returned by better-sqlite3 — snake_case keys, exactly
@@ -226,16 +223,18 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
 
 		// Fire and forget — the promise resolves the job's terminal state. A
 		// canceled job's late resolve never flips it back to "done".
-		void handle.def.run({ jobId: id, update, throwIfCanceled, resumeFrom }).then(
-			(result) => {
-				if (handle.canceled) return;
-				this.mark(id, "done", { result });
-			},
-			(err) => {
-				if (handle.canceled) return;
-				this.mark(id, "error", { error: (err as Error).message });
-			},
-		);
+		void handle.def
+			.run({ jobId: id, update, throwIfCanceled, resumeFrom })
+			.then(
+				(result) => {
+					if (handle.canceled) return;
+					this.mark(id, "done", { result });
+				},
+				(err) => {
+					if (handle.canceled) return;
+					this.mark(id, "error", { error: (err as Error).message });
+				},
+			);
 	}
 
 	/** Rebuild a job from a persisted row after a restart and run it. */
@@ -257,7 +256,9 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
 				);
 			return;
 		}
-		const input = row.input_json ? (JSON.parse(row.input_json) as unknown) : undefined;
+		const input = row.input_json
+			? (JSON.parse(row.input_json) as unknown)
+			: undefined;
 		const def = factory(input);
 		const job: Job = {
 			id: row.id,
@@ -290,7 +291,9 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
 		this.recentCap();
 		this.addActive(job.kind, job.id);
 		this.persist(job.id);
-		this.logger.log(`restored ${job.kind} job ${job.id} (${def.label}) as queued`);
+		this.logger.log(
+			`restored ${job.kind} job ${job.id} (${def.label}) as queued`,
+		);
 		this.drain(job.kind);
 	}
 

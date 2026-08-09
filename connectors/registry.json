@@ -1,0 +1,24 @@
+{
+	"connectors": [
+		{
+			"id": "arxiv",
+			"sourceType": "arxiv",
+			"name": "arXiv",
+			"description": "Scientific preprints. Collects recent papers matching an arXiv search query. An official connector — built and live-tested by Vorynth.",
+			"version": "1.8.0",
+			"configFields": [
+				{
+					"key": "query",
+					"label": "Search query",
+					"type": "text",
+					"required": true,
+					"placeholder": "cat:cs.AI OR \"large language model\""
+				}
+			],
+			"icon": "science",
+			"iconSrc": "/plugins/arxiv/icon.svg",
+			"tier": "official",
+			"minVorynthVersion": "1.8.0"
+		}
+	]
+}

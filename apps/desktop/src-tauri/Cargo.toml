@@ -1,8 +1,8 @@
 [package]
 name = "vorynth-desktop"
-version = "1.7.0"
+version = "1.8.0"
 description = "Vorynth — local-first personal intelligence engine"
-authors = ["Vorynth"]
+authors = ["Omid Reza Keshtkar <omidrezakeshtkar@icloud.com>"]
 license = "MIT"
 repository = ""
 default-run = "vorynth-desktop"
@@ -23,11 +23,26 @@ log = "0.4"
 # group is excluded when cross-compiling for aarch64-unknown-linux-ohos
 # (target_env = "ohos"). lib.rs has zero Tauri usage; see its module docs.
 [target.'cfg(not(target_env = "ohos"))'.dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
+# Launch-at-login hook (macOS LaunchAgent / Windows Run key / Linux XDG).
+tauri-plugin-autostart = "2"
+# Auto-update (v1.8.0): check GitHub releases → download → verify signature →
+# install via a separate process → relaunch. Signatures are mandatory.
+tauri-plugin-updater = "2"
+# OS notifications (v1.8.0) — the Notification Center pushes job/update events
+# to the system notification center when the user opts in.
+tauri-plugin-notification = "2"
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 env_logger = "0.11"
+
+# macOS-only: hide/restore the Dock icon (NSApplication activation policy)
+# when background mode hides the window to the tray. Same objc2 generation
+# Tauri already pulls in — no new crates fetched.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = "0.3"
+objc2-foundation = "0.3"
 
 [lib]
 name = "vorynth_desktop"

@@ -22,10 +22,10 @@ Vorynth uses a **programmatic, idempotent DDL** pattern (NOT drizzle-kit migrati
 
 Two files must stay **in sync, in parallel**:
 
-| File | Role |
-| --- | --- |
+| File                                | Role                                                          |
+| ----------------------------------- | ------------------------------------------------------------- |
 | `apps/core-engine/src/db/schema.ts` | Drizzle table definitions (the app reads/writes through this) |
-| `apps/core-engine/src/db/ddl.ts` | Raw SQL executed at startup (`DDL` + `ADDITIVE_DDLS`) |
+| `apps/core-engine/src/db/ddl.ts`    | Raw SQL executed at startup (`DDL` + `ADDITIVE_DDLS`)         |
 
 **Golden rule: additive only.** Never edit an existing `CREATE TABLE IF NOT EXISTS` block to change a column that already shipped — existing databases won't re-run it. Use `ADDITIVE_DDLS` (ALTER TABLE) for evolution, or a new `CREATE TABLE IF NOT EXISTS` for new tables.
 
@@ -52,6 +52,7 @@ Two files must stay **in sync, in parallel**:
 - New FTS5 tables: standalone (no `content=` option), `article_id UNINDEXED`, `tokenize='unicode61 remove_diacritics 2'`, `prefix='2 3'`.
 
 ## Common mistakes (gotchas)- **Editing an existing CREATE TABLE** for a column that already shipped → live DBs never get the column, Drizzle schema and real DB drift silently. Use ALTER TABLE instead.
+
 - **Adding NOT NULL without DEFAULT** → `ALTER TABLE` fails on non-empty tables.
 - **Updating schema.ts only** → app reads fail against real DBs; **updating ddl.ts only** → Drizzle ORM errors on unknown columns.
 - **Forgetting to rebuild `@vorynth/types`** → engine keeps using stale types (nest --watch does not rebuild workspace deps).

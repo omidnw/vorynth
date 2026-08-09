@@ -65,13 +65,15 @@ export class RetentionService {
 		if (removed > 0) {
 			// Stories deleted → their spines are now orphans; bookmarks on them
 			// cascade. Remove the orphan spines so integrity holds (R-A09).
-			raw.prepare(
-				`DELETE FROM content_items
+			raw
+				.prepare(
+					`DELETE FROM content_items
 				 WHERE id NOT IN (SELECT content_item_id FROM articles WHERE content_item_id IS NOT NULL)
 				   AND id NOT IN (SELECT content_item_id FROM search_history WHERE content_item_id IS NOT NULL)
 				   AND id NOT IN (SELECT content_item_id FROM brief_history WHERE content_item_id IS NOT NULL)
 				   AND id NOT IN (SELECT content_item_id FROM generated_history WHERE content_item_id IS NOT NULL)`,
-			).run();
+				)
+				.run();
 			this.logger.log(
 				`auto-delete removed ${removed} stories older than ${days} days (protect bookmarked: ${protectBookmarked}, protect in collection: ${protectInCollection})`,
 			);

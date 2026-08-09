@@ -42,9 +42,11 @@ function badBookmarks(raw: Database.Database): number {
 }
 
 function bookmark(raw: Database.Database, spineId: string): void {
-	raw.prepare(
-		"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
-	).run(randomUUID(), spineId, Date.now());
+	raw
+		.prepare(
+			"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
+		)
+		.run(randomUUID(), spineId, Date.now());
 }
 
 function makeServices(db: TestDb) {
@@ -123,7 +125,9 @@ describe("trash: history entries (v1.7.0)", () => {
 			history.deleteGenerated([entry.id]);
 			const raw = db.service.rawDb;
 			const spineId = (
-				raw.prepare("SELECT content_item_id FROM generated_history WHERE id = ?").get(entry.id) as { content_item_id: string }
+				raw
+					.prepare("SELECT content_item_id FROM generated_history WHERE id = ?")
+					.get(entry.id) as { content_item_id: string }
 			).content_item_id;
 			bookmark(raw, spineId);
 
@@ -163,7 +167,9 @@ describe("trash: history entries (v1.7.0)", () => {
 			history.deleteBrief([brief.id]);
 			const raw = db.service.rawDb;
 			const spineId = (
-				raw.prepare("SELECT content_item_id FROM brief_history WHERE id = ?").get(brief.id) as { content_item_id: string }
+				raw
+					.prepare("SELECT content_item_id FROM brief_history WHERE id = ?")
+					.get(brief.id) as { content_item_id: string }
 			).content_item_id;
 			bookmark(raw, spineId);
 

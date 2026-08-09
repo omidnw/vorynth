@@ -24,6 +24,11 @@ export interface PipelineInsight {
 	importanceScore: number;
 	importanceTier: ImportanceTier;
 	category: SourceCategory;
+	/** v1.8.0 — the analysis in the story's source language (bilingual). */
+	originalSummary?: string;
+	originalSignificance?: string;
+	originalImpact?: string;
+	originalRecommendedAction?: string;
 }
 
 export const IntelligenceState = Annotation.Root({

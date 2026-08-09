@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -28,16 +29,19 @@ export function CreateForm({
 	/** Conflict/validation message — the form stays open so the user can fix it. */
 	error?: string;
 }) {
+	const { t } = useTranslation();
 	return (
-		<div className="mt-4 space-y-3 border-l-2 border-l-primary bg-surface-container-low p-4 rounded">
+		<div className="mt-4 space-y-3 border-s-2 border-s-primary bg-surface-container-low p-4 rounded">
 			<h4 className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-				{parentLabel ? `New folder in "${parentLabel}"` : "New category"}
+				{parentLabel
+					? t("collections.newFolderIn", { name: parentLabel })
+					: t("collections.newCategory")}
 			</h4>
 			<Input
 				value={name}
 				onChange={(e) => onName(e.target.value)}
-				placeholder="Name…"
-				aria-label="Collection name"
+				placeholder={t("collections.namePlaceholder")}
+				aria-label={t("collections.nameAria")}
 				autoFocus
 				onKeyDown={(e) => {
 					if (e.key === "Enter") onCreate();
@@ -49,10 +53,10 @@ export function CreateForm({
 			) : null}
 			<div className="flex gap-2">
 				<Button size="sm" onClick={onCreate} disabled={!name.trim()}>
-					Create
+					{t("collections.create")}
 				</Button>
 				<Button size="sm" variant="ghost" onClick={onCancel}>
-					Cancel
+					{t("common.cancel")}
 				</Button>
 			</div>
 		</div>
@@ -76,32 +80,33 @@ export function AddItemsPanel({
 	onAdd: (itemId: string) => void;
 	onDone: () => void;
 }) {
+	const { t } = useTranslation();
 	return (
-		<div className="mt-4 space-y-3 border-l-2 border-l-secondary bg-surface-container-low p-4 rounded">
+		<div className="mt-4 space-y-3 border-s-2 border-s-secondary bg-surface-container-low p-4 rounded">
 			<div className="flex flex-wrap items-center justify-between gap-4">
 				<h4 className="min-w-0 font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-					Add items to "{collectionName}"
+					{t("collections.addItemsTo", { name: collectionName })}
 				</h4>
 				<button
 					type="button"
 					onClick={onDone}
 					className="font-label text-label-sm text-on-surface-variant hover:text-primary"
 				>
-					Done
+					{t("collections.done")}
 				</button>
 			</div>
 			<Input
 				value={search}
 				onChange={(e) => onSearch(e.target.value)}
-				placeholder="Search items to add…"
+				placeholder={t("collections.searchItemsPlaceholder")}
 				icon="search"
-				aria-label="Search items"
+				aria-label={t("collections.searchItemsAria")}
 			/>
 			{results.length === 0 ? (
 				<p className="font-body text-body-sm text-on-tertiary-container">
 					{search.trim()
-						? "No matching items."
-						: "Type to search your archive items."}
+						? t("collections.noMatchingItems")
+						: t("collections.typeToSearch")}
 				</p>
 			) : (
 				<div className="max-h-48 space-y-1 overflow-auto">
@@ -115,14 +120,14 @@ export function AddItemsPanel({
 								className="shrink-0 text-[14px] text-on-tertiary-container"
 							/>
 							<span className="min-w-0 flex-1 truncate font-body text-body-sm text-on-surface">
-								{item.title ?? "Untitled"}
+								{item.title ?? t("collections.untitled")}
 							</span>
 							<button
 								type="button"
 								onClick={() => onAdd(item.contentItemId)}
 								className="shrink-0 rounded px-2 py-0.5 font-label text-label-sm text-primary transition-colors hover:bg-primary hover:text-on-primary"
 							>
-								Add
+								{t("collections.add")}
 							</button>
 						</div>
 					))}

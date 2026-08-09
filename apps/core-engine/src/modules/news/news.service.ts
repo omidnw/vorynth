@@ -10,6 +10,13 @@ import type {
 	SourceCategory,
 } from "@vorynth/types";
 import { tierFor } from "../intelligence/nodes/tier.js";
+import {
+	cleanCollectedText,
+	hasHeadChrome,
+	hasShellLeak,
+	isContentCorrupted,
+	translationIsIncomplete,
+} from "../crawler/content-quality.js";
 
 /** Resolve a period into a `since` cutoff timestamp (or null = no cutoff). */
 export function periodSince(
@@ -126,6 +133,7 @@ export class NewsService {
 				article: a,
 				category,
 				sourceName: src?.name ?? "Unknown",
+				sourceLanguage: src?.language ?? null,
 				score: factors.score,
 				ranking: {
 					sourceReliability: factors.sourceReliability,
@@ -139,7 +147,7 @@ export class NewsService {
 
 		const entries: BriefEntry[] = scored.map((s, idx) => ({
 			rank: idx + 1,
-			article: toArticleDto(s.article),
+			article: toArticleDto(s.article, s.sourceLanguage),
 			category: s.category,
 			sourceNames: [s.sourceName],
 			score: s.score,
@@ -171,7 +179,7 @@ export class NewsService {
 			.get();
 		if (!row) return null;
 		return {
-			article: toArticleDto(row.article),
+			article: toArticleDto(row.article, row.source.language ?? null),
 			sourceName: row.source.name,
 			sourceCategory: row.source.category as SourceCategory,
 		};
@@ -205,6 +213,10 @@ export class NewsService {
 				>["category"],
 				recommendedAction: raw.recommendedAction,
 				generatedLanguage: raw.generatedLanguage,
+				originalSummary: raw.originalSummary,
+				originalSignificance: raw.originalSignificance,
+				originalImpact: raw.originalImpact,
+				originalRecommendedAction: raw.originalRecommendedAction,
 				createdAt: raw.createdAt,
 			};
 			return {
@@ -230,6 +242,10 @@ interface RawInsight {
 	category: string;
 	recommendedAction: string;
 	generatedLanguage: string;
+	originalSummary: string | null;
+	originalSignificance: string | null;
+	originalImpact: string | null;
+	originalRecommendedAction: string | null;
 	createdAt: Date;
 }
 
@@ -283,20 +299,24 @@ function freshnessScore(publishedAtMs: number | null, now: number): number {
 	return 0.1;
 }
 
-function toArticleDto(row: {
-	id: string;
-	sourceId: string;
-	title: string;
-	originalTitle: string | null;
-	content: string;
-	translatedContent: string | null;
-	url: string;
-	author: string | null;
-	publishedAt: Date | null;
-	collectedAt: Date;
-	hash: string;
-	contentItemId: string | null;
-}): BriefEntry["article"] {
+function toArticleDto(
+	row: {
+		id: string;
+		sourceId: string;
+		title: string;
+		originalTitle: string | null;
+		content: string;
+		translatedContent: string | null;
+		url: string;
+		author: string | null;
+		publishedAt: Date | null;
+		collectedAt: Date;
+		hash: string;
+		contentItemId: string | null;
+	},
+	/** The source's ISO language — drives the same-language translate skip. */
+	sourceLanguage?: string | null,
+): BriefEntry["article"] {
 	return {
 		id: row.id,
 		sourceId: row.sourceId,
@@ -304,11 +324,28 @@ function toArticleDto(row: {
 		originalTitle: row.originalTitle,
 		content: row.content,
 		translatedContent: row.translatedContent,
+		language: sourceLanguage ?? null,
 		url: row.url,
 		author: row.author,
 		publishedAt: row.publishedAt,
 		collectedAt: row.collectedAt,
 		hash: row.hash,
 		contentItemId: row.contentItemId,
+		// v1.8.0 content-quality signals — the UI uses them to offer Re-collect
+		// / Re-translate honestly instead of hiding the damage. A shell leak
+		// (Cloudflare-blog nav/footer chrome) is NOT "damaged" — it can't be
+		// repaired by re-fetching — so it gets a cleaned body for display
+		// without the corruption note or a Re-collect button that can't help.
+		contentCorrupted: isContentCorrupted(row.content),
+		contentClean:
+			isContentCorrupted(row.content) ||
+			hasShellLeak(row.content) ||
+			hasHeadChrome(row.content, row.title)
+				? cleanCollectedText(row.content, row.title)
+				: undefined,
+		translationIncomplete: translationIsIncomplete(
+			row.content,
+			row.translatedContent,
+		),
 	};
 }

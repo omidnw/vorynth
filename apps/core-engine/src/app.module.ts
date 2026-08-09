@@ -4,6 +4,8 @@ import { DbModule } from "./db/db.module.js";
 import { CryptoModule } from "./modules/crypto/crypto.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { SourcesModule } from "./modules/sources/sources.module.js";
+import { PluginsModule } from "./modules/plugins/plugins.module.js";
+import { ConnectorRegistryModule } from "./modules/connector-registry/connector-registry.module.js";
 import { CrawlerModule } from "./modules/crawler/crawler.module.js";
 import { NewsModule } from "./modules/news/news.module.js";
 import { LlmModule } from "./modules/llm/llm.module.js";
@@ -11,6 +13,7 @@ import { HistoryModule } from "./modules/history/history.module.js";
 import { IntelligenceModule } from "./modules/intelligence/intelligence.module.js";
 import { SearchModule } from "./modules/search/search.module.js";
 import { BackupModule } from "./modules/backup/backup.module.js";
+import { StoryViewsModule } from "./modules/story-views/story-views.module.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { SchedulerModule } from "./modules/scheduler/scheduler.module.js";
 import { MediaModule } from "./modules/media/media.module.js";
@@ -19,6 +22,7 @@ import { ArchiveModule } from "./modules/archive/archive.module.js";
 import { BookmarksModule } from "./modules/bookmarks/bookmarks.module.js";
 import { RetentionModule } from "./modules/retention/retention.module.js";
 import { TrashModule } from "./modules/trash/trash.module.js";
+import { UsageModule } from "./modules/usage/usage.module.js";
 
 /**
  * Root application module.
@@ -41,6 +45,11 @@ import { TrashModule } from "./modules/trash/trash.module.js";
 		CryptoModule,
 		HealthModule,
 		SourcesModule,
+		// v1.8.0 — adapter plugin registry (crawler + sources depend on it).
+		PluginsModule,
+		// v1.8.0 — official connector registry from GitHub (plugins + sources
+		// auto-provision from it).
+		ConnectorRegistryModule,
 		CrawlerModule,
 		NewsModule,
 		LlmModule,
@@ -48,6 +57,9 @@ import { TrashModule } from "./modules/trash/trash.module.js";
 		IntelligenceModule,
 		SearchModule,
 		BackupModule,
+		// v1.8.0 — story-view history (which story was opened, when, and on
+		// which surface). Standalone; depends only on the global DbModule.
+		StoryViewsModule,
 		JobsModule,
 		SchedulerModule,
 		// v1.1.0 — media extraction + profile personalization. Registered after
@@ -61,6 +73,8 @@ import { TrashModule } from "./modules/trash/trash.module.js";
 		RetentionModule,
 		// v1.7.0 — trash / soft-delete (collections + history).
 		TrashModule,
+		// v1.8.0 — storage + resource usage snapshot (Settings "Storage & Usage").
+		UsageModule,
 	],
 })
 export class AppModule {}

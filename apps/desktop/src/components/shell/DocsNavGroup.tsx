@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { SidebarNavItem } from "./SidebarNav";
@@ -8,6 +9,7 @@ import {
 	TRANSPARENCY_SECTIONS,
 	type DocsSection,
 } from "@/features/docs/docs-data.js";
+import { usePluginDocsSections } from "@/plugins/plugin-hooks.js";
 
 /**
  * Expandable "Docs" sidebar group — the docs sections live under the Docs
@@ -20,10 +22,14 @@ import {
  * firing hashchange), cross-page jumps navigate normally.
  */
 export function DocsNavGroup() {
+	const { t } = useTranslation();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [expanded, setExpanded] = useState(false);
 	const [docsHash, setDocsHash] = useState("");
+	// v1.9.0 — docs sections contributed by enabled runtime UI plugins.
+	const pluginSections = usePluginDocsSections();
+	const allSections = [...DOCS_SECTIONS, ...pluginSections];
 
 	const onDocs = location.pathname === "/docs";
 
@@ -56,13 +62,13 @@ export function DocsNavGroup() {
 	return (
 		<div>
 			<div className="relative">
-				<SidebarNavItem to="/docs" icon="menu_book" label="Docs" />
+				<SidebarNavItem to="/docs" icon="menu_book" label={t("nav.docs")} />
 				<button
 					type="button"
 					onClick={() => setExpanded((v) => !v)}
-					aria-label={expanded ? "Collapse Docs sections" : "Expand Docs sections"}
+					aria-label={expanded ? t("nav.docsCollapse") : t("nav.docsExpand")}
 					aria-expanded={expanded}
-					className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+					className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
 				>
 					<Icon
 						name="expand_more"
@@ -75,11 +81,11 @@ export function DocsNavGroup() {
 			</div>
 
 			{expanded ? (
-				<div className="ml-3 mt-1 space-y-1 border-l border-outline-variant pl-2">
+				<div className="ms-3 mt-1 space-y-1 border-s border-outline-variant ps-2 animate-fade-in">
 					<p className="px-2 pt-1 font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-						Pages
+						{t("nav.docsPages")}
 					</p>
-					{DOCS_SECTIONS.map((s) => (
+					{allSections.map((s) => (
 						<DocsSectionItem
 							key={s.id}
 							section={s}
@@ -88,7 +94,7 @@ export function DocsNavGroup() {
 						/>
 					))}
 					<p className="px-2 pt-2 font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-						Transparency
+						{t("nav.docsTransparency")}
 					</p>
 					{TRANSPARENCY_SECTIONS.map((s) => (
 						<DocsSectionItem
@@ -120,7 +126,7 @@ function DocsSectionItem({
 			onClick={onClick}
 			aria-current={active ? "true" : undefined}
 			className={cn(
-				"flex w-full items-center gap-2 rounded px-2 py-1.5 text-left font-body text-body-sm transition-colors",
+				"flex w-full items-center gap-2 rounded px-2 py-1.5 text-start font-body text-body-sm transition-colors",
 				active
 					? "bg-primary-container text-on-primary-container"
 					: "text-on-surface-variant hover:bg-surface-container-high",

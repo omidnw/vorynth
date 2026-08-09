@@ -93,9 +93,20 @@ export class BackupService {
 		}
 	}
 
-	/** List existing backups in the backups directory. */
+	/** List existing backups in the backups directory.
+	 *
+	 * Shows BOTH backup flavors that live in `data/backups/`:
+	 *   • `.vorynth-backup` — engine snapshots (Settings → Export),
+	 *   • `.sqlite` — plain DB copies (e.g. the agent backup skill).
+	 * Manifests and WAL/SHM sidecars are never listed (v1.8.0). */
 	async list(): Promise<
-		Array<{ name: string; path: string; sizeBytes: number; createdAt: string }>
+		Array<{
+			name: string;
+			path: string;
+			sizeBytes: number;
+			createdAt: string;
+			kind: "vorynth-backup" | "sqlite";
+		}>
 	> {
 		const dir = resolveBackupDir();
 		if (!existsSync(dir)) return [];
@@ -105,10 +116,13 @@ export class BackupService {
 			path: string;
 			sizeBytes: number;
 			createdAt: string;
+			kind: "vorynth-backup" | "sqlite";
 		}> = [];
 		const { stat } = await import("node:fs/promises");
 		for (const name of entries) {
-			if (!name.endsWith(".vorynth-backup")) continue;
+			const isVorynth = name.endsWith(".vorynth-backup");
+			const isSqlite = name.endsWith(".sqlite");
+			if (!isVorynth && !isSqlite) continue;
 			const fullPath = join(dir, name);
 			const stats = await stat(fullPath);
 			out.push({
@@ -116,9 +130,29 @@ export class BackupService {
 				path: fullPath,
 				sizeBytes: stats.size,
 				createdAt: stats.mtime.toISOString(),
+				kind: isVorynth ? "vorynth-backup" : "sqlite",
 			});
 		}
 		return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+	}
+
+	/** Resolve a backup name to its full path.
+	 *
+	 * Refuses anything outside the backups directory (path-traversal guard)
+	 * and names that are not backup files. Throws when the file is missing. */
+	async resolve(name: string): Promise<string> {
+		const dir = resolveBackupDir();
+		const fullPath = join(dir, name);
+		if (!fullPath.startsWith(dir)) {
+			throw new Error(`invalid backup name: ${name}`);
+		}
+		if (!name.endsWith(".vorynth-backup") && !name.endsWith(".sqlite")) {
+			throw new Error(`not a backup file: ${name}`);
+		}
+		if (!existsSync(fullPath)) {
+			throw new Error(`backup file not found: ${name}`);
+		}
+		return fullPath;
 	}
 
 	/** Delete a specific backup file. */

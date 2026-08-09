@@ -1,10 +1,16 @@
 import { apiFetch } from "@/lib/api/config";
 import type {
+	BulkSourceEnableInput,
 	CreateSourceInput,
+	RefreshCatalogResult,
 	Source,
 	SourceArticlesResult,
+	SourceGroupDimension,
+	SourceListInfo,
 	SourceRange,
 	UpdateSourceInput,
+	VerifySourceInput,
+	VerifySourceResult,
 } from "@vorynth/types";
 
 export async function fetchSources(): Promise<Source[]> {
@@ -13,6 +19,19 @@ export async function fetchSources(): Promise<Source[]> {
 
 export async function createSource(input: CreateSourceInput): Promise<Source> {
 	return apiFetch<Source>("/sources", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
+}
+
+/**
+ * v1.8.0 — dry-run a source config without saving (the Add form's "Test"
+ * button). The engine validates + fetches a few items and returns samples.
+ */
+export async function verifySource(
+	input: VerifySourceInput,
+): Promise<VerifySourceResult> {
+	return apiFetch<VerifySourceResult>("/sources/verify", {
 		method: "POST",
 		body: JSON.stringify(input),
 	});
@@ -37,14 +56,32 @@ export async function toggleSource(
 }
 
 /**
+ * v1.8.0 — bulk enable/disable every source in a category/country/city/language
+ * group (the Sources page group master switches).
+ */
+export async function enableSourceGroup(
+	input: BulkSourceEnableInput,
+): Promise<{ updated: number }> {
+	return apiFetch<{ updated: number }>("/sources/bulk-enabled", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
+}
+
+/** The group-by dimensions offered by the Sources page group selector. */
+export const GROUP_DIMENSIONS: SourceGroupDimension[] = [
+	"category",
+	"country",
+	"city",
+	"language",
+];
+
+/**
  * Delete a source. The engine REFUSES (409 BOOKMARKED_ARTICLES_EXIST) when the
  * source owns saved stories; `force` confirms the explicit "Delete anyway"
  * flow and also removes those bookmarks.
  */
-export async function deleteSource(
-	id: string,
-	force = false,
-): Promise<void> {
+export async function deleteSource(id: string, force = false): Promise<void> {
 	await apiFetch<{ id: string; removed: boolean }>(
 		`/sources/${id}${force ? "?force=true" : ""}`,
 		{ method: "DELETE" },
@@ -64,4 +101,46 @@ export async function fetchSourceArticles(
 	return apiFetch<SourceArticlesResult>(
 		`/sources/${id}/articles${q ? `?${q}` : ""}`,
 	);
+}
+
+// ── Source lists (v1.8.0) ───────────────────────────────────────────────────
+
+/** Every curated list (official + community) with live source counts. */
+export async function fetchSourceLists(): Promise<SourceListInfo[]> {
+	return apiFetch<SourceListInfo[]>("/source-lists");
+}
+
+/** Turn a list on — its cached definitions materialize as sources. */
+export async function enableSourceList(id: string): Promise<SourceListInfo> {
+	return apiFetch<SourceListInfo>(`/source-lists/${id}/enable`, {
+		method: "POST",
+	});
+}
+
+/** Hide a list — nothing is deleted, sources and edits are kept. */
+export async function disableSourceList(id: string): Promise<SourceListInfo> {
+	return apiFetch<SourceListInfo>(`/source-lists/${id}/disable`, {
+		method: "POST",
+	});
+}
+
+/** Sync the community catalog from the GitHub repo (offline cache kept). */
+export async function refreshSourceLists(): Promise<RefreshCatalogResult> {
+	return apiFetch<RefreshCatalogResult>("/source-lists/refresh", {
+		method: "POST",
+	});
+}
+
+/**
+ * v1.8.0 — import a source-list file (a `my-sources.json` export, or any
+ * community-list file). The engine validates it exactly like a catalog file
+ * and stores it as a local list; the returned list can then be enabled.
+ */
+export async function importSourceList(
+	fileText: string,
+): Promise<SourceListInfo> {
+	return apiFetch<SourceListInfo>("/source-lists/import", {
+		method: "POST",
+		body: JSON.stringify({ file: fileText }),
+	});
 }

@@ -29,7 +29,8 @@ export async function fetchArchiveItems(params?: {
 	if (params?.direct) qs.set("direct", "true");
 	if (params?.tag) qs.set("tag", params.tag);
 	if (params?.q) qs.set("q", params.q);
-	if (params?.archived !== undefined) qs.set("archived", String(params.archived));
+	if (params?.archived !== undefined)
+		qs.set("archived", String(params.archived));
 	if (params?.bookmarked !== undefined)
 		qs.set("bookmarked", String(params.bookmarked));
 	if (params?.limit) qs.set("limit", String(params.limit));
@@ -49,6 +50,13 @@ export async function patchArchiveItem(
 	return apiFetch<ArchiveItem>(`/archive/items/${id}`, {
 		method: "PATCH",
 		body: JSON.stringify(patch),
+	});
+}
+
+/** Permanently delete an item (v1.8.0 — archived view, user-confirmed). */
+export async function deleteArchiveItem(id: string): Promise<void> {
+	await apiFetch<{ id: string; removed: boolean }>(`/archive/items/${id}`, {
+		method: "DELETE",
 	});
 }
 

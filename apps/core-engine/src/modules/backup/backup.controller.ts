@@ -6,7 +6,9 @@ import {
 	Inject,
 	Param,
 	Post,
+	StreamableFile,
 } from "@nestjs/common";
+import { createReadStream } from "node:fs";
 import { BackupService } from "./backup.service.js";
 
 /**
@@ -14,6 +16,7 @@ import { BackupService } from "./backup.service.js";
  *
  *   POST   /backup/export           create a `.vorynth-backup` archive
  *   GET    /backup                  list existing backups
+ *   GET    /backup/:name/file       download a backup's bytes (save to disk)
  *   POST   /backup/restore          restore from a backup file path
  *   DELETE /backup/:name            remove a specific backup file
  *   POST   /backup/delete-all       permanently wipe ALL local data
@@ -30,6 +33,16 @@ export class BackupController {
 	@Get()
 	async list() {
 		return { backups: await this.backup.list() };
+	}
+
+	/** Stream a backup's bytes so the user can save it anywhere (v1.8.0). */
+	@Get(":name/file")
+	async download(@Param("name") name: string): Promise<StreamableFile> {
+		const path = await this.backup.resolve(name);
+		return new StreamableFile(createReadStream(path), {
+			type: "application/octet-stream",
+			disposition: `attachment; filename="${name}"`,
+		});
 	}
 
 	@Post("restore")

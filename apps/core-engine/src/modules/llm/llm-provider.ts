@@ -43,6 +43,13 @@ export interface AnalyzeInput {
 	articleTitle: string;
 	/** Language the insight must be generated in (independent of source). */
 	outputLanguage: string;
+	/**
+	 * v1.8.0 — the story's source language. When it differs from
+	 * `outputLanguage`, the SAME request also returns the analysis in that
+	 * language (the insight's `original*` fields), so every insight carries
+	 * both versions for bilingual display/export.
+	 */
+	sourceLanguage?: string;
 	/** User's domain interests, to bias ranking/explanation. */
 	topics?: string[];
 }
@@ -50,6 +57,8 @@ export interface AnalyzeInput {
 /**
  * Pre-localization draft. The engine then localizes + assigns the final
  * `importanceTier` based on the score before persisting an `Insight`.
+ * `original*` (v1.8.0) is the same analysis in the story's source language,
+ * present when the source language differs from the output language.
  */
 export interface InsightDraft {
 	summary: string;
@@ -58,6 +67,10 @@ export interface InsightDraft {
 	recommendedAction: string;
 	importanceScore: number; // 0..10
 	category: string;
+	originalSummary?: string;
+	originalSignificance?: string;
+	originalImpact?: string;
+	originalRecommendedAction?: string;
 }
 
 /**

@@ -1,4 +1,11 @@
-import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
+import {
+	BadRequestException,
+	HttpException,
+	Inject,
+	Injectable,
+	Logger,
+	type OnModuleInit,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { eq } from "drizzle-orm";
 import { DatabaseService } from "../../db/database.service.js";
@@ -48,6 +55,29 @@ export interface AnalyzeResult {
  *   2. The `UsageService` — tokens + duration recorded to `usage_events` and
  *      surfaced in Settings.
  */
+/** Best-effort classification of a provider call failure into a UI code. */
+function providerErrorCode(err: unknown): string | null {
+	const e = err as {
+		status?: number;
+		statusCode?: number;
+		response?: { status?: number };
+		code?: string;
+	};
+	const status = e.status ?? e.statusCode ?? e.response?.status ?? null;
+	if (status === 401 || status === 403) return "LLM_AUTH_FAILED";
+	if (status === 429) return "LLM_RATE_LIMITED";
+	if (status !== null && status >= 500) return "LLM_UNREACHABLE";
+	if (
+		typeof e.code === "string" &&
+		/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|EAI_AGAIN|UND_ERR|CERT_HAS_EXPIRED|DEPTH_ZERO_SELF_SIGNED_CERT/.test(
+			e.code,
+		)
+	) {
+		return "LLM_UNREACHABLE";
+	}
+	return null;
+}
+
 @Injectable()
 export class LlmService implements OnModuleInit {
 	private readonly logger = new Logger("Llm");
@@ -215,9 +245,7 @@ export class LlmService implements OnModuleInit {
 	): Promise<{ draft: T; usage: AnalyzeResult["usage"] }> {
 		const provider = this.getActive();
 		if (!provider) {
-			throw new Error(
-				"no LLM provider configured — add one in Settings or set an *_API_KEY env var",
-			);
+			throw this.unavailableException();
 		}
 
 		await this.limiter.acquire(operation);
@@ -250,24 +278,22 @@ export class LlmService implements OnModuleInit {
 				durationMs: Date.now() - start,
 				ok: false,
 			});
-			throw err;
+			throw this.mapProviderError(err);
 		}
 	}
 
-		/** Drop the cached provider so the next call re-reads from the DB. */
-		invalidate(): void {
-			this.cached = null;
-		}
+	/** Drop the cached provider so the next call re-reads from the DB. */
+	invalidate(): void {
+		this.cached = null;
+	}
 
-		/** Count enabled provider rows (for diagnostics). */
-		private countProviders(): number {
-			const row = this.db.rawDb
-				.prepare(
-					`SELECT count(*) AS n FROM llm_providers WHERE enabled = 1`,
-				)
-				.get() as { n: number } | undefined;
-			return row?.n ?? 0;
-		}
+	/** Count enabled provider rows (for diagnostics). */
+	private countProviders(): number {
+		const row = this.db.rawDb
+			.prepare(`SELECT count(*) AS n FROM llm_providers WHERE enabled = 1`)
+			.get() as { n: number } | undefined;
+		return row?.n ?? 0;
+	}
 
 	// ── active provider resolution ───────────────────────────────────────────
 
@@ -462,6 +488,67 @@ export class LlmService implements OnModuleInit {
 		} catch {
 			return "undecryptable";
 		}
+	}
+
+	/**
+	 * Why the AI provider can't be used right now — or null when it can.
+	 * Distinguishes the three cases the UI can act on: nothing configured,
+	 * a configured key that was never entered, or a key that can no longer be
+	 * decrypted (e.g. the local master salt was lost in a restore).
+	 */
+	unavailableReason():
+		| "not-configured"
+		| "key-missing"
+		| "key-undecryptable"
+		| null {
+		if (this.buildActive()) return null;
+		const rows = this.db.rawDb
+			.prepare(`SELECT encrypted_api_key FROM llm_providers WHERE enabled = 1`)
+			.all() as Array<{ encrypted_api_key: string | null }>;
+		if (rows.length === 0) return "not-configured";
+		if (
+			rows.some(
+				(r) => this.keyStatus(r.encrypted_api_key) === "undecryptable",
+			)
+		) {
+			return "key-undecryptable";
+		}
+		if (rows.some((r) => this.keyStatus(r.encrypted_api_key) === "missing")) {
+			return "key-missing";
+		}
+		return "not-configured";
+	}
+
+	/** A structured 400 explaining why the AI provider is unavailable. */
+	unavailableException(): HttpException {
+		const reason = this.unavailableReason() ?? "not-configured";
+		const code =
+			reason === "key-undecryptable"
+				? "LLM_KEY_UNDECRYPTABLE"
+				: reason === "key-missing"
+					? "LLM_KEY_MISSING"
+					: "LLM_NOT_CONFIGURED";
+		const message =
+			reason === "key-undecryptable"
+				? "The AI provider's API key can't be decrypted — remove the provider and add it again in Settings."
+				: reason === "key-missing"
+					? "The active AI provider has no API key — re-enter it in Settings."
+					: "No LLM provider is configured — add one in Settings or set an OPENAI_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY environment variable.";
+		return new BadRequestException({ code, message });
+	}
+
+	/**
+	 * Maps a failed provider call to a structured error code so the UI can say
+	 * WHY the AI request failed (bad key, rate limit, unreachable). Errors that
+	 * don't look like provider failures (domain errors, already-structured
+	 * exceptions) pass through untouched.
+	 */
+	private mapProviderError(err: unknown): unknown {
+		if (err instanceof HttpException) return err;
+		const code = providerErrorCode(err);
+		if (!code) return err;
+		const message = (err as Error).message || "AI provider request failed.";
+		return new BadRequestException({ code, message });
 	}
 
 	async saveProvider(input: {

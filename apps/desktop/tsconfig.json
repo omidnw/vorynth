@@ -10,8 +10,9 @@
 		"useDefineForClassFields": true,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["src/*"]
+			"@/*": ["src/*"],
+			"@vorynth/plugin-host": ["src/plugins/host/host-bridge.ts"]
 		}
 	},
-	"include": ["src", "vite.config.ts"]
+	"include": ["src", "plugins", "vite.config.ts"]
 }

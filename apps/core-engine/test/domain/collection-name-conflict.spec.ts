@@ -28,7 +28,10 @@ describe("collection sibling name uniqueness (R-A11)", () => {
 		const db = createTestDb();
 		try {
 			const archive = new ArchiveService(db.service);
-			const tech = await archive.createCollection({ name: "Tech", kind: "category" });
+			const tech = await archive.createCollection({
+				name: "Tech",
+				kind: "category",
+			});
 			const parent = await archive.createCollection({
 				name: "Parent",
 				kind: "folder",
@@ -57,15 +60,26 @@ describe("collection sibling name uniqueness (R-A11)", () => {
 		const db = createTestDb();
 		try {
 			const archive = new ArchiveService(db.service);
-			const tech = await archive.createCollection({ name: "Tech", kind: "category" });
+			const tech = await archive.createCollection({
+				name: "Tech",
+				kind: "category",
+			});
 			const parent = await archive.createCollection({
 				name: "Parent",
 				kind: "folder",
 				parentId: tech.id,
 			});
-			await archive.createCollection({ name: "Work", kind: "folder", parentId: parent.id });
+			await archive.createCollection({
+				name: "Work",
+				kind: "folder",
+				parentId: parent.id,
+			});
 			await expectConflict(
-				archive.createCollection({ name: "Work", kind: "folder", parentId: parent.id }),
+				archive.createCollection({
+					name: "Work",
+					kind: "folder",
+					parentId: parent.id,
+				}),
 				/A folder named "Work" already exists here/,
 			);
 		} finally {
@@ -91,8 +105,14 @@ describe("collection sibling name uniqueness (R-A11)", () => {
 		const db = createTestDb();
 		try {
 			const archive = new ArchiveService(db.service);
-			const tech = await archive.createCollection({ name: "Tech", kind: "category" });
-			const design = await archive.createCollection({ name: "Design", kind: "category" });
+			const tech = await archive.createCollection({
+				name: "Tech",
+				kind: "category",
+			});
+			const design = await archive.createCollection({
+				name: "Design",
+				kind: "category",
+			});
 			const a = await archive.createCollection({
 				name: "Work",
 				kind: "folder",
@@ -113,7 +133,10 @@ describe("collection sibling name uniqueness (R-A11)", () => {
 		const db = createTestDb();
 		try {
 			const archive = new ArchiveService(db.service);
-			const tech = await archive.createCollection({ name: "Tech", kind: "category" });
+			const tech = await archive.createCollection({
+				name: "Tech",
+				kind: "category",
+			});
 			const parent = await archive.createCollection({
 				name: "Parent",
 				kind: "folder",
@@ -130,12 +153,20 @@ describe("collection sibling name uniqueness (R-A11)", () => {
 				parentId: parent.id,
 			});
 			// A category sibling may share the folder name…
-			await archive.createCollection({ name: "Gamma", kind: "category", parentId: parent.id });
+			await archive.createCollection({
+				name: "Gamma",
+				kind: "category",
+				parentId: parent.id,
+			});
 
 			// Rename Beta → Alpha (same-kind sibling) is refused.
-			await expectConflict(archive.updateCollection(beta.id, { name: "Alpha" }));
+			await expectConflict(
+				archive.updateCollection(beta.id, { name: "Alpha" }),
+			);
 			// Rename Beta → Gamma (cross-kind sibling name) is allowed.
-			expect((await archive.updateCollection(beta.id, { name: "Gamma" })).name).toBe("Gamma");
+			expect(
+				(await archive.updateCollection(beta.id, { name: "Gamma" })).name,
+			).toBe("Gamma");
 			expect(alpha.name).toBe("Alpha");
 		} finally {
 			db.close();
@@ -146,10 +177,21 @@ describe("collection sibling name uniqueness (R-A11)", () => {
 		const db = createTestDb();
 		try {
 			const archive = new ArchiveService(db.service);
-			const tech = await archive.createCollection({ name: "Tech", kind: "category" });
-			await archive.createCollection({ name: "Work", kind: "folder", parentId: tech.id });
+			const tech = await archive.createCollection({
+				name: "Tech",
+				kind: "category",
+			});
+			await archive.createCollection({
+				name: "Work",
+				kind: "folder",
+				parentId: tech.id,
+			});
 			await expectConflict(
-				archive.createCollection({ name: "work", kind: "folder", parentId: tech.id }),
+				archive.createCollection({
+					name: "work",
+					kind: "folder",
+					parentId: tech.id,
+				}),
 			);
 		} finally {
 			db.close();

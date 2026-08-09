@@ -1,9 +1,4 @@
-import {
-	ConflictException,
-	Inject,
-	Injectable,
-	Logger,
-} from "@nestjs/common";
+import { ConflictException, Inject, Injectable, Logger } from "@nestjs/common";
 import { DatabaseService } from "../../db/database.service.js";
 import { ArchiveService } from "../archive/archive.service.js";
 import { HistoryService } from "../history/history.service.js";
@@ -71,7 +66,9 @@ export class TrashService {
 			deletedAt: number;
 		}>;
 		const trashedIds = new Set(cols.map((c) => c.id));
-		const roots = cols.filter((c) => !c.parentId || !trashedIds.has(c.parentId));
+		const roots = cols.filter(
+			(c) => !c.parentId || !trashedIds.has(c.parentId),
+		);
 		const childrenByParent = new Map<
 			string,
 			Array<{ id: string; kind: string }>
@@ -290,10 +287,7 @@ export class TrashService {
 		return rows.map((r) => r.id);
 	}
 
-	private countBookmarkedHistory(
-		kind: TrashKind,
-		ids: string[],
-	): number {
+	private countBookmarkedHistory(kind: TrashKind, ids: string[]): number {
 		if (kind === "collection" || ids.length === 0) return 0;
 		const placeholders = ids.map(() => "?").join(", ");
 		const row = this.db.rawDb

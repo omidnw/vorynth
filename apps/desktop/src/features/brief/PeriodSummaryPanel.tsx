@@ -1,16 +1,22 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type { BriefPeriod, PeriodSummary } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { CitedText } from "@/components/ui/CitedText.js";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { cn } from "@/lib/cn";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import { usePluginStoryExports } from "@/plugins/plugin-hooks";
+import { useTextDirection } from "@/i18n";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 import { useHistoryStore } from "@/features/history/history-store.js";
 import { fetchBriefHistory } from "@/features/history/history-api.js";
 import { findBriefEntryId } from "@/features/history/use-history-id.js";
+import { periodSummaryExportContent } from "@/features/brief/period-summary-export.js";
 
 /** How many takeaways to surface in the inline preview. */
 const PREVIEW_TAKEAWAYS = 3;
@@ -37,10 +43,17 @@ export function PeriodSummaryPanel({
 	intelligenceEnabled: boolean;
 }) {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
+	const textDir = useTextDirection();
 	const { startSummarize, isActive, jobs } = useJobsStore();
 	const summarizeActive = isActive("summarize");
 	const [summary, setSummary] = useState<PeriodSummary | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [showExport, setShowExport] = useState(false);
+	// v1.8.0 — a bilingual summary carries its original-language version; this
+	// toggles between the user's language and the majority-story language.
+	const [showOriginal, setShowOriginal] = useState(false);
+	const storyExports = usePluginStoryExports();
 
 	// Watch the most recent summarize job and surface its result.
 	useEffect(() => {
@@ -73,24 +86,44 @@ export function PeriodSummaryPanel({
 
 	if (!intelligenceEnabled) return null;
 
-	const periodLabel =
+	const periodLabel = t(
 		period === "today"
-			? "today"
+			? "periodSummary.periodToday"
 			: period === "week"
-				? "this week"
+				? "periodSummary.periodWeek"
 				: period === "month"
-					? "this month"
-					: "recently";
+					? "periodSummary.periodMonth"
+					: "periodSummary.recently",
+	);
+
+	// v1.8.0 — the bilingual summary: the translated version is the user's AI
+	// output language; the ORIGINAL is the majority-story language. The toggle
+	// appears when a distinct original exists.
+	const hasOriginal = Boolean(
+		summary?.originalHeadline && summary.originalHeadline !== summary.headline,
+	);
+	const displayHeadline =
+		showOriginal && hasOriginal
+			? (summary?.originalHeadline ?? summary?.headline ?? "")
+			: (summary?.headline ?? "");
+	const displayThemes =
+		showOriginal && hasOriginal
+			? (summary?.originalThemes ?? summary?.themes ?? [])
+			: (summary?.themes ?? []);
+	const displayTakeaways =
+		showOriginal && hasOriginal
+			? (summary?.originalTakeaways ?? summary?.takeaways ?? [])
+			: (summary?.takeaways ?? []);
 
 	return (
-		<GhostCard className="mb-10 border-l-2 border-l-primary">
+		<GhostCard className="mb-10 border-s-2 border-s-primary">
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div>
 					<h3 className="font-label text-label-md uppercase tracking-widest text-primary">
-						Period Briefing
+						{t("periodSummary.title")}
 					</h3>
 					<p className="font-body text-body-md text-on-surface-variant">
-						One cohesive intelligence summary over {periodLabel}'s stories.
+						{t("periodSummary.intro", { period: periodLabel })}
 					</p>
 				</div>
 				<Button
@@ -100,16 +133,29 @@ export function PeriodSummaryPanel({
 					onClick={() => void startSummarize({ period })}
 					disabled={summarizeActive}
 				>
-					{summarizeActive ? "Summarizing…" : `Summarize ${periodLabel}`}
+					{summarizeActive
+						? t("periodSummary.summarizing")
+						: t("periodSummary.summarize", { period: periodLabel })}
 				</Button>
+				{/* Bilingual summary (v1.8.0): flip between the translated version
+				    and the majority-story (original) version. */}
+				{hasOriginal ? (
+					<button
+						type="button"
+						onClick={() => setShowOriginal((v) => !v)}
+						className="shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+						title={t("periodSummary.showOriginalHint")}
+					>
+						{showOriginal ? t("article.translated") : t("article.original")}
+					</button>
+				) : null}
 			</div>
 
 			{summarizeActive ? (
-				<div className="mt-4 flex items-center gap-2 border-l-2 border-secondary bg-surface-container-low px-3 py-2 rounded">
-					<Icon name="sync" className="animate-spin text-secondary" />
+				<div className="mt-4 flex items-center gap-2 border-s-2 border-s-secondary bg-surface-container-low px-3 py-2 rounded">
+					<Icon name="sync" className="animate-spin-reverse text-secondary" />
 					<span className="font-body text-body-md text-on-surface-variant">
-						Running in the background — you can navigate away; the result
-						appears here.
+						{t("periodSummary.runningHint")}
 					</span>
 				</div>
 			) : null}
@@ -120,43 +166,83 @@ export function PeriodSummaryPanel({
 
 			{summary ? (
 				<div className="mt-6 space-y-5">
-					<h4 className="font-headline text-headline-md leading-snug text-primary dark:text-primary-fixed">
-						<CitedText text={summary.headline} citations={summary.citations} />
+					<h4
+						className="font-headline text-headline-md leading-snug text-primary dark:text-primary-fixed"
+						dir={textDir(displayHeadline)}
+					>
+						<CitedText text={displayHeadline} citations={summary.citations} />
 					</h4>
 
-					{summary.themes.length > 0 ? (
-						<div className="flex flex-wrap gap-2">
-							{summary.themes.map((th) => (
-								<DomainTag
-									key={th.name}
-									title={th.rationale}
-									className={th.rationale ? "cursor-help" : undefined}
-								>
-									{th.name}
-									{typeof th.count === "number" ? ` · ${th.count}` : ""}
-								</DomainTag>
-							))}
+					{displayThemes.length > 0 ? (
+						// The chips follow the displayed summary language: in the
+						// translated (RTL) state the whole row must flow right-to-left.
+						<div
+							className="flex flex-wrap gap-2"
+							dir={textDir(displayThemes[0]?.name ?? "")}
+						>
+							{displayThemes.map((th) => {
+								// RTL theme names (translated Persian/Arabic) must keep
+								// their natural script — no letter-spacing, proper dir.
+								const rtl = textDir(th.name) === "rtl";
+								const chip = (
+									<span
+										dir={textDir(th.name)}
+										className={cn(
+											"inline-flex items-center rounded border border-outline-variant px-2 py-0.5 font-label text-label-sm uppercase text-on-tertiary-container",
+											rtl ? "tracking-normal" : "tracking-widest",
+											th.rationale ? "cursor-help" : undefined,
+										)}
+									>
+										{th.name}
+										{typeof th.count === "number" ? ` · ${th.count}` : ""}
+									</span>
+								);
+								// Rationale tooltips are content in the theme's language —
+								// native `title` can't be directed, so use the themed
+								// Tooltip with the label's script direction.
+								return th.rationale ? (
+									<Tooltip
+										key={th.name}
+										label={th.rationale}
+										dir={textDir(th.rationale)}
+										wrap
+									>
+										{chip}
+									</Tooltip>
+								) : (
+									<Fragment key={th.name}>{chip}</Fragment>
+								);
+							})}
 						</div>
 					) : null}
 
-					{summary.takeaways.length > 0 ? (
+					{displayTakeaways.length > 0 ? (
 						<div className="space-y-2">
 							<h5 className="font-label text-label-sm uppercase tracking-widest text-on-surface-variant">
-								Takeaways
+								{t("periodSummary.takeaways")}
 							</h5>
-							{summary.takeaways.slice(0, PREVIEW_TAKEAWAYS).map((tk, i) => (
-								<p
-									key={i}
-									className="flex gap-2 font-body text-body-md text-on-surface"
-								>
-									<span className="font-mono text-secondary">→</span>
-									<CitedText text={tk} citations={summary.citations} />
-								</p>
-							))}
-							{summary.takeaways.length > PREVIEW_TAKEAWAYS ? (
-								<p className="pl-5 font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-									+{summary.takeaways.length - PREVIEW_TAKEAWAYS} more in the
-									full brief
+							{displayTakeaways.slice(0, PREVIEW_TAKEAWAYS).map((tk, i) => {
+								const rtl = textDir(tk) === "rtl";
+								return (
+									<p
+										key={i}
+										className="flex gap-2 font-body text-body-md text-on-surface"
+										dir={textDir(tk)}
+									>
+										{/* RTL: the bullet leads from the right and points
+											    into the text (mirrored, like the full brief). */}
+										<span className="font-mono text-secondary">
+											{rtl ? "←" : "→"}
+										</span>
+										<CitedText text={tk} citations={summary.citations} />
+									</p>
+								);
+							})}
+							{displayTakeaways.length > PREVIEW_TAKEAWAYS ? (
+								<p className="ps-5 font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
+									{t("periodSummary.moreInFullBrief", {
+										count: displayTakeaways.length - PREVIEW_TAKEAWAYS,
+									})}
 								</p>
 							) : null}
 						</div>
@@ -164,30 +250,55 @@ export function PeriodSummaryPanel({
 
 					<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
 						<p className="font-mono text-[11px] text-on-tertiary-container">
-							Based on {summary.storyCount} stories from {periodLabel}.
+							{t("periodSummary.basedOn", {
+								count: summary.storyCount,
+								period: periodLabel,
+							})}
 						</p>
-						<Button
-							variant="secondary"
-							size="sm"
-							iconRight="arrow_forward"
-							disabled={!entryId}
-							title={
-								entryId
-									? "Open the full briefing"
-									: historyFetching
-										? "Saving to history…"
-										: "Full brief unavailable"
-							}
-							onClick={() => {
-								if (!entryId) return;
-								useHistoryStore.getState().closeDrawer();
-								navigate(`/history/brief/${entryId}`);
-							}}
-						>
-							{entryId ? "View full brief" : "Saving…"}
-						</Button>
+						<div className="flex flex-wrap items-center gap-2">
+							{storyExports.length > 0 ? (
+								<Button
+									variant="secondary"
+									size="sm"
+									icon="file_download"
+									onClick={() => setShowExport(true)}
+								>
+									{t("search.export")}
+								</Button>
+							) : null}
+							<Button
+								variant="secondary"
+								size="sm"
+								iconRight="arrow_forward"
+								disabled={!entryId}
+								title={
+									entryId
+										? t("periodSummary.openFullBrief")
+										: historyFetching
+											? t("search.savingToHistory")
+											: t("periodSummary.fullBriefUnavailable")
+								}
+								onClick={() => {
+									if (!entryId) return;
+									useHistoryStore.getState().closeDrawer();
+									navigate(`/history/brief/${entryId}`);
+								}}
+							>
+								{entryId
+									? t("periodSummary.viewFullBrief")
+									: t("search.saving")}
+							</Button>
+						</div>
 					</div>
 				</div>
+			) : null}
+
+			{/* Export — the period briefing as a self-contained document (v1.8.0). */}
+			{summary && showExport ? (
+				<ExportDialog
+					content={periodSummaryExportContent(summary)}
+					onClose={() => setShowExport(false)}
+				/>
 			) : null}
 		</GhostCard>
 	);

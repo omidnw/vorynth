@@ -55,7 +55,9 @@ function renderPage() {
 describe("TrashPage — soft-deleted collections & history", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mocks.fetchTrash.mockResolvedValue({ items: [collectionEntry, searchEntry] });
+		mocks.fetchTrash.mockResolvedValue({
+			items: [collectionEntry, searchEntry],
+		});
 		mocks.fetchSettings.mockResolvedValue({
 			"trash.retentionValue": 7,
 			"trash.retentionUnit": "days",
@@ -101,14 +103,18 @@ describe("TrashPage — soft-deleted collections & history", () => {
 		renderPage();
 
 		await screen.findByText("langgraph agents");
-		await user.click(screen.getAllByRole("button", { name: "Delete forever" })[1]!);
+		await user.click(
+			screen.getAllByRole("button", { name: "Delete forever" })[1]!,
+		);
 
 		const dialog = screen.getByRole("alertdialog");
 		expect(
 			within(dialog).getByText('Delete "langgraph agents" forever?'),
 		).toBeInTheDocument();
 		expect(
-			within(dialog).getByText(/1 saved item inside will be permanently removed/),
+			within(dialog).getByText(
+				/1 saved item inside will be permanently removed/,
+			),
 		).toBeInTheDocument();
 		expect(mocks.purgeTrashEntry).not.toHaveBeenCalled();
 

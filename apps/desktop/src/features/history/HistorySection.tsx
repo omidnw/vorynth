@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/ui/Icon";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Toggle } from "@/components/ui/Toggle";
@@ -12,6 +13,7 @@ import { fetchSettings, patchSettings } from "./history-api.js";
  * are backed by the engine's `app_settings` table.
  */
 export function HistorySection() {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const { data: settings } = useQuery({
 		queryKey: ["app-settings"],
@@ -35,28 +37,26 @@ export function HistorySection() {
 		<GhostCard>
 			<h3 className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 				<Icon name="history" className="text-base" />
-				History
+				{t("nav.history")}
 			</h3>
 			<p className="mb-4 font-body text-body-md text-on-surface-variant">
-				Choose what gets saved to the History drawer. Saved entries can be
-				renamed, archived, or deleted at any time.
+				{t("history.recordBody")}
 			</p>
 
 			<Toggle
 				icon="auto_awesome"
-				label="Save Ask AI searches"
-				hint="Ask-AI answers cost tokens — keep them so you can revisit without re-running."
+				label={t("history.recordAi")}
+				hint={t("history.recordAiHint")}
 				checked={recordAi}
 				onChange={(v) => update("history.search.recordAi", v)}
 			/>
 			<Toggle
 				icon="search"
-				label="Save keyword searches"
-				hint="Keyword searches are fast and free — off by default to keep history focused."
+				label={t("history.recordKeyword")}
+				hint={t("history.recordKeywordHint")}
 				checked={recordKeyword}
 				onChange={(v) => update("history.search.recordKeyword", v)}
 			/>
 		</GhostCard>
 	);
 }
-

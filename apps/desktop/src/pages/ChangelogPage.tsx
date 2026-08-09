@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import {
@@ -16,6 +17,7 @@ import { fetchEngineStatus } from "@/features/brief/brief-api.js";
  * from the engine status so the user can see which release they're on.
  */
 export function ChangelogPage() {
+	const { t } = useTranslation();
 	const { data: status } = useQuery({
 		queryKey: ["engine-status"],
 		queryFn: fetchEngineStatus,
@@ -27,13 +29,13 @@ export function ChangelogPage() {
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
 			<header className="mb-12">
 				<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-					Release Notes
+					{t("changelogPage.releaseNotes")}
 				</span>
 				<h2 className="font-headline text-headline-lg text-primary dark:text-primary-fixed">
-					Changelog
+					{t("changelogPage.title")}
 				</h2>
 				<p className="mt-2 font-body text-body-md text-on-surface-variant">
-					Less reading. More understanding. — every change that brought us here.
+					{t("changelogPage.subtitle")}
 				</p>
 			</header>
 
@@ -57,6 +59,7 @@ function ReleaseCard({
 	release: Release;
 	isCurrent: boolean;
 }) {
+	const { t } = useTranslation();
 	const [showTechnical, setShowTechnical] = useState(false);
 	return (
 		<GhostCard>
@@ -69,9 +72,11 @@ function ReleaseCard({
 					{release.codename}
 				</span>
 				{isCurrent ? (
-					<ImportanceBadge tier="signal">Current</ImportanceBadge>
+					<ImportanceBadge tier="signal">
+						{t("changelogPage.current")}
+					</ImportanceBadge>
 				) : null}
-				<span className="ml-auto font-mono text-mono-technical text-on-tertiary-container">
+				<span className="ms-auto font-mono text-mono-technical text-on-tertiary-container">
 					{new Date(release.date).toLocaleDateString("en-US", {
 						day: "numeric",
 						month: "long",
@@ -109,13 +114,12 @@ function ReleaseCard({
 						<span className="material-symbols-outlined text-[16px]">
 							{showTechnical ? "expand_less" : "expand_more"}
 						</span>
-						{showTechnical ? "Hide technical details" : "Show technical details"}
+						{showTechnical
+							? t("changelogPage.hideTechnical")
+							: t("changelogPage.showTechnical")}
 					</button>
 					{showTechnical ? (
-						<div
-							id={`technical-${release.version}`}
-							className="mt-3 space-y-2"
-						>
+						<div id={`technical-${release.version}`} className="mt-3 space-y-2">
 							{release.technical.map((change, i) => (
 								<div key={i} className="flex items-start gap-3">
 									<span className="mt-0.5 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-mono-technical uppercase tracking-widest text-on-tertiary-container">
@@ -135,16 +139,27 @@ function ReleaseCard({
 }
 
 function ChangeBadge({ type }: { type: ChangeType }) {
+	const { t } = useTranslation();
 	switch (type) {
 		case "new":
-			return <ImportanceBadge tier="signal">New</ImportanceBadge>;
+			return (
+				<ImportanceBadge tier="signal">
+					{t("changelogPage.new")}
+				</ImportanceBadge>
+			);
 		case "improved":
-			return <ImportanceBadge tier="trend">Improved</ImportanceBadge>;
+			return (
+				<ImportanceBadge tier="trend">
+					{t("changelogPage.improved")}
+				</ImportanceBadge>
+			);
 		case "fixed":
-			return <DomainTag>Fixed</DomainTag>;
+			return <DomainTag>{t("changelogPage.fixed")}</DomainTag>;
 		case "security":
 			return (
-				<DomainTag className="border-error text-error">Security</DomainTag>
+				<DomainTag className="border-error text-error">
+					{t("changelogPage.security")}
+				</DomainTag>
 			);
 		default:
 			return null;

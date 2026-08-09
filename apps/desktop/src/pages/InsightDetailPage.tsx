@@ -1,16 +1,26 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { locationHasHistory } from "@/lib/router/has-history.js";
 import type { Insight } from "@vorynth/types";
 import { apiFetch } from "@/lib/api/config";
-import { fetchArticleDetail } from "@/features/reader/reader-api";
+import { recordStoryView } from "@/features/story-views/story-views-api.js";
+import {
+	fetchArticleDetail,
+	translateArticle,
+} from "@/features/reader/reader-api";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
+import { ReaderActionBar } from "@/features/reader/ReaderActionBar";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import { usePluginStoryExports } from "@/plugins/plugin-hooks";
+import { fetchSettings } from "@/features/history/history-api.js";
 import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
-import { useTextDirection } from "@/i18n";
+import { useTranslation, useTextDirection } from "@/i18n";
+import { aiErrorMessage } from "@/features/llm/ai-error.js";
 
 /**
  * Intelligence detail view (examples/intelligence-detail.html).
@@ -29,13 +39,18 @@ export function InsightDetailPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [read, setRead] = useState(false);
+	const [showExport, setShowExport] = useState(false);
+	/** v1.8.0 — show the insight as first written instead of the translation. */
+	const [showOriginal, setShowOriginal] = useState(false);
 	const textDir = useTextDirection();
+	const { t } = useTranslation();
 
 	// Smart back: return to the page that opened this insight (Brief, Archive,
 	// Bookmarks) when there's history to go back to; otherwise fall back to the
-	// Brief. `location.key !== "default"` means react-router has a prior entry.
+	// Brief. `locationHasHistory` means react-router has a prior entry (reliable
+	// across trailing-slash deep links on reload).
 	const goBack = () => {
-		if (location.key !== "default") navigate(-1);
+		if (locationHasHistory(location.key)) navigate(-1);
 		else navigate("/brief");
 	};
 	const { data: insight, isLoading } = useQuery({
@@ -43,6 +58,17 @@ export function InsightDetailPage() {
 		queryFn: () => apiFetch<Insight | null>(`/insights/${id}`),
 		enabled: Boolean(id),
 	});
+
+	// v1.8.0 — story-view history: opening the insight records scope='insight'
+	// so the Brief History tab can show which story was read, when, and on
+	// which surface. Best-effort; a failed record never breaks the read.
+	useEffect(() => {
+		if (!insight?.articleId) return;
+		void recordStoryView({
+			articleId: insight.articleId,
+			scope: "insight",
+		}).catch(() => undefined);
+	}, [insight?.articleId]);
 
 	// Resolve the underlying article so we can link out to the original source.
 	// Only insights tied to a single article have an articleId; cluster-level
@@ -53,8 +79,31 @@ export function InsightDetailPage() {
 		enabled: Boolean(insight?.articleId),
 	});
 	const articleUrl = articleDetail?.article.url ?? null;
+
+	// Re-translate (v1.8.0) — from the insight's More menu, forces a fresh
+	// translation of the underlying story's title + body (no re-fetch). Only
+	// for article-linked insights whose story was translated at least once.
+	const queryClient = useQueryClient();
+	const retranslateMutation = useMutation({
+		mutationFn: () => translateArticle(insight!.articleId!, { force: true }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["article", insight?.articleId],
+			});
+			queryClient.invalidateQueries({ queryKey: ["insight", id] });
+		},
+	});
+
+	// Which reader-footer actions stay pinned in the bar (Profile preference).
+	const { data: settings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+	});
+	const readerPinned = settings?.["ui.readerPinnedActions"];
 	// Real save — bookmark flag on the article's content item (v1.6.0).
 	const bookmark = useBookmarkToggle(articleDetail?.article.contentItemId);
+	// Exporter plugin panels (Story Renderer: Markdown / HTML / screenshot).
+	const storyExports = usePluginStoryExports();
 
 	if (isLoading) {
 		return (
@@ -85,6 +134,24 @@ export function InsightDetailPage() {
 		);
 	}
 
+	// v1.8.0 — an insight whose text was re-translated keeps its ORIGINAL text
+	// (as first written) so the reader can show both, mirroring the article's
+	// Original toggle. The toggle appears only when an original actually exists
+	// and differs from the current text.
+	const hasOriginalInsight = Boolean(
+		insight.originalSummary && insight.originalSummary !== insight.summary,
+	);
+	const displayInsight =
+		showOriginal && hasOriginalInsight
+			? {
+					summary: insight.originalSummary ?? insight.summary,
+					significance: insight.originalSignificance ?? insight.significance,
+					impact: insight.originalImpact ?? insight.impact,
+					recommendedAction:
+						insight.originalRecommendedAction ?? insight.recommendedAction,
+				}
+			: insight;
+
 	return (
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
 			<header className="mb-12">
@@ -104,55 +171,37 @@ export function InsightDetailPage() {
 						{tierLabel(insight.importanceTier)}
 					</ImportanceBadge>
 					<DomainTag>{insight.category}</DomainTag>
-					<span className="ml-auto font-mono text-mono-technical text-on-tertiary-container">
+					<span
+						className="ms-auto font-mono text-mono-technical text-on-tertiary-container"
+						dir={textDir(insight.generatedLanguage)}
+					>
 						Score {insight.importanceScore.toFixed(1)} ·{" "}
 						{insight.generatedLanguage.toUpperCase()}
 					</span>
+					{/* The insight was re-translated into the intelligence language —
+					    this pill reveals the text as first written (v1.8.0). */}
+					{hasOriginalInsight ? (
+						<button
+							type="button"
+							onClick={() => setShowOriginal((v) => !v)}
+							className="rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+						>
+							{showOriginal ? t("article.translated") : t("article.original")}
+						</button>
+					) : null}
 				</div>
 				<h1
 					className="mb-6 font-headline text-display-lg leading-tight text-primary dark:text-primary-fixed"
-					dir={textDir(insight.summary)}
+					dir={textDir(displayInsight.summary)}
 				>
-					{insight.summary}
+					{displayInsight.summary}
 				</h1>
 				<p
-					className="border-l-2 border-primary-fixed pl-6 font-body text-body-lg italic leading-relaxed text-on-surface-variant"
-					dir={textDir(insight.significance)}
+					className="border-s-2 border-s-primary-fixed ps-6 font-body text-body-lg italic leading-relaxed text-on-surface-variant"
+					dir={textDir(displayInsight.significance)}
 				>
-					{insight.significance}
+					{displayInsight.significance}
 				</p>
-
-				{/* Link to the original source article. Only insights tied to a
-				    single article have a resolvable URL; cluster-level insights
-				    (articleId === null) omit this row. */}
-				{articleUrl ? (
-					<div className="mt-6 flex flex-wrap items-center gap-3">
-						<a
-							href={articleUrl}
-							target="_blank"
-							rel="noreferrer"
-							className="inline-flex items-center gap-2 font-label text-label-md text-secondary transition-colors hover:text-primary hover:underline"
-						>
-							<Icon name="open_in_new" className="text-[16px]" />
-							Read original article
-						</a>
-						{articleDetail?.sourceName ? (
-							<span className="font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-								on {articleDetail.sourceName}
-							</span>
-						) : null}
-						<span className="font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
-							·
-						</span>
-						<Link
-							to={`/articles/${insight.articleId}`}
-							className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:text-primary hover:underline"
-						>
-							<Icon name="menu_book" className="text-[14px]" />
-							In-app reader
-						</Link>
-					</div>
-				) : null}
 			</header>
 
 			<div className="grid grid-cols-1 gap-12">
@@ -162,9 +211,9 @@ export function InsightDetailPage() {
 					</h2>
 					<p
 						className="font-body text-body-lg leading-relaxed text-on-surface"
-						dir={textDir(insight.impact)}
+						dir={textDir(displayInsight.impact)}
 					>
-						{insight.impact}
+						{displayInsight.impact}
 					</p>
 				</GhostCard>
 
@@ -186,9 +235,13 @@ export function InsightDetailPage() {
 							Provenance
 						</h3>
 						<div className="space-y-3">
-							<Row label="Source language">Mixed</Row>
-							<Row label="Output language">{insight.generatedLanguage}</Row>
-							<Row label="Generated">
+							<Row label={t("insight.sourceLanguage")}>
+								{t("insight.mixed")}
+							</Row>
+							<Row label={t("insight.outputLanguage")}>
+								{insight.generatedLanguage}
+							</Row>
+							<Row label={t("insight.generated")}>
 								{new Date(insight.createdAt).toLocaleString()}
 							</Row>
 						</div>
@@ -202,62 +255,200 @@ export function InsightDetailPage() {
 							className="text-primary-fixed dark:text-on-primary-fixed"
 							fill
 						/>
-						Recommended Action
+						Takeaway
 					</h2>
 					<p
 						className="font-body text-body-lg italic leading-relaxed"
-						dir={textDir(insight.recommendedAction)}
+						dir={textDir(displayInsight.recommendedAction)}
 					>
-						{insight.recommendedAction}
+						{displayInsight.recommendedAction}
 					</p>
 				</section>
+
+				{/* The page is the ANALYSIS; the story itself lives in the article
+				    reader. This bridge makes that role explicit (v1.8.0) — it
+				    replaces the small "In-app reader" link in the header so a user
+				    sees at a glance that this is the insight and the full text is
+				    one click away. Cluster insights (no single article) omit it. */}
+				{insight.articleId ? (
+					<GhostCard accentLeft>
+						<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+							<div className="flex items-start gap-4">
+								<Icon name="menu_book" className="text-[32px] text-secondary" />
+								<div>
+									<h2 className="font-headline text-headline-md text-primary dark:text-primary-fixed">
+										{t("article.readFullArticle")}
+									</h2>
+									<p className="mt-1 font-body text-body-md text-on-surface-variant">
+										{t("article.insightExplainer")}
+									</p>
+								</div>
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								<Button
+									variant="primary"
+									size="md"
+									icon="menu_book"
+									iconRight="arrow_forward"
+									onClick={() => navigate(`/articles/${insight.articleId}`)}
+								>
+									{t("article.openArticleReader")}
+								</Button>
+								{articleUrl ? (
+									<a
+										href={articleUrl}
+										target="_blank"
+										rel="noreferrer"
+										className="inline-flex items-center gap-2 font-label text-label-md text-secondary transition-colors hover:text-primary hover:underline"
+									>
+										<Icon name="open_in_new" className="text-[16px]" />
+										{t("article.readOriginal")}
+									</a>
+								) : null}
+							</div>
+						</div>
+					</GhostCard>
+				) : null}
 			</div>
 
-			<footer className="fixed bottom-12 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-outline-variant bg-surface-container px-6 py-3 shadow-2xl">
-				<ActionBtn
-					icon={read ? "check" : "check_circle"}
-					label={read ? "Read" : "Mark Read"}
-					onClick={() => setRead(true)}
-				/>
-				<div className="mx-2 h-6 w-px bg-white/10" />
-				<ActionBtn
-					icon={bookmark.saved ? "bookmark_added" : "bookmark"}
-					label={bookmark.saved ? "Saved" : "Save"}
-					onClick={bookmark.toggle}
-				/>
-				<ActionBtn
-					icon="ios_share"
-					label="Share"
-					onClick={() => {
-						const shareText = articleUrl
-							? `${insight.summary}\n\n${insight.significance}\n\n${articleUrl}`
-							: `${insight.summary}\n\n${insight.significance}`;
-						if (navigator.share) {
-							void navigator.share({
-								title: insight.summary,
-								text: shareText,
-								url: articleUrl ?? undefined,
-							});
-						} else {
-							void navigator.clipboard.writeText(shareText);
-						}
-					}}
-				/>
-				{articleUrl ? (
-					<>
-						<div className="mx-2 h-6 w-px bg-white/10" />
-						<ActionBtn
-							icon="open_in_new"
-							label="Original"
-							onClick={() =>
-								window.open(articleUrl, "_blank", "noopener,noreferrer")
+			{/* Re-translate failure (v1.9.0): explain why the action couldn't run —
+			    localized from the engine's structured LLM error code. Sits above the
+			    floating action bar that hosts the Re-translate action. */}
+			{retranslateMutation.isError ? (
+				<p className="mb-4 font-body text-body-sm text-error">
+					{aiErrorMessage(
+						t,
+						retranslateMutation.error,
+						"article.retranslateFailed",
+					)}
+				</p>
+			) : null}
+
+			{/* Floating action bar — pinned actions up front, the rest behind the
+			    More ⋮ menu (Profile → Reader actions chooses which are pinned). */}
+			<ReaderActionBar
+				pinnedIds={readerPinned}
+				moreLabel={t("article.more")}
+				moreAriaLabel={t("article.moreAria")}
+				actions={[
+					{
+						id: "markRead",
+						icon: read ? "check" : "check_circle",
+						label: read ? t("article.read") : t("article.markRead"),
+						onClick: () => setRead(true),
+					},
+					{
+						id: "save",
+						icon: bookmark.saved ? "bookmark_added" : "bookmark",
+						label: bookmark.saved ? t("article.saved") : t("article.save"),
+						onClick: bookmark.toggle,
+					},
+					{
+						id: "share",
+						icon: "ios_share",
+						label: t("article.share"),
+						onClick: () => {
+							const shareText = articleUrl
+								? `${insight.summary}\n\n${insight.significance}\n\n${articleUrl}`
+								: `${insight.summary}\n\n${insight.significance}`;
+							if (navigator.share) {
+								void navigator.share({
+									title: insight.summary,
+									text: shareText,
+									url: articleUrl ?? undefined,
+								});
+							} else {
+								void navigator.clipboard.writeText(shareText);
 							}
-						/>
-					</>
-				) : null}
-				<div className="mx-2 h-6 w-px bg-white/10" />
-				<ActionBtn icon="arrow_back" label="Back" onClick={goBack} />
-			</footer>
+						},
+					},
+					...(articleUrl
+						? [
+								{
+									id: "openOriginal" as const,
+									icon: "open_in_new",
+									label: t("article.original"),
+									onClick: () =>
+										window.open(articleUrl, "_blank", "noopener,noreferrer"),
+								},
+							]
+						: []),
+					...(storyExports.length > 0
+						? [
+								{
+									id: "export" as const,
+									icon: "file_download",
+									label: t("article.export"),
+									onClick: () => setShowExport(true),
+								},
+							]
+						: []),
+					// Re-translate (v1.8.0) — redoes the story's translation from
+					// the More menu when it was translated at least once.
+					...(insight.articleId &&
+					Boolean(
+						articleDetail?.article.originalTitle ||
+						articleDetail?.article.translatedContent,
+					)
+						? [
+								{
+									id: "retranslate" as const,
+									icon: "translate",
+									label: retranslateMutation.isPending
+										? t("article.retranslating")
+										: t("article.retranslate"),
+									busy: retranslateMutation.isPending,
+									onClick: () => {
+										if (!retranslateMutation.isPending)
+											retranslateMutation.mutate();
+									},
+								},
+							]
+						: []),
+					{
+						id: "back",
+						icon: "arrow_back",
+						label: t("article.back"),
+						onClick: goBack,
+					},
+				]}
+			/>
+
+			{/* Export dialog — the insight itself as exportable content: the
+			    labeled triad rides along (v1.8.0) so the export renders the
+			    sections the reader shows, distinct from an article export. When
+			    the insight was generated bilingually (or translated), the
+			    source-language version travels as `insightOriginal` too. */}
+			{showExport ? (
+				<ExportDialog
+					content={{
+						kind: "insight",
+						title: insight.summary,
+						body: insight.summary,
+						insight: {
+							significance: insight.significance,
+							impact: insight.impact,
+							recommendedAction: insight.recommendedAction,
+						},
+						insightOriginal:
+							insight.originalSummary &&
+							insight.originalSummary !== insight.summary
+								? {
+										significance:
+											insight.originalSignificance ?? insight.significance,
+										impact: insight.originalImpact ?? insight.impact,
+										recommendedAction:
+											insight.originalRecommendedAction ??
+											insight.recommendedAction,
+									}
+								: undefined,
+						url: articleUrl ?? undefined,
+						source: articleDetail?.sourceName ?? undefined,
+						publishedAt: articleDetail?.article.publishedAt,
+					}}
+					onClose={() => setShowExport(false)}
+				/>
+			) : null}
 		</article>
 	);
 }
@@ -278,28 +469,6 @@ function Row({
 				{children}
 			</span>
 		</div>
-	);
-}
-
-function ActionBtn({
-	icon,
-	label,
-	onClick,
-}: {
-	icon: string;
-	label: string;
-	onClick?: () => void;
-}) {
-	return (
-		<button
-			onClick={onClick}
-			className="flex items-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-surface-container-high"
-		>
-			<Icon name={icon} className="text-[20px]" />
-			<span className="font-label text-label-md uppercase tracking-wide">
-				{label}
-			</span>
-		</button>
 	);
 }
 

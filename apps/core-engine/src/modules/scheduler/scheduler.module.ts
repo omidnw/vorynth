@@ -4,6 +4,10 @@ import { IntelligenceModule } from "../intelligence/intelligence.module.js";
 import { LlmModule } from "../llm/llm.module.js";
 import { RetentionModule } from "../retention/retention.module.js";
 import { TrashModule } from "../trash/trash.module.js";
+import { SourceListsModule } from "../sources/source-lists.module.js";
+import { ConnectorRegistryModule } from "../connector-registry/connector-registry.module.js";
+import { HistoryModule } from "../history/history.module.js";
+import { JobsModule } from "../jobs/jobs.module.js";
 import { SchedulerService } from "./scheduler.service.js";
 import { SchedulerBootstrap } from "./scheduler.bootstrap.js";
 
@@ -21,6 +25,10 @@ import { SchedulerBootstrap } from "./scheduler.bootstrap.js";
 		IntelligenceModule,
 		RetentionModule,
 		TrashModule,
+		SourceListsModule,
+		ConnectorRegistryModule,
+		HistoryModule,
+		JobsModule,
 	],
 	providers: [SchedulerService, SchedulerBootstrap],
 	exports: [SchedulerService],

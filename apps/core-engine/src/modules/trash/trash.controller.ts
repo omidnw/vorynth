@@ -17,9 +17,7 @@ import type {
  */
 @Controller("trash")
 export class TrashController {
-	constructor(
-		@Inject(TrashService) private readonly trash: TrashService,
-	) {}
+	constructor(@Inject(TrashService) private readonly trash: TrashService) {}
 
 	@Get()
 	list() {

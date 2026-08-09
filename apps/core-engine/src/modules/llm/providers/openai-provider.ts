@@ -82,6 +82,10 @@ export function parseDraft(raw: string): InsightDraft {
 				recommendedAction: "",
 				importanceScore: 0,
 				category: "other",
+				originalSummary: "",
+				originalSignificance: "",
+				originalImpact: "",
+				originalRecommendedAction: "",
 			};
 		}
 		obj = JSON.parse(match[0]);
@@ -97,6 +101,12 @@ export function parseDraft(raw: string): InsightDraft {
 			? Math.max(0, Math.min(10, score))
 			: 0,
 		category: String(obj.category ?? "other"),
+		// v1.8.0 — bilingual generation: the source-language version, when the
+		// model returned one.
+		originalSummary: String(obj.originalSummary ?? ""),
+		originalSignificance: String(obj.originalSignificance ?? ""),
+		originalImpact: String(obj.originalImpact ?? ""),
+		originalRecommendedAction: String(obj.originalRecommendedAction ?? ""),
 	};
 }
 

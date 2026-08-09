@@ -7,17 +7,23 @@ import { Icon } from "@/components/ui/Icon";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Select } from "@/components/ui/Select";
 
 /**
- * Language section of Settings.
+ * Language section of the profile page.
  *
- * Ships English only. The user adds any other language (incl. RTL) by:
+ * 10 languages ship bundled (en, fa, ar, ko, ja, zh, he, es, de, ru — see
+ * `i18n/locales.ts`). The user adds any OTHER language by:
  *   1. Exporting the English catalog as JSON.
  *   2. Translating it in any editor.
- *   3. Importing the translated JSON back.
+ *   3. Importing the translated JSON back (an import for a bundled code
+ *      overrides that bundle until removed).
  *
- * Direction (ltr/rtl) is derived from the locale code, so an imported
- * `fa.json` lays out RTL automatically with no extra metadata.
+ * The picker is a searchable dropdown — type the native name, the English
+ * name, or the code (e.g. "Persian", "فارسی", "fa") to filter.
+ *
+ * Direction (ltr/rtl) is derived from the locale code, so RTL locales lay out
+ * automatically with no extra metadata.
  *
  * When `onLocaleChange` is provided, it's called every time the active locale
  * changes — the parent can use it to sync the preference to the backend
@@ -31,6 +37,7 @@ export function LanguageSection({
 	const { t } = useTranslation();
 	const {
 		locales,
+		customLocales,
 		active,
 		setActive,
 		registerCatalog,
@@ -86,56 +93,53 @@ export function LanguageSection({
 				{t("settings.languageHint")}
 			</p>
 
-			{/* Available locales */}
-			<div className="mb-4 space-y-2">
-				{locales.map((loc) => (
-					<div
-						key={loc.code}
-						className="flex items-center gap-3 border border-outline-variant px-4 py-3 rounded"
-					>
-						<button
-							onClick={() => {
-								setActive(loc.code);
-								onLocaleChange?.(loc.code);
-							}}
-							className={`flex items-center gap-3 ${
-								active === loc.code ? "text-primary" : "text-on-surface-variant"
-							}`}
-						>
-							<span
-								className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
-									active === loc.code
-										? "border-primary"
-										: "border-outline-variant"
-								}`}
+			{/* Language picker — searchable by native name, English name, or code. */}
+			<Select
+				value={active}
+				onChange={(code) => {
+					setActive(code);
+					onLocaleChange?.(code);
+				}}
+				aria-label={t("settings.language")}
+				searchable
+				searchPlaceholder={t("settings.languageSearchPlaceholder")}
+				noResultsLabel={t("common.noResults")}
+				options={locales.map((loc) => ({
+					value: loc.code,
+					label: loc.label,
+					icon: "translate",
+				}))}
+			/>
+
+			{/* Imported translations — removable (an import can override a bundled language). */}
+			{customLocales.length > 0 ? (
+				<div className="mb-4 mt-4">
+					<h4 className="mb-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+						{t("settings.importedTranslations")}
+					</h4>
+					<div className="space-y-2">
+						{customLocales.map((loc) => (
+							<div
+								key={loc.code}
+								className="flex items-center gap-3 border border-outline-variant px-4 py-3 rounded"
 							>
-								{active === loc.code ? (
-									<span className="h-2 w-2 rounded-full bg-primary" />
-								) : null}
-							</span>
-							<span className="font-label text-label-md">{loc.label}</span>
-						</button>
-						<DomainTag>{loc.direction.toUpperCase()}</DomainTag>
-						<DomainTag>
-							{loc.builtIn ? t("settings.builtIn") : t("settings.custom")}
-						</DomainTag>
-							{!loc.builtIn ? (
+								<span className="flex-1 font-label text-label-md">
+									{loc.label}
+								</span>
+								<DomainTag>{loc.direction.toUpperCase()}</DomainTag>
+								<DomainTag>{t("settings.custom")}</DomainTag>
 								<button
 									onClick={() => setRemoveTarget(loc.code)}
-									className="ml-auto p-2 text-on-surface-variant hover:text-error"
+									className="p-2 text-on-surface-variant hover:text-error"
 									aria-label={t("settings.remove")}
 								>
 									<Icon name="delete" className="text-[18px]" />
 								</button>
-							) : null}
-						{loc.builtIn && active === loc.code ? (
-							<span className="ml-auto font-label text-label-sm uppercase text-secondary">
-								{t("settings.active")}
-							</span>
-						) : null}
+							</div>
+						))}
 					</div>
-				))}
-			</div>
+				</div>
+			) : null}
 
 			<input
 				ref={fileRef}
@@ -144,7 +148,7 @@ export function LanguageSection({
 				onChange={handleImport}
 				className="hidden"
 			/>
-			<div className="flex flex-wrap gap-2">
+			<div className="mt-4 flex flex-wrap gap-2">
 				<Button
 					variant="secondary"
 					size="sm"
@@ -163,19 +167,16 @@ export function LanguageSection({
 				</Button>
 			</div>
 
-			<p className="mt-4 font-mono text-[11px] text-on-tertiary-container">
-				Export gives you <code className="text-secondary">vorynth-en.json</code>
-				. Translate every value, keep the keys, save as e.g.{" "}
-				<code className="text-secondary">fa.json</code>, and import — Vorynth
-				will lay out RTL automatically.
+			<p className="mt-4 font-body text-body-sm text-on-tertiary-container">
+				{t("settings.languageExportNote")}
 			</p>
 
 			<ConfirmDialog
 				open={showError}
-				title="Invalid catalog JSON"
-				message="Make sure it's a Vorynth en.json you translated."
-				confirmLabel="OK"
-				cancelLabel="Close"
+				title={t("settings.importDialogTitle")}
+				message={t("settings.importDialogBody")}
+				confirmLabel={t("settings.ok")}
+				cancelLabel={t("settings.close")}
 				icon="error_outline"
 				danger={false}
 				onConfirm={() => setShowError(false)}
@@ -184,9 +185,9 @@ export function LanguageSection({
 
 			<ConfirmDialog
 				open={Boolean(removeTarget)}
-				title="Remove language?"
-				message="This custom translation will be removed and the app will switch back to English. Your own files are untouched."
-				confirmLabel="Remove"
+				title={t("settings.removeLanguageTitle")}
+				message={t("settings.removeLanguageBody")}
+				confirmLabel={t("settings.remove")}
 				icon="delete"
 				danger
 				onConfirm={() => {

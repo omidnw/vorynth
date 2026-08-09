@@ -22,6 +22,9 @@ export function buildSummaryPrompt(opts: {
 		source: string;
 		when: string;
 	}>;
+	/** v1.8.0 — when it differs from the target, also return the briefing in
+	 * this (the story-majority) language, as `original*` fields. */
+	originalLanguage?: string;
 }): { system: string; user: string } {
 	const periodLabel =
 		opts.period === "today"
@@ -31,6 +34,11 @@ export function buildSummaryPrompt(opts: {
 				: opts.period === "month"
 					? "this month"
 					: "recently";
+
+	const bilingual =
+		opts.originalLanguage &&
+		opts.originalLanguage.toLowerCase() !==
+			opts.targetLanguage.toLowerCase();
 
 	const system = [
 		"You are Vorynth, a personal intelligence engine.",
@@ -50,7 +58,16 @@ export function buildSummaryPrompt(opts: {
 		"",
 		"TONE: Be precise, technical, and direct. No marketing language. No hedging.",
 		`Write every human-readable field in: ${opts.targetLanguage}.`,
-		"Technical terms (library names, CVE IDs, model names) stay in their original form.",
+		"Technical terms and proper names (library names, CVE IDs, model names, tool and product",
+		'names) are translated into that language with the source term in parentheses on first',
+		'mention, e.g. \u201C\u06A9\u0644\u0627\u0648\u062F\u0641\u0644\u0631 (Cloudflare)\u201D.',
+		...(bilingual
+			? [
+					`Also write the ENTIRE briefing again in the stories' majority language: ${opts.originalLanguage},`,
+					"as `originalHeadline`, `originalThemes`, `originalTakeaways`, and",
+					"`originalRecommendedActions` (the same content, same [N] citations).",
+				]
+			: []),
 		"",
 		"CRITICAL — CITATIONS:",
 		"Every factual claim in headline/takeaways/recommendedActions/themes[].rationale MUST be followed",
@@ -83,6 +100,14 @@ export function buildSummaryPrompt(opts: {
 		"  ],",
 		'  "importanceScore": <number 0-10, overall strategic weight of the period>,',
 		'  "category": "the dominant category across these stories"',
+		...(bilingual
+			? [
+					'  ,"originalHeadline": "headline written in the original language, with [N] citations",',
+					'  "originalThemes": [{"name": "theme label", "rationale": "rationale in the original language, with [N] citations"}],',
+					'  "originalTakeaways": ["takeaways written in the original language, with [N] citations"],',
+					'  "originalRecommendedActions": ["actions written in the original language, with [N] citations"]',
+				]
+			: []),
 		"}",
 	].join("\n");
 
@@ -101,6 +126,11 @@ export interface SummaryDraft {
 	recommendedActions: string[];
 	importanceScore: number;
 	category: string;
+	/** v1.8.0 — the briefing in the stories' majority language (bilingual). */
+	originalHeadline?: string;
+	originalThemes?: { name: string; rationale: string }[];
+	originalTakeaways?: string[];
+	originalRecommendedActions?: string[];
 }
 
 /**
@@ -144,6 +174,12 @@ export function parseSummaryDraft(raw: string): SummaryDraft {
 			? Math.max(0, Math.min(10, score))
 			: 0,
 		category: String(obj.category ?? "other"),
+		// v1.8.0 — bilingual summary: the original-language version, when the
+		// model returned one.
+		originalHeadline: String(obj.originalHeadline ?? ""),
+		originalThemes: cleanThemes(obj.originalThemes),
+		originalTakeaways: cleanStringArray(obj.originalTakeaways),
+		originalRecommendedActions: cleanStringArray(obj.originalRecommendedActions),
 	};
 }
 

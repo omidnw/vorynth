@@ -1,38 +1,33 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { cn } from "@/lib/cn";
-import { Icon } from "@/components/ui/Icon";
+import {
+	SidebarNavItem as SidebarNavItemBase,
+	type SidebarNavItemProps,
+} from "@vorynth/ui";
+
+export type { SidebarNavItemProps };
 
 /**
- * Sidebar navigation entry. Active state is a 2px primary bar on the left —
- * never a background fill (per the color docs).
+ * Desktop adapter for the shared `SidebarNavItem`. Restores the router
+ * coupling: `to` becomes a NavLink, and `isActive` (optional route-family
+ * matcher) wins over NavLink's own prefix match. The shared component owns the
+ * 2px left-bar active style; this adapter only feeds it the `active` boolean
+ * and the navigation handler.
  */
-export interface SidebarNavItemProps {
+export function SidebarNavItem({
+	to,
+	isActive,
+	...rest
+}: SidebarNavItemProps & {
 	to: string;
-	icon: string;
-	label: string;
-	/** Optional custom active-state matcher (e.g. a route family). When given,
-	 *  it wins over the NavLink's own prefix matching. */
 	isActive?: (pathname: string) => boolean;
-}
-
-export function SidebarNavItem({ to, icon, label, isActive }: SidebarNavItemProps) {
+}) {
 	const location = useLocation();
 	const overrideActive = isActive?.(location.pathname);
 	return (
-		<NavLink
-			to={to}
-			className={({ isActive: navActive }) => {
-				const on = overrideActive ?? navActive;
-				return cn(
-					"flex items-center gap-4 border-l-2 pl-4 py-2 font-body text-body-md transition-colors duration-200",
-					on
-						? "border-primary text-primary dark:border-primary-fixed dark:text-primary-fixed"
-						: "border-transparent text-on-surface-variant hover:bg-surface-variant dark:text-on-tertiary-container dark:hover:bg-tertiary-container",
-				);
-			}}
-		>
-			<Icon name={icon} className="text-[20px]" />
-			<span>{label}</span>
+		<NavLink to={to} className="block">
+			{({ isActive: navActive }) => (
+				<SidebarNavItemBase {...rest} active={overrideActive ?? navActive} />
+			)}
 		</NavLink>
 	);
 }

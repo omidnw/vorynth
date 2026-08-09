@@ -6,7 +6,11 @@ import { articleHash } from "../../src/modules/crawler/hashing.js";
  * the same story re-fetched must hash identically so it collapses to one row.
  */
 describe("articleHash", () => {
-	const base = { title: "Hello World", publishedAt: new Date("2026-07-01T10:00:00Z"), sourceId: "src-x" };
+	const base = {
+		title: "Hello World",
+		publishedAt: new Date("2026-07-01T10:00:00Z"),
+		sourceId: "src-x",
+	};
 
 	it("is deterministic for identical input", () => {
 		expect(articleHash(base)).toBe(articleHash(base));

@@ -22,6 +22,7 @@ import type {
  *   GET    /archive/items                list (filters + curated default)
  *   GET    /archive/items/:id            full item incl. origin
  *   PATCH  /archive/items/:id            note / tags / collection / archived
+ *   DELETE /archive/items/:id            permanent delete (archived view, confirmed)
  *   GET    /archive/collections          list (tree)
  *   POST   /archive/collections          create (parent_type + depth checks)
  *   PATCH  /archive/collections/:id      rename / move / re-kind
@@ -54,7 +55,11 @@ export class ArchiveController {
 			archived:
 				archived === "true" ? true : archived === "false" ? false : undefined,
 			bookmarked:
-				bookmarked === "true" ? true : bookmarked === "false" ? false : undefined,
+				bookmarked === "true"
+					? true
+					: bookmarked === "false"
+						? false
+						: undefined,
 			limit: limit ? Number(limit) : undefined,
 			offset: offset ? Number(offset) : undefined,
 		});
@@ -71,6 +76,12 @@ export class ArchiveController {
 		@Body() body: UpdateArchiveItemInput,
 	) {
 		return this.archive.updateItem(id, body ?? {});
+	}
+
+	@Delete("items/:id")
+	async removeItem(@Param("id") id: string) {
+		await this.archive.deleteItem(id);
+		return { id, removed: true };
 	}
 
 	@Get("collections")

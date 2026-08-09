@@ -7,6 +7,7 @@ import { parseTranslationBatch } from "../../src/modules/intelligence/prompts/tr
 import type { LlmService } from "../../src/modules/llm/llm.service.js";
 import type { NewsService } from "../../src/modules/news/news.service.js";
 import type { HistoryService } from "../../src/modules/history/history.service.js";
+import type { CrawlerService } from "../../src/modules/crawler/crawler.service.js";
 import type { GenerateInput } from "../../src/modules/llm/llm-provider.js";
 
 /**
@@ -64,23 +65,41 @@ function makeService(tdb: TestDb) {
 				id: string;
 				title: string;
 				content: string;
+				insight?: {
+					summary: string;
+					significance: string;
+					impact: string;
+					recommendedAction: string;
+				};
 			}>;
 			return JSON.stringify(
 				items.map((i) => ({
 					id: i.id,
 					title: `T:${i.id}`,
 					content: `B:${i.id}`,
+					...(i.insight
+						? {
+								insight: {
+									summary: `S:${i.id}`,
+									significance: `G:${i.id}`,
+									impact: `I:${i.id}`,
+									recommendedAction: `R:${i.id}`,
+								},
+							}
+						: {}),
 				})),
 			);
 		}),
 		analyze: jest.fn(),
 		summarize: jest.fn(),
+		isAvailable: jest.fn(async () => true),
 	} as unknown as LlmService;
 	const svc = new IntelligenceService(
 		tdb.service,
 		llm,
 		undefined as unknown as NewsService,
 		undefined as unknown as HistoryService,
+		{} as unknown as CrawlerService,
 	);
 	return { svc, llm: llm as unknown as { generate: jest.Mock } };
 }
@@ -215,6 +234,70 @@ describe("translateAllStories", () => {
 		expect(r.original_title).toBe("Original Title 1"); // untouched
 		expect(r.translated_content).toBe("B:art-1");
 	});
+
+	it("translates each story's AI insight alongside the title/body (v1.8.0)", async () => {
+		const id = seedArticle(tdb, "src-translate", 1);
+		tdb.service.rawDb
+			.prepare(
+				`INSERT INTO ai_insights
+				   (id, cluster_id, article_id, summary, significance, impact, recommended_action, importance_score, importance_tier, category, generated_language)
+				 VALUES (?, NULL, ?, 'Summary EN', 'Sig EN', 'Impact EN', 'Action EN', 0.7, 'signal', 'other', 'en')`,
+			)
+			.run(`insight-${id}`, id);
+
+		const { svc } = makeService(tdb);
+		const translated = await svc.translateAllStories(undefined, "fa");
+
+		expect(translated).toBe(1);
+		const ins = tdb.service.rawDb
+			.prepare(
+				"SELECT summary, significance, impact, recommended_action, original_summary, generated_language FROM ai_insights WHERE article_id = ?",
+			)
+			.get(id);
+		expect(ins).toEqual({
+			summary: "S:art-1",
+			significance: "G:art-1",
+			impact: "I:art-1",
+			recommended_action: "R:art-1",
+			// v1.8.0 — the batch preserves the ORIGINAL insight text on the
+			// first translation, exactly like the per-story path.
+			original_summary: "Summary EN",
+			generated_language: "fa",
+		});
+	});
+
+	it("re-translates already-translated stories when retranslateAll is set (v1.8.0)", async () => {
+		// The user changed their intelligence language: existing translations
+		// were made from the ORIGINAL text, so the whole collection must be
+		// rewritten into the new language — not just the never-translated
+		// backlog. `retranslateAll` widens the WHERE clause to include stories
+		// that already carry a translation.
+		const id = seedArticle(tdb, "src-translate", 1);
+		tdb.service.rawDb
+			.prepare(
+				"UPDATE articles SET translated_content = 'old:fa', original_title = ? WHERE id = ?",
+			)
+			.run("Original Title 1", id);
+
+		const { svc, llm } = makeService(tdb);
+		const translated = await svc.translateAllStories(
+			undefined,
+			"ko",
+			0,
+			undefined,
+			{
+				retranslateAll: true,
+			},
+		);
+
+		// The already-translated story was included and rewritten.
+		expect(translated).toBe(1);
+		expect(llm.generate).toHaveBeenCalledTimes(1);
+		const r = row(tdb, id);
+		expect(r.translated_content).toBe("B:art-1");
+		// original_title stays the FIRST original forever.
+		expect(r.original_title).toBe("Original Title 1");
+	});
 });
 
 describe("parseTranslationBatch", () => {
@@ -226,6 +309,50 @@ describe("parseTranslationBatch", () => {
 			{ id: "a", title: "T", content: "C" },
 			{ id: "b", title: "T2", content: "C2" },
 		]);
+	});
+
+	it("parses an optional insight object per item (v1.8.0)", () => {
+		const out = parseTranslationBatch(
+			JSON.stringify([
+				{
+					id: "a",
+					title: "T",
+					content: "C",
+					insight: {
+						summary: "S",
+						significance: "G",
+						impact: "I",
+						recommendedAction: "R",
+					},
+				},
+				{ id: "b", title: "T2", content: "C2" },
+			]),
+		);
+		expect(out[0].insight).toEqual({
+			summary: "S",
+			significance: "G",
+			impact: "I",
+			recommendedAction: "R",
+		});
+		// A story without an insight has no insight key on its entry.
+		expect(out[1].insight).toBeUndefined();
+	});
+
+	it("drops a malformed insight but keeps the story translation", () => {
+		const out = parseTranslationBatch(
+			'[{"id":"a","title":"T","content":"C","insight":"not-an-object"},{"id":"b","title":"T2","content":"C2","insight":{"summary":"only"}}]',
+		);
+		// A non-object insight is ignored entirely…
+		expect(out[0].insight).toBeUndefined();
+		// …while a summary-bearing insight is kept (optional fields empty are
+		// fine — the write path merges them with the stored values, R-C04).
+		expect(out[1].insight).toEqual({
+			summary: "only",
+			significance: "",
+			impact: "",
+			recommendedAction: "",
+		});
+		expect(out[1].title).toBe("T2");
 	});
 
 	it("strips code fences and surrounding prose", () => {
@@ -246,5 +373,70 @@ describe("parseTranslationBatch", () => {
 		expect(parseTranslationBatch("not json")).toEqual([]);
 		expect(parseTranslationBatch('{"object":"not array"}')).toEqual([]);
 		expect(parseTranslationBatch("[{broken]")).toEqual([]);
+	});
+
+	it("recovers a truncated JSON array — closing bracket missing (v1.8.0)", () => {
+		// Real-world failure: on long translations (title + full body + insight)
+		// the model occasionally closes the outer array with `}` instead of `]`,
+		// i.e. the final bracket is missing. That output used to be discarded
+		// ("model returned no entry") so the story's re-translation silently
+		// never happened. The parser now closes the still-open brackets.
+		const truncated =
+			'[{"id":"art-1","title":"T1","content":"C1","insight":{"summary":"S","significance":"G","impact":"I","recommendedAction":"R"}}';
+		const out = parseTranslationBatch(truncated);
+		expect(out).toEqual([
+			{
+				id: "art-1",
+				title: "T1",
+				content: "C1",
+				insight: {
+					summary: "S",
+					significance: "G",
+					impact: "I",
+					recommendedAction: "R",
+				},
+			},
+		]);
+	});
+
+	it("recovers a doubly-truncated array — object AND array closing missing", () => {
+		// The insight's own closing `}` and the array's `]` both missing.
+		const truncated =
+			'[{"id":"art-1","title":"T1","content":"C1","insight":{"summary":"S","significance":"G","impact":"I","recommendedAction":"R"';
+		expect(parseTranslationBatch(truncated)).toEqual([
+			{
+				id: "art-1",
+				title: "T1",
+				content: "C1",
+				insight: {
+					summary: "S",
+					significance: "G",
+					impact: "I",
+					recommendedAction: "R",
+				},
+			},
+		]);
+	});
+
+	it("recovers the array's closing bracket written as `}` (v1.8.0)", () => {
+		// Real-world failure seen from Gemini on long translations: the outer
+		// array's final `]` comes back as a stray `}` — `...\"}}}` instead of
+		// `...\"}}]`. Appending brackets can't fix that (the stray brace is
+		// still there), so the parser swaps the final `}` for `]`.
+		const broken =
+			'[{"id":"art-1","title":"T1","content":"C1","insight":{"summary":"S","significance":"G","impact":"I","recommendedAction":"R"}}';
+		expect(parseTranslationBatch(broken)).toEqual([
+			{
+				id: "art-1",
+				title: "T1",
+				content: "C1",
+				insight: {
+					summary: "S",
+					significance: "G",
+					impact: "I",
+					recommendedAction: "R",
+				},
+			},
+		]);
 	});
 });

@@ -15,9 +15,26 @@ export const searchSection: DocsSection = {
 		{
 			type: "features",
 			items: [
-				{ icon: "search", label: "Keyword", text: "Runs instantly over every collected article via a full-text index (titles, content, and now authors). Results rank by relevance with highlighted snippets." },
-				{ icon: "auto_awesome", label: "Ask AI (RAG)", text: "Pulls the top matching articles, packs them into a context window, and asks the LLM to answer using only that ground truth — with numbered [N] citations. Runs as a background job (5 req/min); in News mode it falls back to keyword." },
-				{ icon: "tune", label: "Advanced", text: "For researchers: combine keywords, domains, importance tiers, a specific source, a collected-date range, and a 'has AI analysis' filter. Deterministic, no LLM." },
+				{
+					icon: "search",
+					label: "Keyword",
+					text: "Runs instantly over every collected article via a full-text index (titles, content, and now authors). Results rank by relevance with highlighted snippets.",
+				},
+				{
+					icon: "auto_awesome",
+					label: "Ask AI (RAG)",
+					text: "Pulls the top matching articles, packs them into a context window, and asks the LLM to answer using only that ground truth — with numbered [N] citations. Runs as a background job (5 req/min); in News mode it falls back to keyword.",
+				},
+				{
+					icon: "tune",
+					label: "Advanced",
+					text: "For researchers: combine keywords, domains, importance tiers, a specific source, a collected-date range, and a 'has AI analysis' filter. Deterministic, no LLM.",
+				},
+				{
+					icon: "file_download",
+					label: "Export an answer",
+					text: "An Ask-AI answer carries an Export button next to it — download the answer with its full source list as Markdown, a themed HTML page, or a screenshot.",
+				},
 			],
 		},
 		{

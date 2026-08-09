@@ -1,4 +1,5 @@
 import {
+	useCallback,
 	useEffect,
 	useRef,
 	useState,
@@ -23,6 +24,12 @@ export interface SelectProps {
 	placeholder?: string;
 	className?: string;
 	disabled?: boolean;
+	/** Show a search field in the popover that filters options by label. */
+	searchable?: boolean;
+	/** Placeholder (and accessible name) for the search field. */
+	searchPlaceholder?: string;
+	/** Shown when the search filters out every option. */
+	noResultsLabel?: string;
 }
 
 /**
@@ -33,6 +40,10 @@ export interface SelectProps {
  * Keyboard-accessible: Tab to focus, Enter/Space to open, arrow keys to move,
  * Enter to select, Escape to close. Selects by role + aria-label (no
  * data-test-id).
+ *
+ * When `searchable`, the popover shows a search field on top; typing filters
+ * the options by label (case-insensitive). Labels carry the native name,
+ * English name, and code, so e.g. "Persian", "فارسی", or "fa" all find Persian.
  */
 export function Select({
 	value,
@@ -42,23 +53,55 @@ export function Select({
 	placeholder = "Select…",
 	className,
 	disabled,
+	searchable = false,
+	searchPlaceholder = "Search…",
+	noResultsLabel = "No matches",
 }: SelectProps) {
 	const [open, setOpen] = useState(false);
 	const [focusIndex, setFocusIndex] = useState(-1);
+	const [query, setQuery] = useState("");
 	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLUListElement>(null);
 
+	const filtered =
+		searchable && query.trim()
+			? options.filter((o) =>
+					o.label.toLowerCase().includes(query.trim().toLowerCase()),
+				)
+			: options;
 	const selected = options.find((o) => o.value === value);
+
+	const close = useCallback(() => {
+		setOpen(false);
+		setQuery("");
+		setFocusIndex(-1);
+	}, []);
+
+	const openList = () => {
+		setOpen(true);
+		setFocusIndex(
+			Math.max(
+				0,
+				filtered.findIndex((o) => o.value === value),
+			),
+		);
+	};
+
+	const selectOption = (opt: SelectOption | undefined) => {
+		if (!opt) return;
+		onChange(opt.value);
+		close();
+	};
 
 	// Close on outside click.
 	useEffect(() => {
 		if (!open) return;
 		const onDown = (e: MouseEvent) => {
-			if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+			if (!rootRef.current?.contains(e.target as Node)) close();
 		};
 		document.addEventListener("mousedown", onDown);
 		return () => document.removeEventListener("mousedown", onDown);
-	}, [open]);
+	}, [open, close]);
 
 	// Scroll the focused option into view inside the popover.
 	useEffect(() => {
@@ -74,22 +117,17 @@ export function Select({
 			case " ":
 				e.preventDefault();
 				if (open) {
-					if (focusIndex >= 0 && options[focusIndex]) {
-						onChange(options[focusIndex].value);
-						setOpen(false);
-					}
+					selectOption(filtered[focusIndex]);
 				} else {
-					setOpen(true);
-					setFocusIndex(Math.max(0, options.findIndex((o) => o.value === value)));
+					openList();
 				}
 				break;
 			case "ArrowDown":
 				e.preventDefault();
 				if (!open) {
-					setOpen(true);
-					setFocusIndex(Math.max(0, options.findIndex((o) => o.value === value)));
+					openList();
 				} else {
-					setFocusIndex((i) => Math.min(options.length - 1, i + 1));
+					setFocusIndex((i) => Math.min(filtered.length - 1, i + 1));
 				}
 				break;
 			case "ArrowUp":
@@ -99,11 +137,31 @@ export function Select({
 			case "Escape":
 				if (open) {
 					e.preventDefault();
-					setOpen(false);
+					close();
 				}
 				break;
 			case "Tab":
-				setOpen(false);
+				close();
+				break;
+		}
+	};
+
+	const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		switch (e.key) {
+			case "ArrowDown":
+				e.preventDefault();
+				if (filtered.length > 0) setFocusIndex(0);
+				break;
+			case "Enter":
+				e.preventDefault();
+				selectOption(filtered[focusIndex >= 0 ? focusIndex : 0]);
+				break;
+			case "Escape":
+				e.preventDefault();
+				close();
+				break;
+			case "Tab":
+				close();
 				break;
 		}
 	};
@@ -116,67 +174,105 @@ export function Select({
 				aria-haspopup="listbox"
 				aria-expanded={open}
 				aria-label={ariaLabel}
-				onClick={() => {
-					setOpen((v) => !v);
-					setFocusIndex(Math.max(0, options.findIndex((o) => o.value === value)));
-				}}
+				onClick={() => (open ? close() : openList())}
 				onKeyDown={onKeyDown}
 				className={cn(
-					"flex w-full items-center gap-2 rounded border border-outline-variant bg-surface-container-low px-3 py-1.5 text-left font-label text-label-sm text-on-surface outline-none transition-colors",
+					"flex w-full items-center gap-2 rounded border border-outline-variant bg-surface-container-low px-3 py-3 text-start font-label text-label-sm text-on-surface outline-none transition-colors",
 					"hover:border-primary focus:border-secondary focus:bg-surface-container-lowest",
 					disabled && "opacity-40",
 				)}
 			>
 				{selected?.icon ? (
-					<Icon name={selected.icon} className="shrink-0 text-[16px] text-on-surface-variant" />
+					<Icon
+						name={selected.icon}
+						className="shrink-0 text-[16px] text-on-surface-variant"
+					/>
 				) : null}
-				<span className={cn("flex-1 truncate", !selected && "text-on-tertiary-container")}>
+				<span
+					className={cn(
+						"flex-1 truncate",
+						!selected && "text-on-tertiary-container",
+					)}
+				>
 					{selected ? selected.label : placeholder}
 				</span>
 				<Icon
 					name="expand_more"
-					className={cn("shrink-0 text-[16px] text-on-surface-variant transition-transform", open && "rotate-180")}
+					className={cn(
+						"shrink-0 text-[16px] text-on-surface-variant transition-transform",
+						open && "rotate-180",
+					)}
 				/>
 			</button>
 
 			{open ? (
-				<ul
-					ref={listRef}
-					role="listbox"
-					aria-label={ariaLabel}
-					className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
-				>
-					{options.map((opt, idx) => {
-						const isActive = opt.value === value;
-						const isFocused = idx === focusIndex;
-						return (
-							<li key={opt.value} role="option" aria-selected={isActive}>
-								<button
-									type="button"
-									onClick={() => {
-										onChange(opt.value);
-										setOpen(false);
-									}}
-									onMouseEnter={() => setFocusIndex(idx)}
-									className={cn(
-										"flex w-full items-center gap-2 px-3 py-1.5 text-left font-label text-label-sm transition-colors",
-										isFocused ? "bg-primary-container text-on-primary-container" : "text-on-surface",
-									)}
-								>
-									{opt.icon ? (
-										<Icon name={opt.icon} className="shrink-0 text-[16px]" />
-									) : (
-										<span className="w-4 shrink-0" />
-									)}
-									<span className="flex-1 truncate">{opt.label}</span>
-									{isActive ? (
-										<Icon name="check" className="shrink-0 text-[16px] text-secondary" />
-									) : null}
-								</button>
-							</li>
-						);
-					})}
-				</ul>
+				<div className="absolute z-50 mt-1 w-full overflow-hidden rounded border border-outline-variant bg-surface-container-lowest shadow-lg">
+					{searchable ? (
+						<div className="border-b border-outline-variant px-3 py-2">
+							<input
+								autoFocus
+								type="text"
+								value={query}
+								onChange={(e) => {
+									setQuery(e.target.value);
+									setFocusIndex(-1);
+								}}
+								onKeyDown={onSearchKeyDown}
+								placeholder={searchPlaceholder}
+								aria-label={searchPlaceholder}
+								className="w-full rounded border border-outline-variant bg-surface-container-low px-2.5 py-1 font-label text-label-sm text-on-surface outline-none placeholder:text-on-tertiary-container focus:border-secondary focus:bg-surface-container-lowest"
+							/>
+						</div>
+					) : null}
+					{filtered.length > 0 ? (
+						<ul
+							ref={listRef}
+							role="listbox"
+							aria-label={ariaLabel}
+							className="max-h-64 overflow-auto py-1"
+						>
+							{filtered.map((opt, idx) => {
+								const isActive = opt.value === value;
+								const isFocused = idx === focusIndex;
+								return (
+									<li key={opt.value} role="option" aria-selected={isActive}>
+										<button
+											type="button"
+											onClick={() => selectOption(opt)}
+											onMouseEnter={() => setFocusIndex(idx)}
+											className={cn(
+												"flex w-full items-center gap-2 px-3 py-1.5 text-start font-label text-label-sm transition-colors",
+												isFocused
+													? "bg-primary-container text-on-primary-container"
+													: "text-on-surface",
+											)}
+										>
+											{opt.icon ? (
+												<Icon
+													name={opt.icon}
+													className="shrink-0 text-[16px]"
+												/>
+											) : (
+												<span className="w-4 shrink-0" />
+											)}
+											<span className="flex-1 truncate">{opt.label}</span>
+											{isActive ? (
+												<Icon
+													name="check"
+													className="shrink-0 text-[16px] text-secondary"
+												/>
+											) : null}
+										</button>
+									</li>
+								);
+							})}
+						</ul>
+					) : (
+						<p className="px-3 py-2 font-label text-label-sm text-on-tertiary-container">
+							{noResultsLabel}
+						</p>
+					)}
+				</div>
 			) : null}
 		</div>
 	);
@@ -199,11 +295,14 @@ export function MenuButton({
 	"aria-label": ariaLabel,
 	className,
 	children,
+	dropUp,
 }: {
 	items: MenuItem[];
 	"aria-label": string;
 	className?: string;
 	children?: ReactNode;
+	/** Open the popover above the button instead of below (bottom-anchored bars). */
+	dropUp?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
@@ -232,7 +331,9 @@ export function MenuButton({
 			{open ? (
 				<div
 					role="menu"
-					className="absolute right-0 z-50 mt-1 min-w-[10rem] overflow-hidden rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
+					className={`absolute end-0 z-50 min-w-[10rem] overflow-hidden rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg animate-scale-in ${
+						dropUp ? "bottom-full mb-1" : "mt-1"
+					}`}
 				>
 					{items.map((item) => (
 						<button
@@ -244,7 +345,7 @@ export function MenuButton({
 								setOpen(false);
 							}}
 							className={cn(
-								"flex w-full items-center gap-2 px-3 py-1.5 text-left font-label text-label-sm transition-colors hover:bg-primary-container hover:text-on-primary-container",
+								"flex w-full items-center gap-2 px-3 py-1.5 text-start font-label text-label-sm transition-colors hover:bg-primary-container hover:text-on-primary-container",
 								item.danger && "text-error hover:bg-error/10 hover:text-error",
 							)}
 						>

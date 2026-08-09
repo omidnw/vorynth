@@ -68,11 +68,21 @@ export class SearchService {
 		if (!ftsQuery) return { query: q, hits: [], totalMatches: 0 };
 
 		// Try AND first (implicit AND in FTS5 — just space-separated tokens)
-		let hits = this.runFtsQuery(ftsQuery.andQuery, opts.periodMs, 100, opts.author);
+		let hits = this.runFtsQuery(
+			ftsQuery.andQuery,
+			opts.periodMs,
+			100,
+			opts.author,
+		);
 
 		// Fall back to OR if AND produces nothing
 		if (hits.length === 0) {
-			hits = this.runFtsQuery(ftsQuery.orQuery, opts.periodMs, 100, opts.author);
+			hits = this.runFtsQuery(
+				ftsQuery.orQuery,
+				opts.periodMs,
+				100,
+				opts.author,
+			);
 		}
 
 		// Slice to limit (runFtsQuery returns up to maxResults internally)
@@ -115,18 +125,20 @@ export class SearchService {
 			.prepare(
 				`\
 	SELECT a.id            AS a_id,
-	       a.source_id     AS a_source_id,
-	       a.title         AS a_title,
-	       a.content       AS a_content,
-	       a.url           AS a_url,
-	       a.author        AS a_author,
-	       a.published_at  AS a_published_at,
-	       a.collected_at  AS a_collected_at,
-	       a.hash          AS a_hash,
-	       a.content_item_id AS a_content_item_id,
-	       fts.rank        AS fts_rank,
-	       snippet(articles_fts, 1, '…', '…', '…', 64) AS fts_highlight
-	FROM articles_fts fts
+		       a.source_id     AS a_source_id,
+		       a.title         AS a_title,
+		       a.content       AS a_content,
+		       a.url           AS a_url,
+		       a.author        AS a_author,
+		       a.published_at  AS a_published_at,
+		       a.collected_at  AS a_collected_at,
+		       a.hash          AS a_hash,
+		       a.content_item_id AS a_content_item_id,
+		       a.original_title  AS a_original_title,
+		       a.translated_content AS a_translated_content,
+		       fts.rank        AS fts_rank,
+		       snippet(articles_fts, 1, '…', '…', '…', 64) AS fts_highlight
+		FROM articles_fts fts
 	JOIN articles a ON a.id = fts.article_id
 	WHERE articles_fts MATCH ?
 	  AND (? IS NULL OR a.collected_at >= ?)
@@ -134,7 +146,14 @@ export class SearchService {
 	ORDER BY fts.rank
 	LIMIT ?`,
 			)
-			.all(ftsQuery, since, since, author ?? null, author ? `%${author}%` : null, limit) as FtsRow[];
+			.all(
+				ftsQuery,
+				since,
+				since,
+				author ?? null,
+				author ? `%${author}%` : null,
+				limit,
+			) as FtsRow[];
 
 		// Deduplicate by article_id: keep the first (highest-ranked) entry
 		// when the same article appears multiple times (force-crawl re-insert).
@@ -222,6 +241,8 @@ export class SearchService {
 	       a.collected_at  AS a_collected_at,
 	       a.hash          AS a_hash,
 	       a.content_item_id AS a_content_item_id,
+	       a.original_title  AS a_original_title,
+	       a.translated_content AS a_translated_content,
 	       0               AS fts_rank,
 	       ''              AS fts_highlight
 	FROM articles a
@@ -407,6 +428,8 @@ interface FtsRow {
 	a_collected_at: number;
 	a_hash: string;
 	a_content_item_id: string | null;
+	a_original_title: string | null;
+	a_translated_content: string | null;
 	fts_rank: number;
 	fts_highlight: string;
 }
@@ -431,6 +454,8 @@ function toArticleDto(row: FtsRow): Article {
 		collectedAt: new Date(row.a_collected_at),
 		hash: row.a_hash,
 		contentItemId: row.a_content_item_id,
+		originalTitle: row.a_original_title,
+		translatedContent: row.a_translated_content,
 	};
 }
 

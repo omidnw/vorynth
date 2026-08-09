@@ -33,7 +33,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
 						check the engine is running on the configured port.
 					</p>
 					{this.state.error ? (
-						<pre className="mb-6 max-w-lg overflow-auto rounded border border-outline-variant bg-surface-container-low p-4 text-left font-mono text-[11px] text-error">
+						<pre
+							dir="ltr"
+							className="mb-6 max-w-lg overflow-auto rounded border border-outline-variant bg-surface-container-low p-4 text-left font-mono text-[11px] text-error"
+						>
 							{this.state.error.message}
 						</pre>
 					) : null}

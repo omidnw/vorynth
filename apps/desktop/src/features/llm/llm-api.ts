@@ -55,6 +55,8 @@ export interface LlmStatus {
 	providerKind: string | null;
 	/** Live rate-limiter state from the engine (VORYNTH_LLM_RPM / SPACING_MS drive it). */
 	rateLimit: { capacity: number; inFlight: number; spacingMs: number };
+	/** Why the LLM isn't usable, when not configured. */
+	unavailableReason?: "not-configured" | "key-missing" | "key-undecryptable" | null;
 }
 
 export async function fetchStatus(): Promise<LlmStatus> {

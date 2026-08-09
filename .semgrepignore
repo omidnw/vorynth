@@ -1,0 +1,14 @@
+# Semgrep ignore list — everything generated, third-party, or out of scope.
+node_modules/
+**/dist/**
+**/dist-bundle/**
+apps/desktop/public/plugins/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/
+apps/core-engine/data/
+data/
+examples/
+pnpm-lock.yaml
+*.sqlite
+.vorynth-backup

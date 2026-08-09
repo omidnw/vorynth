@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import { CrawlerService } from "../../src/modules/crawler/crawler.service.js";
 import { SourcesService } from "../../src/modules/sources/sources.service.js";
+import { SourceListsService } from "../../src/modules/sources/source-lists.service.js";
+import { PluginsService } from "../../src/modules/plugins/plugins.service.js";
 import { ArchiveService } from "../../src/modules/archive/archive.service.js";
 import { BookmarksService } from "../../src/modules/bookmarks/bookmarks.service.js";
 import { ensureSpines } from "../../src/db/ddl.js";
@@ -19,6 +21,22 @@ import { createTestDb, type TestDb } from "../helpers/db.js";
  *   • source force-deletion leaves no orphans
  *   • the collection tree obeys parent_type + depth
  */
+
+// ── service factories (v1.8.0: sources/crawler take the plugin registry + the
+// source-lists service gates the crawler on list.enabled) ─────────────────
+
+function makeCrawler(db: TestDb): CrawlerService {
+	return new CrawlerService(
+		db.service,
+		new PluginsService(db.service),
+		new SourceListsService(db.service, new PluginsService(db.service)),
+	);
+}
+
+function makeSources(db: TestDb): SourcesService {
+	const plugins = new PluginsService(db.service);
+	return new SourcesService(db.service, plugins, makeCrawler(db));
+}
 
 // ── seeding helpers ─────────────────────────────────────────────────────────
 
@@ -39,23 +57,27 @@ function seedArticle(
 	const raw = db.service.rawDb;
 	const articleId = randomUUID();
 	const spineId = opts.contentItemId ?? createSpine(raw, "article");
-	raw.prepare(
-		`INSERT INTO articles (id, source_id, title, content, url, hash, published_at, collected_at)
+	raw
+		.prepare(
+			`INSERT INTO articles (id, source_id, title, content, url, hash, published_at, collected_at)
 		 VALUES (?, ?, 'Test story', 'body', 'https://example.com/a', ?, ?, ?)`,
-	).run(
-		articleId,
-		sourceId,
-		randomUUID(),
-		opts.publishedAt ?? Date.now(),
-		Date.now(),
-	);
+		)
+		.run(
+			articleId,
+			sourceId,
+			randomUUID(),
+			opts.publishedAt ?? Date.now(),
+			Date.now(),
+		);
 	attachSpine(raw, "articles", articleId, spineId);
 	return { articleId, spineId };
 }
 
 function bookmark(db: TestDb, spineId: string): void {
 	db.service.rawDb
-		.prepare("INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)")
+		.prepare(
+			"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
+		)
 		.run(randomUUID(), spineId, Date.now());
 }
 
@@ -89,7 +111,9 @@ function badBookmarks(raw: Database.Database): number {
 function originsWithoutSpine(raw: Database.Database, table: string): number {
 	return (
 		raw
-			.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE content_item_id IS NULL`)
+			.prepare(
+				`SELECT COUNT(*) AS c FROM ${table} WHERE content_item_id IS NULL`,
+			)
 			.get() as { c: number }
 	).c;
 }
@@ -103,10 +127,12 @@ describe("domain invariants: archive spine (R-A09)", () => {
 			seedSource(db);
 			const raw = db.service.rawDb;
 			// An article inserted by pre-v1.6.0 code has no spine.
-			raw.prepare(
-				`INSERT INTO articles (id, source_id, title, content, url, hash, collected_at)
+			raw
+				.prepare(
+					`INSERT INTO articles (id, source_id, title, content, url, hash, collected_at)
 				 VALUES (?, 'src-test', 'legacy', 'body', 'https://e.com', 'legacy-hash', ?)`,
-			).run(randomUUID(), Date.now());
+				)
+				.run(randomUUID(), Date.now());
 			expect(originsWithoutSpine(raw, "articles")).toBeGreaterThan(0);
 
 			// The startup repair pass links it (idempotent).
@@ -167,16 +193,24 @@ describe("domain invariants: bookmark ownership (R-A10)", () => {
 			const pruned = seedArticle(db, "src-test", { publishedAt: old });
 			bookmark(db, kept.spineId); // only `kept` is bookmarked
 
-			const crawler = new CrawlerService(db.service);
+			const crawler = makeCrawler(db);
 			await crawler.pruneOlderThan("src-test", 7);
 
 			const raw = db.service.rawDb;
 			// The bookmarked article survived; the plain one was pruned.
 			expect(
-				(raw.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?").get(kept.articleId) as { c: number }).c,
+				(
+					raw
+						.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?")
+						.get(kept.articleId) as { c: number }
+				).c,
 			).toBe(1);
 			expect(
-				(raw.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?").get(pruned.articleId) as { c: number }).c,
+				(
+					raw
+						.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?")
+						.get(pruned.articleId) as { c: number }
+				).c,
 			).toBe(0);
 			expect(badBookmarks(raw)).toBe(0);
 		} finally {
@@ -192,7 +226,7 @@ describe("domain invariants: bookmark ownership (R-A10)", () => {
 			const { spineId } = seedArticle(db, "src-test");
 			bookmark(db, spineId);
 
-			const sources = new SourcesService(db.service);
+			const sources = makeSources(db);
 			const err = await sources.remove("src-test", false).catch((e) => e);
 			expect(err.getStatus()).toBe(409);
 			expect(err.getResponse().code).toBe("BOOKMARKED_ARTICLES_EXIST");
@@ -210,15 +244,59 @@ describe("domain invariants: bookmark ownership (R-A10)", () => {
 			const { spineId } = seedArticle(db, "src-test");
 			bookmark(db, spineId);
 
-			const sources = new SourcesService(db.service);
+			const sources = makeSources(db);
 			await sources.remove("src-test", true);
 
 			const raw = db.service.rawDb;
 			expect(
-				(raw.prepare("SELECT COUNT(*) AS c FROM articles WHERE source_id = 'src-test'").get() as { c: number }).c,
+				(
+					raw
+						.prepare(
+							"SELECT COUNT(*) AS c FROM articles WHERE source_id = 'src-test'",
+						)
+						.get() as { c: number }
+				).c,
 			).toBe(0);
 			expect(orphanSpines(raw)).toBe(0);
 			expect(badBookmarks(raw)).toBe(0);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("fetch-window pruning sweeps the spines of pruned articles (no Untitled ghosts)", async () => {
+		const db = createTestDb();
+		try {
+			seedSource(db);
+			// One fresh article (stays) + one old article (pruned by the window).
+			const { articleId: fresh } = seedArticle(db, "src-test", {
+				publishedAt: Date.now(),
+			});
+			seedArticle(db, "src-test", {
+				publishedAt: Date.now() - 30 * 86_400_000,
+			});
+			// A stray orphan (simulates pre-fix retention that left a ghost).
+			db.service.rawDb
+				.prepare(
+					"INSERT INTO content_items (id, content_type, created_at, updated_at) VALUES (?, 'article', ?, ?)",
+				)
+				.run(randomUUID(), Date.now(), Date.now());
+			expect(orphanSpines(db.service.rawDb)).toBeGreaterThan(0);
+
+			// The fetch window prunes the old article AND sweeps the orphan in
+			// the same transaction — Archive never shows a ghost item.
+			const crawler = makeCrawler(db);
+			await crawler.pruneOlderThan("src-test", 7);
+
+			const raw = db.service.rawDb;
+			expect(
+				(
+					raw
+						.prepare("SELECT COUNT(*) AS c FROM articles WHERE id = ?")
+						.get(fresh) as { c: number }
+				).c,
+			).toBe(1);
+			expect(orphanSpines(raw)).toBe(0);
 		} finally {
 			db.close();
 		}
@@ -304,7 +382,11 @@ describe("domain invariants: collection tree (R-A11)", () => {
 				.get(spineId) as { collection_id: string | null };
 			expect(afterPurge.collection_id).toBeNull();
 			expect(
-				(raw.prepare("SELECT COUNT(*) AS c FROM content_items WHERE id = ?").get(spineId) as { c: number }).c,
+				(
+					raw
+						.prepare("SELECT COUNT(*) AS c FROM content_items WHERE id = ?")
+						.get(spineId) as { c: number }
+				).c,
 			).toBe(1);
 		} finally {
 			db.close();
@@ -318,7 +400,10 @@ describe("archive + bookmarks services", () => {
 		try {
 			seedSource(db);
 			const { spineId } = seedArticle(db, "src-test");
-			const bookmarks = new BookmarksService(db.service, new ArchiveService(db.service));
+			const bookmarks = new BookmarksService(
+				db.service,
+				new ArchiveService(db.service),
+			);
 
 			const saved = await bookmarks.create(spineId);
 			expect(saved.bookmarked).toBe(true);
@@ -341,6 +426,90 @@ describe("archive + bookmarks services", () => {
 			// Unsave removes only the flag.
 			await bookmarks.remove(spineId);
 			expect((await bookmarks.list()).items).toHaveLength(0);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("lists both the translated and the ORIGINAL title of a story (v1.8.0)", async () => {
+		const db = createTestDb();
+		try {
+			seedSource(db);
+			const archive = new ArchiveService(db.service);
+			const { articleId } = seedArticle(db, "src-test");
+			// Simulate a translated story: `title` holds the translation,
+			// `original_title` the source title.
+			db.service.rawDb
+				.prepare("UPDATE articles SET title = ?, original_title = ? WHERE id = ?")
+				.run("عنوان ترجمه شده", "Test story", articleId);
+
+			const { items } = await archive.listItems({});
+			expect(items[0].title).toBe("عنوان ترجمه شده");
+			expect(items[0].originalTitle).toBe("Test story");
+
+			// The Archive's own filter search matches the ORIGINAL title too.
+			const byOriginal = await archive.listItems({ q: "Test story" });
+			expect(byOriginal.items).toHaveLength(1);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("permanently deletes an archive item with its origin, FTS, and bookmark (v1.8.0)", async () => {
+		const db = createTestDb();
+		try {
+			seedSource(db);
+			const { articleId, spineId } = seedArticle(db, "src-test");
+			// Bookmark it (bookmarks are user ownership — deletion is explicit).
+			const bookmarks = new BookmarksService(
+				db.service,
+				new ArchiveService(db.service),
+			);
+			await bookmarks.create(spineId);
+			db.service.rawDb
+				.prepare("INSERT INTO tags (id, name) VALUES ('tag-del-test', 'security')")
+				.run();
+			db.service.rawDb
+				.prepare(
+					"INSERT INTO content_item_tags (content_item_id, tag_id) VALUES (?, 'tag-del-test')",
+				)
+				.run(spineId);
+			// Give the story an AI insight (derived analysis — dies with it).
+			db.service.rawDb
+				.prepare(
+					`INSERT INTO ai_insights (id, cluster_id, article_id, summary, generated_language)
+					 VALUES (?, NULL, ?, 'An analysis', 'en')`,
+				)
+				.run(randomUUID(), articleId);
+
+			const archive = new ArchiveService(db.service);
+			await archive.deleteItem(spineId);
+
+			// Spine + origin + derived data all gone — no ghosts.
+			const raw = db.service.rawDb;
+			expect(raw.prepare("SELECT id FROM content_items WHERE id = ?").get(spineId)).toBeUndefined();
+			expect(raw.prepare("SELECT id FROM articles WHERE id = ?").get(articleId)).toBeUndefined();
+			expect(raw.prepare("SELECT article_id FROM articles_fts WHERE article_id = ?").get(articleId)).toBeUndefined();
+			expect(raw.prepare("SELECT article_id FROM ai_insights WHERE article_id = ?").get(articleId)).toBeUndefined();
+			expect(raw.prepare("SELECT content_item_id FROM bookmarks WHERE content_item_id = ?").get(spineId)).toBeUndefined();
+			expect(raw.prepare("SELECT content_item_id FROM content_item_tags WHERE content_item_id = ?").get(spineId)).toBeUndefined();
+
+			// No orphan spines remain (the sweep's invariant holds after a delete).
+			const orphans = raw
+				.prepare(
+					`SELECT COUNT(*) AS c FROM content_items
+					 WHERE id NOT IN (SELECT content_item_id FROM articles WHERE content_item_id IS NOT NULL)
+					   AND id NOT IN (SELECT content_item_id FROM search_history WHERE content_item_id IS NOT NULL)
+					   AND id NOT IN (SELECT content_item_id FROM brief_history WHERE content_item_id IS NOT NULL)
+					   AND id NOT IN (SELECT content_item_id FROM generated_history WHERE content_item_id IS NOT NULL)`,
+				)
+				.get() as { c: number };
+			expect(orphans.c).toBe(0);
+
+			// Unknown id → 404.
+			await expect(archive.deleteItem("nope")).rejects.toMatchObject({
+				getStatus: expect.any(Function),
+			});
 		} finally {
 			db.close();
 		}
@@ -375,7 +544,10 @@ describe("archive + bookmarks services", () => {
 			// With archived=true, the search finds it by note / tag.
 			const byNote = await archive.listItems({ q: "revisit", archived: true });
 			expect(byNote.items[0].contentItemId).toBe(spineId);
-			const byTag = await archive.listItems({ tag: "security", archived: true });
+			const byTag = await archive.listItems({
+				tag: "security",
+				archived: true,
+			});
 			expect(byTag.items[0].contentItemId).toBe(spineId);
 		} finally {
 			db.close();
@@ -417,7 +589,10 @@ describe("archive + bookmarks services", () => {
 			// leaves, R-A11 — selecting a root must not appear empty).
 			const subtree = await archive.listItems({ collectionId: cat.id });
 			expect(subtree.items.map((i) => i.contentItemId)).toEqual(
-				expect.arrayContaining([inCategory.contentItemId, inFolder.contentItemId]),
+				expect.arrayContaining([
+					inCategory.contentItemId,
+					inFolder.contentItemId,
+				]),
 			);
 			expect(subtree.items).toHaveLength(2);
 		} finally {
@@ -466,6 +641,46 @@ describe("archive + bookmarks services", () => {
 			expect(folderDirect.items.map((i) => i.contentItemId)).toEqual([
 				inFolder.contentItemId,
 			]);
+		} finally {
+			db.close();
+		}
+	});
+});
+
+describe("domain invariants: adapter plugin gating (v1.8.0)", () => {
+	it("a disabled adapter plugin short-circuits collection before the adapter runs", async () => {
+		const db = createTestDb();
+		try {
+			db.service.rawDb
+				.prepare(
+					`INSERT INTO sources (id, name, url, type, category, adapter)
+					 VALUES ('src-html', 'HTML Source', 'https://example.com', 'html', 'other', 'html')`,
+				)
+				.run();
+
+			const plugins = new PluginsService(db.service);
+			plugins.onModuleInit();
+			const crawler = makeCrawler(db);
+			crawler.onModuleInit(); // register the adapter instances
+
+			// Enabled, but the config is empty → the adapter's validate() rejects
+			// it: collection errors (proves the adapter was actually reached).
+			const enabledErr = await crawler.collectSource("src-html").then(
+				() => null,
+				(e) => e,
+			);
+			expect(enabledErr?.message).toContain("rejected config");
+
+			// Disabled → collectSource short-circuits and returns [] WITHOUT
+			// touching the adapter at all (no validate, no fetch, no error).
+			await plugins.setEnabled("html", { enabled: false });
+			await expect(crawler.collectSource("src-html")).resolves.toEqual([]);
+
+			// lastCheckedAt stays null — the source was never really collected.
+			const row = db.service.rawDb
+				.prepare("SELECT last_checked_at FROM sources WHERE id = 'src-html'")
+				.get() as { last_checked_at: number | null };
+			expect(row.last_checked_at).toBeNull();
 		} finally {
 			db.close();
 		}

@@ -9,7 +9,11 @@ import {
 	Query,
 } from "@nestjs/common";
 import { HistoryService } from "./history.service.js";
-import type { AppSettings, HistoryType, UpdateHistoryEntryInput } from "@vorynth/types";
+import type {
+	AppSettings,
+	HistoryType,
+	UpdateHistoryEntryInput,
+} from "@vorynth/types";
 
 /**
  * History + app-settings endpoints.

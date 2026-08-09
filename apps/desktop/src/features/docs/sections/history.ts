@@ -22,6 +22,7 @@ export const historySection: DocsSection = {
 				"Each entry opens its full cached result — past Ask-AI answers are viewable without re-running the model.",
 				"Entries can be renamed, archived, or deleted (bulk actions available in select mode), with themed confirmation dialogs.",
 				"History rows also appear in the Archive as items (summaries, searches, AI asks), so you can tag, note, and organize them like anything else.",
+				"Every entry page carries an Export button — keep a past answer, briefing, or generation as Markdown, a themed HTML page, or a screenshot.",
 			],
 		},
 	],

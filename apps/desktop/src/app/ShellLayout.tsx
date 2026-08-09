@@ -1,10 +1,13 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/ui/Icon";
 import { SidebarNavItem } from "@/components/shell/SidebarNav";
 import { ArchiveNavGroup } from "@/components/shell/ArchiveNavGroup";
 import { DocsNavGroup } from "@/components/shell/DocsNavGroup";
+import { PluginNavGroup } from "@/components/shell/PluginNavGroup";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
+import { NotificationCenter } from "@/features/notifications/NotificationCenter.js";
 import { JobsTray } from "@/features/jobs/JobsTray.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 import { HistoryDrawer } from "@/features/history/HistoryDrawer.js";
@@ -13,6 +16,7 @@ import {
 	type HistoryScope,
 } from "@/features/history/history-store.js";
 import { fetchProfile } from "@/features/profile/profile-api.js";
+import { fetchSettings } from "@/features/history/history-api.js";
 
 /**
  * Fixed-column insight layout (examples/colors: "Fixed-Column Insight" model).
@@ -25,6 +29,7 @@ import { fetchProfile } from "@/features/profile/profile-api.js";
  *   └────────────┴─────────────────────────────────┘
  */
 export function ShellLayout() {
+	const { t, i18n } = useTranslation();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const activeCount = useJobsStore((s) => s.jobs.active.length);
@@ -34,6 +39,14 @@ export function ShellLayout() {
 		queryFn: fetchProfile,
 		staleTime: 60_000,
 	});
+	const { data: settings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+		staleTime: 60_000,
+	});
+	// v1.8.0 — the Plugins page is power-user territory; hidden until the
+	// "Show advanced features" setting in Settings → Advanced is on.
+	const showAdvancedFeatures = settings?.["ui.showAdvancedFeatures"] === true;
 
 	const openHistory = () => {
 		// Context-aware default: briefings on /brief, generated on /profile,
@@ -52,76 +65,87 @@ export function ShellLayout() {
 		[profile?.firstName?.trim(), profile?.lastName?.trim()]
 			.filter(Boolean)
 			.join(" ") ||
-		"Local User";
+		t("nav.user");
 
 	return (
 		<div className="min-h-screen bg-background text-on-surface">
-			{/* Sidebar — 260px, persistent. The `rtl-flip-*` classes mirror the
-			    fixed shell when an RTL locale is active (see globals.css). */}
-			<aside className="rtl-flip-sidebar fixed left-0 top-0 z-50 flex h-screen w-sidebar-width flex-col border-r border-outline-variant bg-surface-container py-8 dark:bg-surface-container-high">
+			{/* Sidebar — 260px, persistent. Written with logical utilities
+			    (start-/border-s) so `[dir="rtl"]` mirrors the shell natively. */}
+			<aside className="fixed start-0 top-0 z-50 flex h-screen w-sidebar-width flex-col border-e border-outline-variant bg-surface-container py-8 dark:bg-surface-container-high">
 				<div className="mb-10 px-6">
 					<h1 className="mb-1 font-headline text-headline-md font-medium text-primary dark:text-primary-fixed">
 						Vorynth
 					</h1>
 					<p className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-						Local Engine Active
+						{t("app.localEngine")}
 					</p>
 				</div>
 
-					{/* scrollbar-gutter:stable keeps the content width constant when the
+				{/* scrollbar-gutter:stable keeps the content width constant when the
 					    Docs/Archive submenus make the nav overflow — otherwise the
 					    scrollbar appearing shrinks every item and shifts right-anchored
 					    icons. */}
-					<nav className="flex-1 space-y-2 overflow-y-auto px-2 [scrollbar-gutter:stable]">
-						<SidebarNavItem to="/brief" icon="today" label="Today's Brief" />
-						<ArchiveNavGroup />
-						<SidebarNavItem to="/sources" icon="database" label="Sources" />
-					<SidebarNavItem to="/media" icon="photo_library" label="Media" />
+				<nav className="flex-1 space-y-2 overflow-y-auto px-2 [scrollbar-gutter:stable]">
+					<SidebarNavItem to="/brief" icon="today" label={t("nav.brief")} />
+					<ArchiveNavGroup />
+					<SidebarNavItem
+						to="/sources"
+						icon="storage"
+						label={t("nav.sources")}
+					/>
+					{showAdvancedFeatures ? (
+						<SidebarNavItem
+							to="/plugins"
+							icon="extension"
+							label={t("plugins.title")}
+						/>
+					) : null}
+					<PluginNavGroup />
 					<DocsNavGroup />
 					<SidebarNavItem
 						to="/changelog"
 						icon="change_history"
-						label="Changelog"
+						label={t("nav.changelog")}
 					/>
 				</nav>
 
 				<div className="mt-auto px-6">
 					<div className="mt-8 flex items-center gap-2">
-							<button
-								type="button"
-								onClick={() => navigate("/profile")}
-								className="flex flex-1 items-center gap-3 rounded text-left transition-colors hover:bg-surface-container-high"
-								title="Open profile"
-							>
-								<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container font-headline text-label-md text-on-primary-container">
-									{initials(displayName)}
+						<button
+							type="button"
+							onClick={() => navigate("/profile")}
+							className="flex flex-1 items-center gap-3 rounded text-start transition-colors hover:bg-surface-container-high"
+							title={t("nav.openProfile")}
+						>
+							<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container font-headline text-label-md text-on-primary-container">
+								{initials(displayName)}
+							</span>
+							<span className="flex min-w-0 flex-col">
+								<span className="truncate font-label text-label-md text-on-surface">
+									{displayName}
 								</span>
-								<span className="flex min-w-0 flex-col">
-									<span className="truncate font-label text-label-md text-on-surface">
-										{displayName}
-									</span>
-									<span className="font-label text-label-sm text-on-surface-variant">
-										Local Engine
-									</span>
+								<span className="font-label text-label-sm text-on-surface-variant">
+									{t("app.localEngine")}
 								</span>
-							</button>
-							<button
-								type="button"
-								onClick={() => navigate("/settings")}
-								className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
-								title="Open settings"
-							>
-								<Icon name="settings" className="text-[20px]" />
-							</button>
-						</div>
+							</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => navigate("/settings")}
+							className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+							title={t("nav.openSettings")}
+						>
+							<Icon name="settings" className="text-[20px]" />
+						</button>
 					</div>
+				</div>
 			</aside>
 
 			{/* Top bar — search lives in the sidebar now, so we only keep
 			    utility actions here (theme toggle, etc.). */}
-			<header className="rtl-flip-topbar fixed left-sidebar-width right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-margin-desktop">
+			<header className="fixed start-sidebar-width end-0 top-0 z-40 flex h-16 items-center justify-between border-b border-outline-variant bg-surface px-margin-desktop">
 				<span className="font-label text-label-sm text-on-surface-variant">
-					{new Date().toLocaleDateString("en-US", {
+					{new Date().toLocaleDateString(i18n.language, {
 						weekday: "long",
 						day: "numeric",
 						month: "long",
@@ -131,27 +155,29 @@ export function ShellLayout() {
 				<div className="flex items-center gap-4">
 					{activeCount > 0 ? (
 						<span className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-secondary">
-							<Icon name="sync" className="animate-spin text-[14px]" />
-							{activeCount} job{activeCount > 1 ? "s" : ""}
+							<Icon name="sync" className="animate-spin-reverse text-[14px]" />
+							{t("nav.jobsActive", { count: activeCount })}
 						</span>
 					) : null}
 					<button
 						type="button"
 						onClick={openHistory}
-						aria-label="Open history"
-						title="History"
+						aria-label={t("nav.openHistory")}
+						title={t("nav.history")}
 						className="text-on-surface-variant transition-colors hover:text-primary"
 					>
 						<Icon name="history" />
 					</button>
-					<div className="border-l border-outline-variant pl-4">
+					<div className="border-s border-outline-variant ps-4">
 						<ThemeToggle />
 					</div>
+					{/* v1.8.0 — notification center: to the right of the theme changer */}
+					<NotificationCenter />
 				</div>
 			</header>
 
-			{/* Main canvas */}
-			<main className="rtl-flip-main ml-sidebar-width min-h-screen pt-16">
+			{/* Main canvas — `vorynth-canvas` is the theme background target */}
+			<main className="vorynth-canvas ms-sidebar-width min-h-screen pt-16">
 				<Outlet />
 			</main>
 

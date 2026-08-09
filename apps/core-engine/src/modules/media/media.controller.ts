@@ -4,9 +4,14 @@ import {
 	Delete,
 	Get,
 	Inject,
+	NotFoundException,
 	Param,
 	Post,
+	Res,
 } from "@nestjs/common";
+import type { FastifyReply } from "fastify";
+import { createReadStream } from "node:fs";
+import { basename } from "node:path";
 import { MediaService } from "./media.service.js";
 import type { SetMediaKeepAllInput, SetMediaKeepInput } from "@vorynth/types";
 
@@ -18,6 +23,7 @@ import type { SetMediaKeepAllInput, SetMediaKeepInput } from "@vorynth/types";
  *   POST   /articles/:id/media/keep-all   body { keep } — bulk keep/release
  *   DELETE /articles/:id/media            release all locally-kept items for an article
  *   GET    /media/local                   storage dashboard (per-article kept media)
+ *   GET    /media/local/:itemId/file      the kept item's bytes (download endpoint)
  *   DELETE /media/local                   purge every locally-kept blob on disk
  *
  * Media is never stored by default — bytes stay at the source URL until the
@@ -51,6 +57,27 @@ export class MediaController {
 	@Get("media/local")
 	async localSummary() {
 		return this.media.localSummary();
+	}
+
+	/**
+	 * Stream a locally-kept media item's bytes as an attachment. The desktop
+	 * fetches this as a Blob and either downloads it as-is or draws the
+	 * copyright attribution into it (images) before saving.
+	 */
+	@Get("media/local/:itemId/file")
+	async localFile(@Param("itemId") itemId: string, @Res() reply: FastifyReply) {
+		const file = await this.media.getLocalFile(itemId);
+		if (!file) {
+			throw new NotFoundException(`Local media item ${itemId} not found`);
+		}
+		reply
+			.header("Content-Type", file.mime ?? "application/octet-stream")
+			.header(
+				"Content-Disposition",
+				`attachment; filename="${basename(file.path)}"`,
+			)
+			.header("Content-Length", String(file.bytes ?? 0));
+		return reply.send(createReadStream(file.path));
 	}
 
 	@Delete("media/local")

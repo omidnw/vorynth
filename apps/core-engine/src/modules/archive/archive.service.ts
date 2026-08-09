@@ -125,7 +125,9 @@ export class ArchiveService {
 					// Unknown id — match nothing rather than erroring the list.
 					where.push("1 = 0");
 				} else {
-					where.push(`ci.collection_id IN (${subtreeIds.map(() => "?").join(", ")})`);
+					where.push(
+						`ci.collection_id IN (${subtreeIds.map(() => "?").join(", ")})`,
+					);
 					params.push(...subtreeIds);
 				}
 			}
@@ -139,12 +141,20 @@ export class ArchiveService {
 		if (opts.q && opts.q.trim()) {
 			const needle = `%${opts.q.trim()}%`;
 			where.push(
-				`(ci.note LIKE ? OR ci.id IN (SELECT content_item_id FROM articles WHERE title LIKE ?)
+				`(ci.note LIKE ? OR ci.id IN (SELECT content_item_id FROM articles WHERE title LIKE ? OR original_title LIKE ?)
 				 OR ci.id IN (SELECT content_item_id FROM search_history WHERE title LIKE ? OR query LIKE ?)
 				 OR ci.id IN (SELECT content_item_id FROM brief_history WHERE title LIKE ?)
 				 OR ci.id IN (SELECT content_item_id FROM generated_history WHERE title LIKE ?))`,
 			);
-			params.push(needle, needle, needle, needle, needle, needle);
+			params.push(
+				needle,
+				needle,
+				needle,
+				needle,
+				needle,
+				needle,
+				needle,
+			);
 		}
 		if (opts.bookmarked === true)
 			where.push(
@@ -159,10 +169,10 @@ export class ArchiveService {
 		// active filter switches to plain newest-first.
 		const hasFilters = Boolean(
 			opts.contentType ||
-				opts.collectionId !== undefined ||
-				opts.tag ||
-				opts.q ||
-				opts.bookmarked !== undefined,
+			opts.collectionId !== undefined ||
+			opts.tag ||
+			opts.q ||
+			opts.bookmarked !== undefined,
 		);
 		const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 		const curatedSql = hasFilters
@@ -194,9 +204,7 @@ export class ArchiveService {
 			.prepare(`${SPINE_SELECT} WHERE ci.id = ?`)
 			.get(contentItemId) as RawContentItem | undefined;
 		if (!row)
-			throw new NotFoundException(
-				`content item ${contentItemId} not found`,
-			);
+			throw new NotFoundException(`content item ${contentItemId} not found`);
 		const [item] = await this.resolveOrigins([row]);
 		return item!;
 	}
@@ -215,41 +223,91 @@ export class ArchiveService {
 			.prepare("SELECT id FROM content_items WHERE id = ?")
 			.get(contentItemId);
 		if (!existing)
-			throw new NotFoundException(
-				`content item ${contentItemId} not found`,
-			);
+			throw new NotFoundException(`content item ${contentItemId} not found`);
 
 		const now = new Date();
 		raw.transaction(() => {
 			if (patch.note !== undefined) {
-				raw.prepare("UPDATE content_items SET note = ? WHERE id = ?").run(
-					patch.note === null ? null : patch.note,
-					contentItemId,
-				);
+				raw
+					.prepare("UPDATE content_items SET note = ? WHERE id = ?")
+					.run(patch.note === null ? null : patch.note, contentItemId);
 			}
 			if (patch.collectionId !== undefined) {
 				if (patch.collectionId !== null) {
 					// A trashed collection can't be a move target.
 					this.assertCollectionLive(patch.collectionId);
 				}
-				raw.prepare(
-					"UPDATE content_items SET collection_id = ? WHERE id = ?",
-				).run(patch.collectionId, contentItemId);
+				raw
+					.prepare("UPDATE content_items SET collection_id = ? WHERE id = ?")
+					.run(patch.collectionId, contentItemId);
 			}
 			if (patch.archived !== undefined) {
-				raw.prepare(
-					"UPDATE content_items SET archived_at = ? WHERE id = ?",
-				).run(patch.archived ? now.getTime() : null, contentItemId);
+				raw
+					.prepare("UPDATE content_items SET archived_at = ? WHERE id = ?")
+					.run(patch.archived ? now.getTime() : null, contentItemId);
 			}
 			if (patch.tags !== undefined) {
 				this.replaceTags(raw, contentItemId, patch.tags);
 			}
-			raw.prepare(
-				"UPDATE content_items SET updated_at = ? WHERE id = ?",
-			).run(now.getTime(), contentItemId);
+			raw
+				.prepare("UPDATE content_items SET updated_at = ? WHERE id = ?")
+				.run(now.getTime(), contentItemId);
 		})();
 
 		return this.getItem(contentItemId);
+	}
+
+	/**
+	 * Permanently delete an archive item (v1.8.0) — the user's explicit cleanup
+	 * of an item in the archived view. Removes the spine AND its origin row so
+	 * no ghost spine or dangling search entry survives (R-A09): for a story the
+	 * FTS row and its derived AI insight go too; bookmarks, tags, and notes ride
+	 * the spine's ON DELETE CASCADE. The UI gates this behind a confirmation
+	 * (R-A10 — explicit user deletion of owned data). 404 when unknown.
+	 */
+	async deleteItem(contentItemId: string): Promise<void> {
+		const raw = this.db.rawDb;
+		const existing = raw
+			.prepare("SELECT id FROM content_items WHERE id = ?")
+			.get(contentItemId);
+		if (!existing)
+			throw new NotFoundException(`content item ${contentItemId} not found`);
+
+		raw.transaction(() => {
+			// Origin tables claim the spine — delete them first so the spine has
+			// no orphan origin left behind (the reverse of the orphan sweep).
+			const originTables = [
+				"articles",
+				"search_history",
+				"brief_history",
+				"generated_history",
+			] as const;
+			for (const table of originTables) {
+				const origin = raw
+					.prepare(`SELECT id FROM ${table} WHERE content_item_id = ?`)
+					.get(contentItemId) as { id: string } | undefined;
+				if (!origin) continue;
+				raw.prepare(`DELETE FROM ${table} WHERE id = ?`).run(origin.id);
+				if (table === "articles") {
+					// A story's search entry and its derived analysis die with it.
+					raw.prepare("DELETE FROM articles_fts WHERE article_id = ?").run(
+						origin.id,
+					);
+					raw.prepare("DELETE FROM ai_insights WHERE article_id = ?").run(
+						origin.id,
+					);
+				}
+			}
+			// Bookmarks + tags cascade off the spine (FK), but delete explicitly
+			// so the intent is auditable and order-independent.
+			raw.prepare("DELETE FROM bookmarks WHERE content_item_id = ?").run(
+				contentItemId,
+			);
+			raw.prepare("DELETE FROM content_item_tags WHERE content_item_id = ?").run(
+				contentItemId,
+			);
+			raw.prepare("DELETE FROM content_items WHERE id = ?").run(contentItemId);
+		})();
 	}
 
 	// ── Collections ──────────────────────────────────────────────────────────
@@ -308,7 +366,11 @@ export class ArchiveService {
 		// Re-validate against the TARGET state whenever name / parent / kind
 		// changes: R-A11 parent rules, plus same-kind sibling name uniqueness
 		// (cross-kind same-name stays allowed).
-		if (patch.name !== undefined || patch.parentId !== undefined || patch.kind !== undefined) {
+		if (
+			patch.name !== undefined ||
+			patch.parentId !== undefined ||
+			patch.kind !== undefined
+		) {
 			const row = this.db.db
 				.select({
 					parentId: collections.parentId,
@@ -327,16 +389,13 @@ export class ArchiveService {
 					"folder collections require a parent (category or folder)",
 				);
 			}
-			if (nextName) this.assertSiblingNameFree(nextParentId, nextKind, nextName, id);
+			if (nextName)
+				this.assertSiblingNameFree(nextParentId, nextKind, nextName, id);
 		}
 		if (patch.description !== undefined) set.description = patch.description;
 		if (patch.parentId !== undefined) set.parentId = patch.parentId;
 		if (patch.kind !== undefined) set.kind = patch.kind;
-		this.db.db
-			.update(collections)
-			.set(set)
-			.where(eq(collections.id, id))
-			.run();
+		this.db.db.update(collections).set(set).where(eq(collections.id, id)).run();
 		return this.getCollection(id);
 	}
 
@@ -383,7 +442,12 @@ export class ArchiveService {
 				message: `Collection "${row.name}" is not in the trash.`,
 			});
 		}
-		this.assertSiblingNameFree(row.parentId ?? null, row.kind, row.name.trim(), id);
+		this.assertSiblingNameFree(
+			row.parentId ?? null,
+			row.kind,
+			row.name.trim(),
+			id,
+		);
 		const subtree = this.collectionSubtreeIds(id, { includeTrashed: true });
 		this.db.rawDb
 			.prepare(
@@ -540,7 +604,8 @@ export class ArchiveService {
 			.from(collections)
 			.where(and(eq(collections.id, parentId), isNull(collections.deletedAt)))
 			.get();
-		if (!parent) throw new NotFoundException(`collection ${parentId} not found`);
+		if (!parent)
+			throw new NotFoundException(`collection ${parentId} not found`);
 
 		if (childKind === "category" && parent.kind === "category") {
 			throw new NotFoundException(
@@ -574,9 +639,9 @@ export class ArchiveService {
 		contentItemId: string,
 		tagNames: string[],
 	): void {
-		raw.prepare("DELETE FROM content_item_tags WHERE content_item_id = ?").run(
-			contentItemId,
-		);
+		raw
+			.prepare("DELETE FROM content_item_tags WHERE content_item_id = ?")
+			.run(contentItemId);
 		const insertTag = raw.prepare(
 			"INSERT INTO tags (id, name) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
 		);
@@ -626,7 +691,8 @@ export class ArchiveService {
 				.where(inArray(articles.contentItemId, byKind.article))
 				.all();
 			for (const a of articleRows) {
-				if (a.contentItemId) originById.set(a.contentItemId, toArticleOrigin(a));
+				if (a.contentItemId)
+					originById.set(a.contentItemId, toArticleOrigin(a));
 			}
 		}
 		if (byKind.search.length > 0) {
@@ -656,7 +722,8 @@ export class ArchiveService {
 				.where(inArray(generatedHistory.contentItemId, byKind.generated))
 				.all();
 			for (const g of generatedRows) {
-				if (g.contentItemId) originById.set(g.contentItemId, toGeneratedOrigin(g));
+				if (g.contentItemId)
+					originById.set(g.contentItemId, toGeneratedOrigin(g));
 			}
 		}
 
@@ -668,14 +735,13 @@ export class ArchiveService {
 				contentType: r.contentType as ContentItemType,
 				note: r.note,
 				collectionId: r.collectionId,
-				archivedAt: r.archivedAt
-					? new Date(r.archivedAt).toISOString()
-					: null,
+				archivedAt: r.archivedAt ? new Date(r.archivedAt).toISOString() : null,
 				bookmarked: r.bookmarked === 1,
 				tags: tagsByItem.get(r.id) ?? [],
 				createdAt: new Date(r.createdAt).toISOString(),
 				updatedAt: new Date(r.updatedAt).toISOString(),
 				title: display.title,
+				originalTitle: display.originalTitle,
 				url: display.url,
 				author: display.author,
 				publishedAt: display.publishedAt,
@@ -699,10 +765,7 @@ function groupByContentType(rows: RawContentItem[]): {
 	const generated: string[] = [];
 	for (const r of rows) {
 		if (r.contentType === "article") article.push(r.id);
-		else if (
-			r.contentType === "keyword-search" ||
-			r.contentType === "ai-ask"
-		)
+		else if (r.contentType === "keyword-search" || r.contentType === "ai-ask")
 			search.push(r.id);
 		else if (r.contentType === "summary") {
 			// A `summary` spine may belong to brief_history or generated_history —
@@ -719,6 +782,7 @@ function displayFields(
 	origin: unknown,
 ): {
 	title: string | null;
+	originalTitle: string | null;
 	url: string | null;
 	author: string | null;
 	publishedAt: string | null;
@@ -726,12 +790,14 @@ function displayFields(
 	if (r.contentType === "article") {
 		const a = origin as {
 			title?: string;
+			originalTitle?: string | null;
 			url?: string;
 			author?: string | null;
 			publishedAt?: Date | null;
 		} | null;
 		return {
 			title: a?.title ?? null,
+			originalTitle: a?.originalTitle ?? null,
 			url: a?.url ?? null,
 			author: a?.author ?? null,
 			publishedAt: a?.publishedAt
@@ -740,7 +806,13 @@ function displayFields(
 		};
 	}
 	const t = origin as { title?: string } | null;
-	return { title: t?.title ?? null, url: null, author: null, publishedAt: null };
+	return {
+		title: t?.title ?? null,
+		originalTitle: null,
+		url: null,
+		author: null,
+		publishedAt: null,
+	};
 }
 
 function toArticleOrigin(a: {

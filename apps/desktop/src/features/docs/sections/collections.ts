@@ -10,7 +10,7 @@ export const collectionsSection: DocsSection = {
 	blocks: [
 		{
 			type: "paragraph",
-			text: 'Collections is the file-explorer view of your archive. Categories are semantic roots (e.g. "Security" or "AI"), folders nest under them (max depth 3), and items live at the leaves. Reach it from the Archive section tabs (Items · Collections · Bookmarks · Search · Trash) shown on every Archive page.',
+			text: 'Collections is the file-explorer view of your archive. Categories are semantic roots (e.g. "Security" or "AI"), folders nest under them (max depth 3), and items live at the leaves. Reach it from the Archive section tabs (Items · Collections · Bookmarks · Search · Media · Trash) shown on every Archive page.',
 		},
 		{
 			type: "paragraph",

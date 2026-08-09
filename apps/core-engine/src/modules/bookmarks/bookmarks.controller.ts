@@ -34,10 +34,7 @@ export class BookmarksController {
 	}
 
 	@Get()
-	async list(
-		@Query("limit") limit?: string,
-		@Query("offset") offset?: string,
-	) {
+	async list(@Query("limit") limit?: string, @Query("offset") offset?: string) {
 		return this.bookmarks.list({
 			limit: limit ? Number(limit) : undefined,
 			offset: offset ? Number(offset) : undefined,
