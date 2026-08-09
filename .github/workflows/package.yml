@@ -22,7 +22,6 @@ name: Package
 
 on:
   push:
-    branches: [master]
     tags: ["v*"]
     paths-ignore:
       - "docs/**"
@@ -353,7 +352,12 @@ jobs:
           ls -la apps/desktop/src-tauri/binaries/
 
       - name: Build Tauri app
-        if: matrix.is-harmonyos == false
+        # Only on version-tag pushes. tauri-action names the release + tag after
+        # github.ref_name; on a plain branch push that would be "master" — a
+        # stray tag polluting the repo and breaking `git push origin master`
+        # (ambiguous ref). Branch pushes are covered by ci.yml (typecheck,
+        # lint, test, build); packaging runs when a version tag is pushed.
+        if: matrix.is-harmonyos == false && startsWith(github.ref, 'refs/tags/')
         uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
