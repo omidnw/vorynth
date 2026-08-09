@@ -17,7 +17,7 @@ export const pluginsSection: DocsSection = {
 	blocks: [
 		{
 			type: "paragraph",
-			text: "Plugins do two very different jobs. Adapter plugins are how Vorynth turns a URL into stories — every collection method (RSS, GitHub releases, arXiv, the HTML crawler, Sitemap, the JSON API, and Reddit) is an adapter plugin listed on the Plugins page, with its version and an on/off switch. Runtime UI plugins are small bundles that extend the app itself: they can add a sidebar entry, a settings section, a guide in this Documentation page, or even a whole theme. The reference plugin ships with Vorynth as a working example of every kind of contribution. Three built-in UI plugins are always on — the Icon Pack powers the app's icons and fonts, and the Story Renderer and Copyright & Attribution plugins power exporting and download credit.",
+			text: "Plugins do two very different jobs. Adapter plugins are how Vorynth turns a URL into stories — every collection method (RSS, GitHub releases, arXiv, the HTML crawler, Sitemap, and the JSON API) is an adapter plugin listed on the Plugins page, with its version and an on/off switch. Runtime UI plugins are small bundles that extend the app itself: they can add a sidebar entry, a settings section, a guide in this Documentation page, or even a whole theme. The reference plugin ships with Vorynth as a working example of every kind of contribution. Three built-in UI plugins are always on — the Icon Pack powers the app's icons and fonts, and the Story Renderer and Copyright & Attribution plugins power exporting and download credit.",
 		},
 		{
 			type: "paragraph",
@@ -54,7 +54,7 @@ export const pluginsSection: DocsSection = {
 				{
 					icon: "smart_display",
 					label: "Connector icons",
-					text: "Every method has its own icon — RSS, GitHub, arXiv, the crawler, Sitemap, the JSON API, and Reddit each carry a distinct one on the Add Source form and on the Plugins page. A connector can use a Material Symbols glyph from the offline Icon Pack or its own custom artwork (arXiv ships its own red X), all local — nothing needs the network.",
+					text: "Every method has its own icon — RSS, GitHub, arXiv, the crawler, Sitemap, and the JSON API each carry a distinct one on the Add Source form and on the Plugins page. A connector can use a Material Symbols glyph from the offline Icon Pack or its own custom artwork (arXiv ships its own red X), all local — nothing needs the network.",
 				},
 				{
 					icon: "palette",

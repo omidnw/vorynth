@@ -11,7 +11,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 export type SourceType =
-	"rss" | "api" | "html" | "sitemap" | "github" | "reddit" | "arxiv";
+	"rss" | "api" | "html" | "sitemap" | "github" | "arxiv";
 
 export type SourceCategory =
 	| "ai"
@@ -92,12 +92,6 @@ export interface ApiSourceConfig {
 	headers?: Record<string, string>;
 }
 
-/** Reddit source config — a subreddit's new posts as stories. */
-export interface RedditSourceConfig {
-	/** Subreddit name without the leading "r/" (e.g. "MachineLearning"). */
-	subreddit: string;
-}
-
 /** Opaque, engine-defined per adapter (e.g. RSS feed URL, HTML selectors). */
 export type SourceConfiguration = Record<string, unknown> & {
 	/** Present when {@link SourceType} is "html" (v1.8.0). */
@@ -106,8 +100,6 @@ export type SourceConfiguration = Record<string, unknown> & {
 	sitemap?: SitemapSourceConfig;
 	/** Present when {@link SourceType} is "api" (v1.8.0). */
 	api?: ApiSourceConfig;
-	/** Present when {@link SourceType} is "reddit" (v1.8.0). */
-	reddit?: RedditSourceConfig;
 	/** Legacy selector shape (pre-v1.8.0). Kept for backward compatibility. */
 	selectors?: HtmlSelectorConfig;
 };

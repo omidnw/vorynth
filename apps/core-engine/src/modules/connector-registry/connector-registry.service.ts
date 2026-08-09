@@ -48,7 +48,6 @@ export const COMPILED_ADAPTER_IDS = new Set([
 	"html",
 	"sitemap",
 	"api",
-	"reddit",
 ]);
 
 /** One entry from `connectors/registry.json`. */

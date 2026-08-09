@@ -42,7 +42,7 @@ export const RELEASES: Release[] = [
 		codename: "Extend The Signal",
 		date: "2026-08-09",
 		summary:
-			'Vorynth can now collect from almost any site — not just feeds. Four new source adapters (an HTML crawler, Sitemap, a generic JSON API, and Reddit) join RSS, GitHub releases, and arXiv, each registered as a plugin you can see and toggle on a new Plugins page. The Add Source form grows per-method configuration fields driven by each plugin, and a Test button dry-runs a setup before you save it. Sources you configure now actually collect — the old form saved HTML/API/Sitemap sources that silently collected nothing. And plugins are no longer just about sources: runtime UI plugins can now extend the app itself — a sidebar entry, a Settings section, a Documentation guide, or even a whole theme — and a built-in Reference Plugin ships as a working example of every contribution, kept in step with the app version. Sources themselves are now organized into curated lists — an official Developer & Software Engineering starter list ships with 25 feeds, community lists are contributed through the GitHub repo and work offline once downloaded, every source can be edited in place, and 18+ lists stay hidden by default. The interface also ships in 10 languages out of the box — English, فارسی, العربية, 한국어, 日本語, 中文, עברית, Español, Deutsch, Русский — each laid out with the correct text direction (RTL for Arabic, Persian, and Hebrew), and both the UI language and the AI Output Language pickers are now searchable: type a native name, an English name, or a code (e.g. "Persian", "فارسی", or "fa") to jump straight to it.',
+			'Vorynth can now collect from almost any site — not just feeds. Three new source adapters (an HTML crawler, Sitemap, and a generic JSON API) join RSS, GitHub releases, and arXiv, each registered as a plugin you can see and toggle on a new Plugins page. The Add Source form grows per-method configuration fields driven by each plugin, and a Test button dry-runs a setup before you save it. Sources you configure now actually collect — the old form saved HTML/API/Sitemap sources that silently collected nothing. And plugins are no longer just about sources: runtime UI plugins can now extend the app itself — a sidebar entry, a Settings section, a Documentation guide, or even a whole theme — and a built-in Reference Plugin ships as a working example of every contribution, kept in step with the app version. Sources themselves are now organized into curated lists — an official Developer & Software Engineering starter list ships with 25 feeds, community lists are contributed through the GitHub repo and work offline once downloaded, every source can be edited in place, and 18+ lists stay hidden by default. The interface also ships in 10 languages out of the box — English, فارسی, العربية, 한국어, 日本語, 中文, עברית, Español, Deutsch, Русский — each laid out with the correct text direction (RTL for Arabic, Persian, and Hebrew), and both the UI language and the AI Output Language pickers are now searchable: type a native name, an English name, or a code (e.g. "Persian", "فارسی", or "fa") to jump straight to it.',
 		changes: [
 			{
 				type: "new",
@@ -55,10 +55,6 @@ export const RELEASES: Release[] = [
 			{
 				type: "new",
 				text: "JSON API adapter — structured data endpoints. Give it the endpoint and the field names for title, content, URL, date, and author, and each record lands as a story. Optional headers let you reach keyed endpoints.",
-			},
-			{
-				type: "new",
-				text: "Reddit adapter — a subreddit's newest posts collect as stories, with the post title, body, author, and date.",
 			},
 			{
 				type: "new",
@@ -98,7 +94,7 @@ export const RELEASES: Release[] = [
 			},
 			{
 				type: "improved",
-				text: "Every connector wears its own icon — RSS, GitHub releases, arXiv, the HTML crawler, Sitemap, the JSON API, and Reddit each have a distinct one on the Add Source method buttons, in the sources list, and on the Plugins page. The icon comes from the plugin's own manifest, so a connector looks the same wherever you meet it.",
+				text: "Every connector wears its own icon — RSS, GitHub releases, arXiv, the HTML crawler, Sitemap, and the JSON API each have a distinct one on the Add Source method buttons, in the sources list, and on the Plugins page. The icon comes from the plugin's own manifest, so a connector looks the same wherever you meet it.",
 			},
 			{
 				type: "improved",
@@ -122,7 +118,7 @@ export const RELEASES: Release[] = [
 			},
 			{
 				type: "improved",
-				text: "The Add Source form shows exactly the configuration each method needs — selectors for HTML, field mapping for the API, the subreddit for Reddit — generated from the plugin itself, with a Test button that dry-runs your setup (no saving) and shows a few sample stories so you can check your selectors before you commit.",
+				text: "The Add Source form shows exactly the configuration each method needs — selectors for HTML, field mapping for the API — generated from the plugin itself, with a Test button that dry-runs your setup (no saving) and shows a few sample stories so you can check your selectors before you commit.",
 			},
 			{
 				type: "fixed",
@@ -388,7 +384,7 @@ export const RELEASES: Release[] = [
 			},
 			{
 				type: "new",
-				text: "Four new `SourceAdapter`s (`html`, `sitemap`, `api`, `reddit`) share a cheerio-based extraction helper (`html-extract.ts`, R-D05) and honor the per-source fetch window + hash dedup already centralized in `CrawlerService`. Config validation on source create enforces each plugin's required fields before insert.",
+				text: "Three new `SourceAdapter`s (`html`, `sitemap`, `api`) share a cheerio-based extraction helper (`html-extract.ts`, R-D05) and honor the per-source fetch window + hash dedup already centralized in `CrawlerService`. Config validation on source create enforces each plugin's required fields before insert.",
 			},
 			{
 				type: "new",

@@ -506,9 +506,7 @@ Database LLM Provider System External Sources
 
                         Claude                       GitHub
 
-                        Ollama                       Reddit
-
-                                                     Websites
+                        Ollama                       Websites
 
 ```
 
@@ -1333,8 +1331,6 @@ plugins/
 
 ├── github-plugin
 
-├── reddit-plugin
-
 ├── arxiv-plugin
 
 ├── website-crawler-plugin
@@ -1368,8 +1364,6 @@ Examples:
 RSS Adapter
 
 GitHub Adapter
-
-Reddit Adapter
 
 API Adapter
 

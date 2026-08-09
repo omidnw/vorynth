@@ -57,7 +57,6 @@ describe("PluginsService", () => {
 				"html",
 				"icons",
 				"media-copyright",
-				"reddit",
 				"reference",
 				"rss",
 				"sitemap",
@@ -235,7 +234,6 @@ describe("PluginsService", () => {
 			expect(svc.adapterFor("html")).toBe("html");
 			expect(svc.adapterFor("sitemap")).toBe("sitemap");
 			expect(svc.adapterFor("api")).toBe("api");
-			expect(svc.adapterFor("reddit")).toBe("reddit");
 			// arXiv is NOT built-in — it resolves only once its official
 			// connector is registered from the GitHub registry (see
 			// connector-registry.spec.ts for the provisioned path).
@@ -297,7 +295,7 @@ describe("PluginsService", () => {
 			const svc = makeService(db);
 			svc.onModuleInit();
 			const list = await svc.list();
-			expect(list).toHaveLength(10);
+			expect(list).toHaveLength(9);
 			const html = list.find((p) => p.id === "html");
 			expect(html).toMatchObject({
 				name: "HTML Crawler",
@@ -334,7 +332,6 @@ describe("PluginsService", () => {
 			expect(list.find((p) => p.id === "html")?.icon).toBe("html");
 			expect(list.find((p) => p.id === "sitemap")?.icon).toBe("map");
 			expect(list.find((p) => p.id === "api")?.icon).toBe("api");
-			expect(list.find((p) => p.id === "reddit")?.icon).toBe("forum");
 			expect(list.find((p) => p.id === "icons")?.icon).toBe("palette");
 		} finally {
 			db.close();

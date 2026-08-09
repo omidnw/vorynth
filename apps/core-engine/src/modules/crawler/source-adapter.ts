@@ -3,12 +3,12 @@ import type { Article } from "@vorynth/types";
 /**
  * Source adapter contract (project-details.md §28).
  *
- * Every source type — RSS, GitHub, Reddit, arXiv, sitemap, custom HTML —
+ * Every source type — RSS, GitHub, arXiv, sitemap, custom HTML —
  * implements this interface and is registered with the crawler. Adding a new
  * source must not require touching the core system (§27 plugin architecture).
  */
 export interface SourceAdapter {
-	/** Stable id, e.g. "rss", "github", "reddit". */
+	/** Stable id, e.g. "rss", "github", "arxiv". */
 	readonly name: string;
 
 	/** Cheap check that the source is reachable / configured correctly. */

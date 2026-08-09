@@ -5,9 +5,9 @@ name: Connector health
 # internet. A connector that silently returns "no new articles" — the classic
 # adapter rot — fails this job loudly instead of hiding forever.
 #
-# Reddit is intentionally absent (see apps/core-engine/src/health/reference-
-# sources.ts): we never probe Reddit from our own infra, so its adapter has no
-# reference source by design.
+# Services that sell their API are intentionally absent (see
+# apps/core-engine/src/health/reference-sources.ts + connector-policy.md):
+# Vorynth ships no adapter for them, so nothing probes them by design.
 #
 # MANUAL ONLY: there is no schedule — this runs solely when the user clicks
 # "Run workflow" (workflow_dispatch). It never gates releases (package.yml is

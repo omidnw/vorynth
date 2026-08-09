@@ -32,7 +32,7 @@ plugins/<id>/
 ```
 
 - `id` — stable, lowercase, unique; must **not** collide with a built-in
-  plugin id (rss, html, sitemap, api, reddit, github-releases, arxiv, reference,
+  plugin id (rss, html, sitemap, api, github-releases, arxiv, reference,
   icons).
 - `version` — your plugin's own version (shown on the Plugins page).
 - `contributions` — optional tags that surface as badges on the Plugins page.

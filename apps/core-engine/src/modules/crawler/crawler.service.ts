@@ -17,7 +17,6 @@ import { ArxivAdapter } from "./adapters/arxiv-adapter.js";
 import { HtmlAdapter } from "./adapters/html-adapter.js";
 import { SitemapAdapter } from "./adapters/sitemap-adapter.js";
 import { ApiAdapter } from "./adapters/api-adapter.js";
-import { RedditAdapter } from "./adapters/reddit-adapter.js";
 import { PluginsService } from "../plugins/plugins.service.js";
 import { SourceListsService } from "../sources/source-lists.service.js";
 import { articleHash } from "./hashing.js";
@@ -56,7 +55,6 @@ export class CrawlerService implements OnModuleInit {
 		this.register(new HtmlAdapter());
 		this.register(new SitemapAdapter());
 		this.register(new ApiAdapter());
-		this.register(new RedditAdapter());
 	}
 
 	register(adapter: SourceAdapter): void {

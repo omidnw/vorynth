@@ -8,12 +8,11 @@
  * stops collecting — the alternative is the silent "No new articles found"
  * that hides a dead connector.
  *
- * Reddit is intentionally NOT cataloged. Its public `.json` endpoint is free
- * to reach (only the paid tier requires a key), but Reddit is known to be
- * aggressive toward third-party clients — and a nightly automated probe from
- * datacenter IPs would provoke a company that sells its API. Legal right is
- * not the same as wise to poke: the adapter still ships for users who add a
- * Reddit source; we simply never probe Reddit ourselves.
+ * Sites that sell their API are intentionally NOT cataloged — a nightly
+ * automated probe from datacenter IPs would provoke a company that charges
+ * for programmatic access (legal right is not the same as wise to poke).
+ * Vorynth ships no such adapter (see connector-policy.md), so nothing here
+ * probes them.
  *
  * The config objects here must match the adapter's own `validate()` contract
  * (they mirror `configFields` in the plugin manifests). Keep them boring and
@@ -40,8 +39,8 @@ export interface ReferenceSource {
 	 * reported as a WARNING, not a failing exit code. The source is still
 	 * exercised nightly; flip this off if it stabilizes. Only for sources whose
 	 * failure is environmental, not a connector bug — do not use it to mask rot.
-	 * (Currently unused: Reddit, the original candidate, is excluded entirely by
-	 * policy — see connector-policy.md — so we never probe it at all.)
+	 * (Currently unused: no adapter ships for services that sell their API —
+	 * see connector-policy.md — so nothing is flagged flaky for that reason.)
 	 */
 	knownFlaky?: boolean;
 	/** Why this source was picked / known brittleness. */

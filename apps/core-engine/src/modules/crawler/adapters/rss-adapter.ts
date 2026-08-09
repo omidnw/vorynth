@@ -14,8 +14,8 @@ import { articleHash } from "../hashing.js";
  * RSS source adapter (project-details.md §28).
  *
  * The first adapter implemented for the vertical slice. Uses `rss-parser` to
- * turn a feed URL into normalized Articles. New adapters (GitHub, Reddit,
- * arXiv, …) follow the same shape and register in `CrawlerService`.
+ * turn a feed URL into normalized Articles. New adapters (GitHub, arXiv, …)
+ * follow the same shape and register in `CrawlerService`.
  */
 @Injectable()
 export class RssAdapter implements SourceAdapter {

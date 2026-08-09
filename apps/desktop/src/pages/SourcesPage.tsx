@@ -115,7 +115,6 @@ const TYPES: SourceType[] = [
 	"html",
 	"sitemap",
 	"github",
-	"reddit",
 	"arxiv",
 ];
 
@@ -2956,8 +2955,6 @@ function typeIcon(type: SourceType): string {
 			return "map";
 		case "github":
 			return "hub";
-		case "reddit":
-			return "forum";
 		case "arxiv":
 			return "science";
 		default:

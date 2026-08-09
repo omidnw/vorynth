@@ -47,7 +47,7 @@ directly in `sources/` are general lists with no curator.
   **Never rename an id**: it would be treated as a brand-new list and users
   would lose nothing, but their per-source edits would detach.
 - **`sources[].adapter`** must be an adapter Vorynth ships (today: `rss`,
-  `github-releases`, `arxiv`, `html`, `sitemap`, `api`, `reddit`) and
+  `github-releases`, `arxiv`, `html`, `sitemap`, `api`) and
   `configuration` must pass that adapter's required fields (e.g. `feedUrl` for
   `rss`). Invalid sources are skipped on refresh, with the whole list skipped
   if nothing validates.

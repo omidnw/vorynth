@@ -9,8 +9,9 @@
  * (≥ expectedMin titled items). A connector that silently collects nothing —
  * the classic "No new articles found" rot — turns into a loud CI failure.
  *
- * Reddit is NOT cataloged (see reference-sources.ts): we never probe Reddit
- * from our own infra, so its adapter has no reference source by design.
+ * Services that sell their API are NOT cataloged (see reference-sources.ts
+ * + connector-policy.md): Vorynth ships no adapter for them, so nothing probes
+ * them by design.
  *
  * Usage:
  *   pnpm --filter @vorynth/core-engine build        # imports from dist/

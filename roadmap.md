@@ -25,7 +25,7 @@
 
 **One-line summary:** the core product loop works end-to-end — collect from
 your sources (RSS, GitHub releases, arXiv, plus HTML-crawler / Sitemap /
-JSON-API / Reddit adapters and curated starter lists), rank, analyze with an
+JSON-API adapters and curated starter lists), rank, analyze with an
 LLM (or pure news mode with no key), browse the brief, search (keyword + Ask
 AI), read full articles, and manage it all locally with backups. v1.8.0 ships
 the **plugin system** (source adapters + runtime UI plugins + offline icon/font
@@ -120,8 +120,8 @@ Analyzer → Localizer` (`intelligence/workflows/intelligence.workflow.ts`).
 
 ### Plugins & source adapters (v1.8.0)
 
-- ✅ **7 source adapters** — RSS, GitHub releases, arXiv, an HTML crawler
-  (CSS-selector based), Sitemap, a generic JSON API, and Reddit — each
+- ✅ **6 source adapters** — RSS, GitHub releases, arXiv, an HTML crawler
+  (CSS-selector based), Sitemap, and a generic JSON API — each
   manifest-registered as a plugin with its own icon and config fields.
 - ✅ **Plugins page** — enable/disable adapters and UI plugins, Core /
   Installed / Built-in groups, per-plugin badges, "In use / Idle" state,
@@ -161,19 +161,18 @@ Truthful list — some of these are known and deferred, others are silent gaps.
 
 ### Source / plugin architecture (project-details §27–30) — shipped in v1.8.0
 
-| Spec item                                                    | Status                                                                        |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| RSS adapter                                                  | ✅ implemented                                                                |
-| GitHub (releases) adapter                                    | ✅ implemented                                                                |
-| arXiv adapter                                                | ✅ implemented — first registry-distributed official connector                |
-| Reddit adapter                                               | ✅ implemented (ships; deliberately excluded from the connector health probe) |
-| Website-crawler / custom HTML adapter                        | ✅ implemented (v1.8.0)                                                       |
-| Sitemap adapter                                              | ✅ implemented (v1.8.0)                                                       |
-| JSON API adapter                                             | ✅ implemented (v1.8.0)                                                       |
-| "Add New Source" UI with method (RSS/API/HTML/Sitemap)       | ✅ implemented — per-method config fields driven by the adapter plugin        |
-| Custom selector HTML crawling (title/content/date selectors) | ✅ implemented (v1.8.0)                                                       |
-| Plugin management (install/configure in UI)                  | ✅ implemented — Plugins page, install/remove, enable/disable                 |
-| Community connectors (user-installed)                        | 🟡 install flow + security scanner exist; real community connectors deferred  |
+| Spec item                                                    | Status                                                                       |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| RSS adapter                                                  | ✅ implemented                                                               |
+| GitHub (releases) adapter                                    | ✅ implemented                                                               |
+| arXiv adapter                                                | ✅ implemented — first registry-distributed official connector               |
+| Website-crawler / custom HTML adapter                        | ✅ implemented (v1.8.0)                                                      |
+| Sitemap adapter                                              | ✅ implemented (v1.8.0)                                                      |
+| JSON API adapter                                             | ✅ implemented (v1.8.0)                                                      |
+| "Add New Source" UI with method (RSS/API/HTML/Sitemap)       | ✅ implemented — per-method config fields driven by the adapter plugin       |
+| Custom selector HTML crawling (title/content/date selectors) | ✅ implemented (v1.8.0)                                                      |
+| Plugin management (install/configure in UI)                  | ✅ implemented — Plugins page, install/remove, enable/disable                |
+| Community connectors (user-installed)                        | 🟡 install flow + security scanner exist; real community connectors deferred |
 
 ### Reports (project-details §19, §31)
 
@@ -229,8 +228,8 @@ These are the changes sitting in the working tree right now (~400 files).
 The v1.8.0 feature set (below) is landed but **uncommitted**; the landing
 work from this session is on top:
 
-1. **v1.8.0 — plugins & adapters** — HTML-crawler, Sitemap, JSON-API, and
-   Reddit adapters; Plugins page (enable/disable, badges, In use/Idle);
+1. **v1.8.0 — plugins & adapters** — HTML-crawler, Sitemap, and JSON-API
+   adapters; Plugins page (enable/disable, badges, In use/Idle);
    runtime UI plugins (sidebar page, Settings section, Docs guide, theme);
    Reference Plugin; theme picker; offline Icon Pack; install/remove of
    `.vorynth-plugin` packages.
@@ -287,9 +286,8 @@ work from this session is on top:
 reference source (`apps/core-engine/src/health/reference-sources.ts`);
 `scripts/connector-health.mjs` runs them against the real network (manual CI
 run — `workflow_dispatch`). A connector that silently stops collecting now
-fails loudly instead of hiding as "no new articles". Reddit is deliberately
-excluded: we never probe a company that sells its API (legal right ≠ wise to
-poke) — its adapter still ships.
+fails loudly instead of hiding as "no new articles". Services that sell their
+API are never probed (legal right ≠ wise to poke) — and ship no adapter.
 
 **Connector registry (v1.8.0):** official connectors are distributed through
 the GitHub registry (`connectors/registry.json`, fetched by

@@ -13,8 +13,9 @@ import { ApiAdapter } from "../../src/modules/crawler/adapters/api-adapter.js";
  * passes its adapter's `validate()`. The LIVE collection contract is proven
  * nightly by scripts/connector-health.mjs in CI — not here.
  *
- * Reddit is deliberately absent from the catalog (never probe Reddit from our
- * own infra — see reference-sources.ts), so it is not expected here either.
+ * Services that sell their API are deliberately absent from the catalog
+ * (never probe a company that charges for programmatic access — see
+ * connector-policy.md), so they are not expected here either.
  */
 describe("Connector health — reference source catalog (v1.8.0)", () => {
 	const ADAPTERS = {

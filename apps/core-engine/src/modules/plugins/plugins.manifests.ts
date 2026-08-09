@@ -232,24 +232,6 @@ export const ADAPTER_MANIFESTS: AdapterManifest[] = [
 		],
 	},
 	{
-		id: "reddit",
-		name: "Reddit",
-		description:
-			"A subreddit's new posts as stories. Collects recent posts from the subreddit's JSON feed.",
-		version: VORYNTH_VERSION,
-		kind: "adapter",
-		type: "reddit",
-		icon: "forum",
-		enabledByDefault: true,
-		configFields: [
-			field("reddit.subreddit", "Subreddit", "text", {
-				required: true,
-				placeholder: "MachineLearning",
-				hint: "Without the leading r/.",
-			}),
-		],
-	},
-	{
 		id: "reference",
 		name: "Reference Plugin",
 		description:

@@ -24,7 +24,7 @@ export const sources = sqliteTable("sources", {
 	name: text("name").notNull(),
 	url: text("url").notNull(),
 	type: text("type", {
-		enum: ["rss", "api", "html", "sitemap", "github", "reddit", "arxiv"],
+		enum: ["rss", "api", "html", "sitemap", "github", "arxiv"],
 	})
 		.notNull()
 		.default("rss"),

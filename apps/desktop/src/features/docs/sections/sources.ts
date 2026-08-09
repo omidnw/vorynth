@@ -237,7 +237,7 @@ export const sourcesSection: DocsSection = {
 			id: "sources-methods-note",
 			items: [
 				"Vorynth's collection pipeline is adapter-based: each method is handled by an adapter plugin. RSS, GitHub releases, Sitemap, and JSON API carry the Core badge (arXiv is an Official connector — built and live-tested by Vorynth); every adapter can be switched off on the Plugins page, and its sources pause (keeping their own state) until you re-enable it.",
-				"Each method has its own icon — RSS, GitHub, arXiv, the crawler, Sitemap, the JSON API, and Reddit — shown on the method buttons in the Add Source form, in the sources list, and on the Plugins page.",
+				"Each method has its own icon — RSS, GitHub, arXiv, the crawler, Sitemap, and the JSON API — shown on the method buttons in the Add Source form, in the sources list, and on the Plugins page.",
 				"Each method's configuration fields are generated from its plugin's schema — pick a method and the Add Source form shows exactly the fields that method needs.",
 				"The 'Test' button dry-runs a configuration without saving: it fetches a few items and shows you what the adapter would collect, so you can check your selectors or field names before you commit.",
 			],
