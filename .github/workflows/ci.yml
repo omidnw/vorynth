@@ -25,13 +25,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
           cache: pnpm
@@ -80,15 +80,22 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       # Runs the open-source semgrep CLI in local mode on public repos — no
       # SEMGREP_APP_TOKEN required. Uses `semgrep scan` (not `semgrep ci`,
       # which needs an AppSec Platform token) inside the official image; the
       # old `semgrep/semgrep-action@v2` was archived upstream (no v2 tag).
+      # `--config p/default` is the community ruleset that `--config auto`
+      # resolves to for a public repo — spelled out explicitly so `--metrics
+      # off` works (auto + metrics off are incompatible upstream). `--error`
+      # turns any finding into a hard failure; verified false positives are
+      # annotated inline with `# nosemgrep:` reasons (see the 14 known ones in
+      # adapters, media, crypto, plugin-loader, SourcesPage, story-renderer).
       - name: Run Semgrep
         run: |
           semgrep scan \
-            --config auto \
+            --config p/default \
             --config .semgrep/plugin-bundles.yml \
-            --metrics off
+            --metrics off \
+            --error

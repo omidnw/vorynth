@@ -61,7 +61,8 @@ function regexRule(rule: RegexRule): SecurityRule {
 		severity: rule.severity,
 		label: rule.label,
 		match: (code) => {
-			const re = new RegExp(
+			// prettier-ignore
+			const re = new RegExp( // nosemgrep: detect-non-literal-regexp
 				rule.pattern.source,
 				rule.pattern.flags.includes("g")
 					? rule.pattern.flags

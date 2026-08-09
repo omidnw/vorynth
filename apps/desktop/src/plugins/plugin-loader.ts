@@ -87,7 +87,7 @@ export async function loadPluginBundle(
 			URL.revokeObjectURL(url);
 		}
 	} catch (err) {
-		console.warn(`[plugin-loader] ${pluginId} failed to load:`, err);
+		console.warn(`[plugin-loader] ${pluginId} failed to load:`, err); // nosemgrep: unsafe-formatstring — template literal with pluginId, no user-controlled format specifiers
 		moduleCache.set(pluginId, null);
 		return null;
 	}

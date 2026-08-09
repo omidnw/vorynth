@@ -84,7 +84,8 @@ function parseArxivAtom(xml: string): RawFetchedItem[] {
 }
 
 function textOf(block: string, tag: string): string {
-	const re = new RegExp(
+	// prettier-ignore
+	const re = new RegExp( // nosemgrep: detect-non-literal-regexp
 		`<(?:a:)?${tag}[^>]*>([\\s\\S]*?)</(?:a:)?${tag}>`,
 		"i",
 	);

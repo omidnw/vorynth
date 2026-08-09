@@ -108,7 +108,7 @@ function getPath(value: unknown, path: string): unknown {
 	let cur: unknown = value;
 	for (const part of parts) {
 		if (cur === null || typeof cur !== "object") return undefined;
-		cur = (cur as Record<string, unknown>)[part];
+		cur = (cur as Record<string, unknown>)[part]; // nosemgrep: prototype-pollution-loop — read-only dotted-path getter; indexes existing keys, never assigns __proto__/constructor
 	}
 	return cur;
 }

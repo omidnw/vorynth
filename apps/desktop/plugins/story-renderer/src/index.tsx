@@ -424,7 +424,7 @@ async function capturePng(
 	holder.style.left = "-10000px";
 	holder.style.top = "0";
 	holder.style.width = "900px";
-	holder.innerHTML = buildStoryHtml(content, opts);
+	holder.innerHTML = buildStoryHtml(content, opts); // nosemgrep: vorynth-plugin-no-dom-xss-sinks — first-party renderer writing our own sanitized story HTML
 	document.body.appendChild(holder);
 	try {
 		// Wait a frame so the styles are applied before rasterizing.

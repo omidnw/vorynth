@@ -87,7 +87,7 @@ function parseAtom(xml: string): RawFetchedItem[] {
 }
 
 function textOf(block: string, tag: string): string {
-	const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i");
+	const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"); // nosemgrep: detect-non-literal-regexp — tag is a fixed feed element name, not user input
 	const m = re.exec(block);
 	return m ? (m[1] ?? "").trim() : "";
 }

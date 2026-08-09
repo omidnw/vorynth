@@ -3,3 +3,12 @@ packages:
   - packages/*
 
 onlyBuiltDependencies: '["better-sqlite3","esbuild"]'
+
+# Supply-chain hardening (v1.8.0, semgrep pnpm rules):
+# - trustPolicy: block package upgrades that would downgrade security settings
+# - minimumReleaseAge: never install a package published < 7 days ago (newly
+#   published versions can be malicious or unstable)
+# - blockExoticSubdeps: refuse transitive deps from untrusted (non-npm) sources
+trustPolicy: no-downgrade
+minimumReleaseAge: 10080
+blockExoticSubdeps: true

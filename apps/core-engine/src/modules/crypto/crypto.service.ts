@@ -49,7 +49,7 @@ export class CryptoService {
 		const iv = buf.subarray(0, 12);
 		const tag = buf.subarray(buf.length - 16);
 		const ct = buf.subarray(12, buf.length - 16);
-		const decipher = createDecipheriv("aes-256-gcm", this.masterKey, iv);
+		const decipher = createDecipheriv("aes-256-gcm", this.masterKey, iv); // nosemgrep: gcm-no-tag-length — the 16-byte auth tag is extracted from the same blob and set via setAuthTag() before final()
 		decipher.setAuthTag(tag);
 		return Buffer.concat([decipher.update(ct), decipher.final()]).toString(
 			"utf8",

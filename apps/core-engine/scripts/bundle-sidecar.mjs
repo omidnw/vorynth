@@ -41,38 +41,46 @@ await mkdir(outDir, { recursive: true });
 //    ncc try to compile the workspace package and trip TS6059 (rootDir).
 //    Skip if already built (CI builds types before bundle step).
 console.log("▶ building @vorynth/types");
-	const typesDist = join(root, "..", "..", "packages", "types", "dist", "index.js");
-	if (!existsSync(typesDist)) {
-		// pnpm is a .cmd batch file on Windows — needs shell to execute.
-		await run("pnpm", ["--filter", "@vorynth/types", "build"], {
-			useShell: process.platform === "win32",
-		});
-	} else {
-		console.log("• @vorynth/types already built, skipping");
-	}
+const typesDist = join(
+	root,
+	"..",
+	"..",
+	"packages",
+	"types",
+	"dist",
+	"index.js",
+);
+if (!existsSync(typesDist)) {
+	// pnpm is a .cmd batch file on Windows — needs shell to execute.
+	await run("pnpm", ["--filter", "@vorynth/types", "build"], {
+		useShell: process.platform === "win32",
+	});
+} else {
+	console.log("• @vorynth/types already built, skipping");
+}
 
-	// 2. Inline all pure-JS deps into a single bundle. better-sqlite3's
-	//    JavaScript wrapper is inlined; only the native .node binary is kept
-	//    separate (copied in step 3 below). The --external flag is intentionally
-	//    NOT used for better-sqlite3 — externalising it would leave a bare
-	//    `import "better-sqlite3"` in the ESM output that Node cannot resolve
-	//    when the bundle is deployed without a node_modules tree.
-	//
-	//    We invoke ncc through process.execPath (the current node binary)
-	//    rather than relying on the .js file association or a shell wrapper.
-	//    On Windows CI, `spawn("cli.js", args, { shell: true })` goes through
-	//    cmd.exe which may fail to resolve the file association or hang
-	//    silently — running node directly is deterministic across platforms.
-	await run(process.execPath, [
-		nccBin,
-		"build",
-		entry,
-		"--target",
-		"es2022",
-		"--no-source-map-register",
-		"-o",
-		outDir,
-	]);
+// 2. Inline all pure-JS deps into a single bundle. better-sqlite3's
+//    JavaScript wrapper is inlined; only the native .node binary is kept
+//    separate (copied in step 3 below). The --external flag is intentionally
+//    NOT used for better-sqlite3 — externalising it would leave a bare
+//    `import "better-sqlite3"` in the ESM output that Node cannot resolve
+//    when the bundle is deployed without a node_modules tree.
+//
+//    We invoke ncc through process.execPath (the current node binary)
+//    rather than relying on the .js file association or a shell wrapper.
+//    On Windows CI, `spawn("cli.js", args, { shell: true })` goes through
+//    cmd.exe which may fail to resolve the file association or hang
+//    silently — running node directly is deterministic across platforms.
+await run(process.execPath, [
+	nccBin,
+	"build",
+	entry,
+	"--target",
+	"es2022",
+	"--no-source-map-register",
+	"-o",
+	outDir,
+]);
 console.log("• ncc produced dist-bundle/index.js");
 
 // Pick the largest emitted .js (the real bundle) in case ncc names it
@@ -88,19 +96,37 @@ for (const f of jsFiles) {
 		bundleName = f;
 	}
 }
-console.log(`• identified bundle: ${bundleName} (${Math.round(biggest / 1024)} KB)`);
+console.log(
+	`• identified bundle: ${bundleName} (${Math.round(biggest / 1024)} KB)`,
+);
 
 // 2. Copy the prebuilt better-sqlite3 native binary.
 const nativeCandidates = [
-	join(root, "node_modules", "better-sqlite3", "build", "Release", "better_sqlite3.node"),
-	join(root, "node_modules", "better-sqlite3", "build", "Debug", "better_sqlite3.node"),
+	join(
+		root,
+		"node_modules",
+		"better-sqlite3",
+		"build",
+		"Release",
+		"better_sqlite3.node",
+	),
+	join(
+		root,
+		"node_modules",
+		"better-sqlite3",
+		"build",
+		"Debug",
+		"better_sqlite3.node",
+	),
 ];
 const nativePath = nativeCandidates.find((p) => existsSync(p));
 if (nativePath) {
 	await cp(nativePath, join(outDir, "better_sqlite3.node"));
 	console.log("• copied better_sqlite3.node");
 } else {
-	console.warn("⚠ better-sqlite3 native binary not found — bundle won't run until built");
+	console.warn(
+		"⚠ better-sqlite3 native binary not found — bundle won't run until built",
+	);
 }
 
 // 3. Drop ncc's package.json so it can't shadow the launcher's CommonJS form.
@@ -109,39 +135,41 @@ if (existsSync(distPkg)) await rm(distPkg, { force: true });
 
 // 4. CommonJS launcher (gives us __dirname + require for the native addon).
 const launcher = [
-		"// Launcher for the bundled Vorynth core engine sidecar.",
-		"// Run with: node dist-bundle/launcher.cjs [--port N]",
-		"'use strict';",
-		"const path = require('path');",
-		"const fs = require('fs');",
-		"const { pathToFileURL } = require('url');",
-		"",
-		"// Point better-sqlite3 at the bundled native binary so it doesn't try to",
-		"// resolve through node_modules (which doesn't exist in the bundled dir).",
-		"const nativeBinary = path.join(__dirname, 'better_sqlite3.node');",
-		"if (fs.existsSync(nativeBinary)) {",
-		"  process.env.BETTER_SQLITE3_BINARY = path.dirname(nativeBinary);",
-		"}",
-		"",
-		"// The engine is a sidecar: it must never outlive the Tauri shell, or it",
-		"// holds the port hostage after the app closes. Watch the shell's pid and",
-		"// exit when it dies — covers force-quit / crash paths where the shell",
-		"// cannot run its own cleanup. The captured ppid stays the shell's pid",
-		"// even after the OS re-parents us to launchd.",
-		"const shellPid = process.ppid;",
-		"const parentWatch = setInterval(() => {",
-		"  try { process.kill(shellPid, 0); } catch { process.exit(0); }",
-		"}, 2000);",
-		"if (typeof parentWatch.unref === 'function') parentWatch.unref();",
-		"",
-		"// Hand off to the ESM bundle.",
-		"// Use pathToFileURL so Windows paths (c:\\...) are valid file:// URLs",
-		"// that the ESM loader can handle.",
-		"const bundle = pathToFileURL(path.join(__dirname, " + JSON.stringify(bundleName) + ")).href;",
-		"import(bundle).catch((err) => {",
-		"  console.error('Vorynth core failed to start:', err);",
-		"  process.exit(1);",
-		"});",
+	"// Launcher for the bundled Vorynth core engine sidecar.",
+	"// Run with: node dist-bundle/launcher.cjs [--port N]",
+	"'use strict';",
+	"const path = require('path');",
+	"const fs = require('fs');",
+	"const { pathToFileURL } = require('url');",
+	"",
+	"// Point better-sqlite3 at the bundled native binary so it doesn't try to",
+	"// resolve through node_modules (which doesn't exist in the bundled dir).",
+	"const nativeBinary = path.join(__dirname, 'better_sqlite3.node');",
+	"if (fs.existsSync(nativeBinary)) {",
+	"  process.env.BETTER_SQLITE3_BINARY = path.dirname(nativeBinary);",
+	"}",
+	"",
+	"// The engine is a sidecar: it must never outlive the Tauri shell, or it",
+	"// holds the port hostage after the app closes. Watch the shell's pid and",
+	"// exit when it dies — covers force-quit / crash paths where the shell",
+	"// cannot run its own cleanup. The captured ppid stays the shell's pid",
+	"// even after the OS re-parents us to launchd.",
+	"const shellPid = process.ppid;",
+	"const parentWatch = setInterval(() => {",
+	"  try { process.kill(shellPid, 0); } catch { process.exit(0); }",
+	"}, 2000);",
+	"if (typeof parentWatch.unref === 'function') parentWatch.unref();",
+	"",
+	"// Hand off to the ESM bundle.",
+	"// Use pathToFileURL so Windows paths (c:\\...) are valid file:// URLs",
+	"// that the ESM loader can handle.",
+	"const bundle = pathToFileURL(path.join(__dirname, " +
+		JSON.stringify(bundleName) +
+		")).href;",
+	"import(bundle).catch((err) => {",
+	"  console.error('Vorynth core failed to start:', err);",
+	"  process.exit(1);",
+	"});",
 ].join("\n");
 await writeFile(join(outDir, "launcher.cjs"), launcher, "utf8");
 console.log("• wrote dist-bundle/launcher.cjs");
@@ -169,9 +197,11 @@ console.log("  run with:  node dist-bundle/launcher.cjs --port 4399");
 
 function run(cmd, args, { useShell = false } = {}) {
 	return new Promise((resolve, reject) => {
-		const child = spawn(cmd, args, { stdio: "inherit", shell: useShell });
+		const child = spawn(cmd, args, { stdio: "inherit", shell: useShell }); // nosemgrep: spawn-shell-true — build script runs our own fixed commands; shell only when explicitly opted in (default false), never user input
 		child.on("close", (code) =>
-			code === 0 ? resolve(undefined) : reject(new Error(`${cmd} exited ${code}`)),
+			code === 0
+				? resolve(undefined)
+				: reject(new Error(`${cmd} exited ${code}`)),
 		);
 		child.on("error", reject);
 	});

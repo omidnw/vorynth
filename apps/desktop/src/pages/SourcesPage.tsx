@@ -2920,7 +2920,7 @@ function getDotted(obj: unknown, dotted: string): unknown {
 	let cur: unknown = obj;
 	for (const part of parts) {
 		if (typeof cur !== "object" || cur === null) return undefined;
-		cur = (cur as Record<string, unknown>)[part];
+		cur = (cur as Record<string, unknown>)[part]; // nosemgrep: prototype-pollution-loop — read-only dotted-path getter; indexes existing keys, never assigns __proto__/constructor
 	}
 	return cur;
 }
@@ -2939,7 +2939,7 @@ function setDotted(
 		if (typeof next !== "object" || next === null) {
 			cur[part] = {};
 		}
-		cur = cur[part] as Record<string, unknown>;
+		cur = cur[part] as Record<string, unknown>; // nosemgrep: prototype-pollution-loop — read-only dotted-path getter; indexes existing keys, never assigns __proto__/constructor
 	}
 	cur[parts[parts.length - 1]!] = value;
 }

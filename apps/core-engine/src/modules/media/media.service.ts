@@ -367,7 +367,7 @@ export class MediaService {
 	): { url: string; kind: MediaKind; caption: string | null }[] {
 		const tagRe =
 			typeof element === "string"
-				? new RegExp(`<${element}\\b[^>]*>`, "gi")
+				? new RegExp(`<${element}\\b[^>]*>`, "gi") // nosemgrep: detect-non-literal-regexp — element is a fixed HTML tag from our own sanitizer
 				: element;
 		const out: { url: string; kind: MediaKind; caption: string | null }[] = [];
 		let m: RegExpExecArray | null;
@@ -394,7 +394,7 @@ export class MediaService {
 	}
 
 	private attr(tag: string, name: string): string | null {
-		const re = new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, "i");
+		const re = new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, "i"); // nosemgrep: detect-non-literal-regexp — name is a fixed attribute name from our own parser
 		const m = re.exec(tag);
 		if (!m) return null;
 		return m[2] ?? m[3] ?? null;

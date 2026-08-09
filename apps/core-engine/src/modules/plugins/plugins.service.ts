@@ -750,7 +750,7 @@ function readDotted(config: Record<string, unknown>, dotted: string): unknown {
 	let cur: unknown = config;
 	for (const part of dotted.split(".")) {
 		if (cur === null || typeof cur !== "object") return undefined;
-		cur = (cur as Record<string, unknown>)[part];
+		cur = (cur as Record<string, unknown>)[part]; // nosemgrep: prototype-pollution-loop — read-only dotted-path getter; indexes existing keys, never assigns __proto__/constructor
 	}
 	return cur;
 }
