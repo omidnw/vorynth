@@ -5,7 +5,7 @@ name: Package
 # sidecar + Tauri shell.
 #
 # Pipeline per target (fail-fast at each stage):
-#   1. Install pnpm + Node 22 + Rust toolchain.
+#   1. Install pnpm + Node 24.18.1 + Rust toolchain.
 #   2. Install workspace deps; rebuild better-sqlite3 for THIS platform.
 #   3. Lint: typecheck → lint (fast feedback — stops here on failure)
 #   4. Build: frontend → bundle sidecar
@@ -84,7 +84,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 24
+          # 24.19.0 (2026-08-03) is a regression — it shipped a v24 backport of
+          # nodejs/node#63642 that aborts Node with `Assertion failed: (env) !=
+          # nullptr` in RemoveEnvironmentCleanupHook during GC. 24.18.1 is the
+          # last clean v24; 24.19.1 (with the fix) hasn't shipped yet.
+          node-version: 24.18.1
           cache: pnpm
 
       - name: Install
@@ -198,7 +202,15 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 24
+          # Pinned to 24.18.1: 24.19.0 (2026-08-03) shipped a v24 backport of
+          # nodejs/node#63642 that aborts the BUNDLED sidecar at runtime with
+          # `Assertion failed: (env) != nullptr` in RemoveEnvironmentCleanupHook
+          # during GC — this is the crash the macOS Intel smoke test used to hit
+          # (misattributed to Rosetta). The "Embed portable Node.js" step copies
+          # this exact binary into the sidecar, so the pin is what keeps every
+          # packaged build crash-free. 24.19.1 carries the real fix but hasn't
+          # shipped yet.
+          node-version: 24.18.1
           # macOS Intel is cross-compiled on an arm64 runner — pin the x64 node
           # build so native rebuilds (better-sqlite3) and the embedded portable
           # node match the x86_64 target. Empty on every other job = host arch.
@@ -290,7 +302,17 @@ jobs:
 
       - name: Rebuild native (better-sqlite3) for this platform
         if: matrix.is-harmonyos == false
-        run: pnpm rebuild better-sqlite3
+        shell: bash
+        run: |
+          # better-sqlite3's published prebuilt is compiled on Ubuntu 24.04 and
+          # requires GLIBC_2.38 — the x86_64 job runs on 22.04 (glibc 2.35) and
+          # the AppImage base is 22.04, so the prebuilt crashes at load
+          # (ERR_DLOPEN_FAILED). Force a from-source compile there: node-gyp
+          # links against the runner's glibc 2.35, matching the AppImage.
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
+            export npm_config_build_from_source=true
+          fi
+          pnpm rebuild better-sqlite3
 
       # @vorynth/types and @vorynth/ui need their dist/ emitted before
       # dependent packages can resolve them via exports. Building ui here (not
@@ -430,12 +452,12 @@ jobs:
           fi
 
       - name: Smoke test — macOS .app engine /health
-        # Skipped for Intel: it's cross-compiled on an Apple Silicon runner and
-        # runs under Rosetta, where the bundled node + better-sqlite3 sidecar
-        # crashes on GC (RemoveEnvironmentCleanupHook assertion) — a runner
-        # environment quirk, not a broken build. Real Intel Macs run fine; the
-        # Apple Silicon job below still smoke-tests the macOS bundle.
-        if: startsWith(matrix.os, 'macos') && matrix.is-harmonyos == false && matrix.target != 'x86_64-apple-darwin'
+        # Intel runs the x64 build under Rosetta on the Apple Silicon runner.
+        # It was previously skipped for crashing on GC (RemoveEnvironmentCleanupHook
+        # assertion) — that was the Node 24.19.0 regression (nodejs/node#63642
+        # backport), NOT a Rosetta quirk; with the bundled node pinned to
+        # 24.18.1 the crash is gone, so Intel is smoke-tested like every target.
+        if: startsWith(matrix.os, 'macos') && matrix.is-harmonyos == false
         shell: bash
         run: |
           set -euo pipefail
@@ -636,6 +658,21 @@ jobs:
             mkdir -p apps/desktop/src-tauri/binaries
             cp -r apps/core-engine/dist-bundle \
               apps/desktop/src-tauri/binaries/vorynth-core-x86_64-unknown-freebsd
+
+            # tauri-utils maps FreeBSD to the Linux target, so capability
+            # "platforms" gating can't exclude it — yet the updater and
+            # notification plugins are compiled out on FreeBSD (Cargo.toml) and
+            # their permissions don't exist, which fails tauri-build's ACL
+            # validation. Strip those two permissions here (CI-only mutation);
+            # everything else (core:default, shell:allow-open) still applies.
+            python3 - <<'EOF'
+            import json, pathlib
+            p = pathlib.Path("apps/desktop/src-tauri/capabilities/default.json")
+            cap = json.loads(p.read_text())
+            cap["permissions"] = [x for x in cap["permissions"] if x not in ("updater:default", "notification:default")]
+            p.write_text(json.dumps(cap, indent="\t") + "\n")
+            print("stripped updater/notification permissions ->", cap["permissions"])
+            EOF
 
             # NOTE: tauri-cli can never be installed on FreeBSD — it depends
             # on cargo-mobile2, which hard-fails with compile_error! on
