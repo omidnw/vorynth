@@ -173,6 +173,7 @@ sources get an official / built-in connector, and where the line is drawn.
 - [x] CI/CD: automated builds for 6 platforms
 - [ ] Harmony OS native `.hap` build (raw `.so` bundle exists; needs ArkTS bridge + DevEco packaging)
 - [ ] Plugin system for custom sources & analyzers
+- [ ] Customizable agent — editable prompts for every AI output (summary, Ask, insights, reports, translation) for deeper personalization
 
 ---
 
