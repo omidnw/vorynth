@@ -171,7 +171,6 @@ sources get an official / built-in connector, and where the line is drawn.
 - [x] Background jobs with live progress
 - [x] 4 LLM providers (OpenAI, Claude, Gemini, Ollama)
 - [x] CI/CD: automated builds for 6 platforms
-- [ ] Android / iOS mobile builds (Tauri v2 mobile)
 - [ ] Harmony OS native `.hap` build (raw `.so` bundle exists; needs ArkTS bridge + DevEco packaging)
 - [ ] Plugin system for custom sources & analyzers
 
