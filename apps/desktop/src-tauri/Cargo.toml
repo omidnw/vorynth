@@ -25,6 +25,11 @@ log = "0.4"
 [target.'cfg(not(target_env = "ohos"))'.dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
+# Engine health probe + settings fetch, the async runtime, and logging — pure
+# Rust, used unconditionally by main.rs on EVERY non-OHOS target (FreeBSD too).
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+env_logger = "0.11"
 
 [target.'cfg(all(not(target_env = "ohos"), not(target_os = "freebsd")))'.dependencies]
 # Launch-at-login hook (macOS LaunchAgent / Windows Run key / Linux XDG).
@@ -41,9 +46,6 @@ tauri-plugin-updater = "2"
 # to the system notification center when the user opts in. Excluded on FreeBSD
 # alongside autostart/updater (their permission sets don't exist there either).
 tauri-plugin-notification = "2"
-reqwest = { version = "0.12", default-features = false, features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-env_logger = "0.11"
 
 # macOS-only: hide/restore the Dock icon (NSApplication activation policy)
 # when background mode hides the window to the tray. Same objc2 generation

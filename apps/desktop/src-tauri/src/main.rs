@@ -716,6 +716,10 @@ fn run_tauri(port: u16, mut child: Option<Child>, start_hidden: bool) {
         if let tauri::RunEvent::Exit = event {
             kill_sidecar(&child_holder);
         }
+        // The Dock-reopen arm below is macOS-only; keep the parameter "used"
+        // on every other target (FreeBSD included) so the build is clean.
+        #[cfg(not(target_os = "macos"))]
+        let _ = &app_handle;
         // macOS: clicking the Dock icon after a start-hidden launch (or a
         // close-to-tray hide) must bring the window back.
         #[cfg(target_os = "macos")]
@@ -749,7 +753,7 @@ fn updater_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
 fn updater_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
     // FreeBSD: no auto-update — the updater plugin does not compile here.
     // A no-op plugin keeps the builder chain identical on every target.
-    Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
+    Box::new(tauri::plugin::Builder::<tauri::Wry>::new("vorynth-updater").build())
 }
 
 /// The launch-at-login plugin, boxed so the same builder chain compiles on
@@ -768,7 +772,7 @@ fn autostart_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
 fn autostart_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
     // FreeBSD: no launch-at-login — the autostart plugin does not compile
     // here. A no-op plugin keeps the builder chain identical on every target.
-    Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
+    Box::new(tauri::plugin::Builder::<tauri::Wry>::new("vorynth-autostart").build())
 }
 
 /// The notification plugin, boxed so the same builder chain compiles on every
@@ -783,5 +787,5 @@ fn notification_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
 fn notification_plugin() -> Box<dyn tauri::plugin::Plugin<tauri::Wry>> {
     // FreeBSD: no OS notifications — the plugin does not compile here. A
     // no-op plugin keeps the builder chain identical on every target.
-    Box::new(tauri::plugin::Builder::<tauri::Wry>::new().build())
+    Box::new(tauri::plugin::Builder::<tauri::Wry>::new("vorynth-notification").build())
 }
