@@ -1290,11 +1290,11 @@ a:hover {
 	color: var(--fg-dim);
 	text-align: center;
 }
-.appimage-help {
+.help-toggle {
 	width: 100%;
 	margin-top: 8px;
 }
-.appimage-help-toggle {
+.help-toggle-row {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -1312,40 +1312,52 @@ a:hover {
 		color 0.15s ease,
 		border-color 0.15s ease;
 }
-.appimage-help-toggle:hover {
+.help-toggle-row:hover {
 	color: var(--fg);
 	border-color: var(--accent);
 }
-.appimage-help-toggle .icon {
+.help-toggle-row .icon {
 	color: var(--accent);
 	flex-shrink: 0;
 }
-.appimage-help-toggle-text {
+.help-toggle-text {
 	flex: 1;
 	line-height: 1.4;
 }
-.appimage-help-chevron {
+.help-toggle-chevron {
 	flex-shrink: 0;
 	transition: transform 0.2s ease;
 }
-.appimage-help-chevron.open {
+.help-toggle-chevron.open {
 	transform: rotate(180deg);
 }
-.appimage-help-panel {
+.help-toggle-panel {
 	margin-top: 8px;
 	padding: 10px 12px;
 	border: 1px solid var(--accent-line);
 	border-radius: var(--radius-sm);
 	background: var(--bg-elevated);
-	animation: appimage-help-in 0.2s ease-out;
+	animation: help-toggle-in 0.2s ease-out;
 }
-.appimage-help-text {
+.help-toggle-summary {
 	margin: 0 0 10px;
 	font-size: 0.8rem;
 	line-height: 1.55;
 	color: var(--fg-dim);
 }
-@keyframes appimage-help-in {
+.help-toggle-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--accent);
+	text-decoration: none;
+}
+.help-toggle-link:hover {
+	text-decoration: underline;
+}
+@keyframes help-toggle-in {
 	from {
 		opacity: 0;
 		transform: translateY(-4px);

@@ -11,56 +11,90 @@ import { Icon } from "./Icon";
 
 const GUIDE_URL = "https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md";
 
-/** AppImage help — a clickable "?" row below the AppImage downloads that
- *  expands into the cause plus a copyable fix command (collapse/expand with a
- *  small animation, matching the app's motion language). */
-function AppImageHelp({
-	caveat,
+const APPLE_GATEKEEPER_URL =
+	"https://support.apple.com/en-ie/guide/mac-help/mh40616/mac";
+
+/** macOS Gatekeeper caveat — Vorynth is distributed free by an individual
+ *  without a paid Apple Developer account, so macOS can't verify the developer
+ *  and shows "unknown developer". Shown as the "?" toggle in the macOS box. */
+const MACOS_GATEKEEPER_CAVEAT = {
+	label:
+		'macOS shows an "unknown developer" warning? Click here for what to do and why.',
+	summary:
+		"Vorynth is developed and distributed for free by an individual. Opening without this warning normally requires a paid Apple Developer account — which Vorynth doesn't have yet — so macOS can't verify the developer. The warning does NOT mean the app is broken or unsafe.",
+	link: {
+		href: APPLE_GATEKEEPER_URL,
+		text: "Open a Mac app from an unidentified developer (Apple Support)",
+	},
+};
+
+/** Expandable "?" help row — used below the AppImage downloads (Wayland caveat
+ *  with a copyable fix) and in the macOS box (Gatekeeper "unknown developer"
+ *  explanation with an Apple Support link). Collapse/expand with a small
+ *  animation, matching the app's motion language. */
+function HelpToggle({
+	label,
+	summary,
+	command,
+	link,
 	onCopy,
 	copied,
 }: {
-	caveat: NonNullable<DownloadLink["caveat"]>;
-	onCopy: (command: string) => void;
-	copied: boolean;
+	label: string;
+	summary: string;
+	command?: string;
+	link?: { href: string; text: string };
+	onCopy?: (command: string) => void;
+	copied?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	return (
-		<div className="appimage-help">
+		<div className="help-toggle">
 			<button
 				type="button"
-				className="appimage-help-toggle"
+				className="help-toggle-row"
 				aria-expanded={open}
-				aria-controls="appimage-help-panel"
+				aria-controls="help-toggle-panel"
 				onClick={() => setOpen((v) => !v)}
 			>
 				<Icon name={open ? "help" : "help_outline"} size={16} />
-				<span className="appimage-help-toggle-text">
-					AppImage window won&apos;t open? Click here for how to run it and what
-					causes the error.
-				</span>
-				<span className={`appimage-help-chevron${open ? " open" : ""}`}>
+				<span className="help-toggle-text">{label}</span>
+				<span className={`help-toggle-chevron${open ? " open" : ""}`}>
 					<Icon name="expand_more" size={18} />
 				</span>
 			</button>
 			{open ? (
-				<div className="appimage-help-panel" id="appimage-help-panel">
-					<p className="appimage-help-text">{caveat.summary}</p>
-					<div className="modal-command-wrap">
-						<div className="modal-command-label">
-							<Icon name="terminal" size={16} />
-							Fix
-							<button
-								type="button"
-								className="modal-copy"
-								onClick={() => onCopy(caveat.command)}
-								aria-label="Copy the AppImage workaround command"
-							>
-								<Icon name={copied ? "check" : "content_copy"} size={14} />
-								{copied ? "Copied" : "Copy"}
-							</button>
+				<div className="help-toggle-panel" id="help-toggle-panel">
+					<p className="help-toggle-summary">{summary}</p>
+					{link ? (
+						<a
+							className="help-toggle-link"
+							href={link.href}
+							target="_blank"
+							rel="noreferrer"
+						>
+							{link.text}
+							<Icon name="open_in_new" size={14} />
+						</a>
+					) : null}
+					{command && onCopy ? (
+						<div className="modal-command-wrap">
+							<div className="modal-command-label">
+								<Icon name="terminal" size={16} />
+								Fix
+								<button
+									type="button"
+									className="modal-copy"
+									onClick={() => onCopy(command)}
+									aria-label="Copy the workaround command"
+								>
+									<Icon name={copied ? "check" : "content_copy"} size={14} />
+									{copied ? "Copied" : "Copy"}
+								</button>
+							</div>
+							<code className="modal-command">{command}</code>
 						</div>
-						<code className="modal-command">{caveat.command}</code>
-					</div>
+					) : null}
 				</div>
 			) : null}
 		</div>
@@ -265,8 +299,10 @@ export function DownloadModal({
 											<span className="modal-hint">{link.hint}</span>
 										) : null}
 										{link.caveat && index === lastCaveatIndex ? (
-											<AppImageHelp
-												caveat={link.caveat}
+											<HelpToggle
+												label="AppImage window won't open? Click here for how to run it and what causes the error."
+												summary={link.caveat.summary}
+												command={link.caveat.command}
 												onCopy={copyCommand}
 												copied={copied}
 											/>
@@ -275,6 +311,13 @@ export function DownloadModal({
 								))
 							)}
 						</div>
+						{platform.key === "mac" ? (
+							<HelpToggle
+								label={MACOS_GATEKEEPER_CAVEAT.label}
+								summary={MACOS_GATEKEEPER_CAVEAT.summary}
+								link={MACOS_GATEKEEPER_CAVEAT.link}
+							/>
+						) : null}
 						<a className="modal-more" href={RELEASES_URL}>
 							See all releases
 							<Icon name="open_in_new" size={14} />

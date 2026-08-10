@@ -144,9 +144,41 @@ describe("App", () => {
 		).toBeInTheDocument();
 		expect(
 			within(dialog).getByRole("button", {
-				name: /copy the appimage workaround command/i,
+				name: /copy the workaround command/i,
 			}),
 		).toBeInTheDocument();
+	});
+
+	it("macOS modal explains the Gatekeeper 'unknown developer' warning with an Apple link", async () => {
+		render(<App />);
+
+		fireEvent.click(
+			screen.getByRole("button", { name: /download vorynth for macos/i }),
+		);
+
+		const dialog = await screen.findByRole("dialog", {
+			name: /download vorynth for macos/i,
+		});
+
+		const toggle = await within(dialog).findByRole("button", {
+			name: /unknown developer/i,
+		});
+		expect(toggle).toHaveAttribute("aria-expanded", "false");
+		fireEvent.click(toggle);
+		expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+		expect(
+			within(dialog).getByText(/paid Apple Developer account/i),
+		).toBeInTheDocument();
+		expect(
+			within(dialog).getByText(/does NOT mean the app is broken or unsafe/i),
+		).toBeInTheDocument();
+		expect(
+			within(dialog).getByRole("link", { name: /apple support/i }),
+		).toHaveAttribute(
+			"href",
+			"https://support.apple.com/en-ie/guide/mac-help/mh40616/mac",
+		);
 	});
 
 	it("copies the Homebrew command when the copy button is clicked", async () => {
