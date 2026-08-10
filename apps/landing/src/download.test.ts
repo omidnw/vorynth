@@ -287,6 +287,26 @@ describe("platformDownloadLinks", () => {
 		]);
 	});
 
+	it("linux AppImage links carry the Wayland caveat; deb/rpm do not", () => {
+		const links = platformDownloadLinks("linux", "1.8.0", [
+			{ name: "Vorynth_1.9.0_amd64.AppImage", url: "https://d/appimage" },
+			{ name: "Vorynth_1.9.0_arm64.deb", url: "https://d/arm64.deb" },
+			{ name: "Vorynth_1.9.0_x64.rpm", url: "https://d/x64.rpm" },
+		]);
+		const appImages = links.filter((l) => l.label.includes("AppImage"));
+		expect(appImages.length).toBeGreaterThan(0);
+		for (const link of appImages) {
+			expect(link.caveat?.summary).toMatch(/Wayland with Mesa 25/i);
+			expect(link.caveat?.command).toMatch(/LD_PRELOAD/);
+			expect(link.caveat?.command).toMatch(/libwayland-client/);
+		}
+		expect(
+			links
+				.filter((l) => !l.label.includes("AppImage"))
+				.every((l) => !l.caveat),
+		).toBe(true);
+	});
+
 	it("mac → both DMGs (Apple Silicon + Intel) plus the Homebrew cask command", () => {
 		const links = platformDownloadLinks("mac", "1.8.0", [
 			...ASSETS,

@@ -111,6 +111,44 @@ describe("App", () => {
 		expect(screen.getByText(/click any platform box/i)).toBeInTheDocument();
 	});
 
+	it("linux modal explains the AppImage Wayland workaround with a copyable command", async () => {
+		render(<App />);
+
+		fireEvent.click(
+			screen.getByRole("button", { name: /download vorynth for linux/i }),
+		);
+
+		const dialog = await screen.findByRole("dialog", {
+			name: /download vorynth for linux/i,
+		});
+
+		// The AppImage downloads keep their plain hints…
+		expect(
+			within(dialog).getByText(/x86_64 · no install/i),
+		).toBeInTheDocument();
+		expect(within(dialog).getByText(/ARM64 · no install/i)).toBeInTheDocument();
+
+		// …and below them an expandable help row explains the fix.
+		const toggle = await within(dialog).findByRole("button", {
+			name: /appimage window won't open/i,
+		});
+		expect(toggle).toHaveAttribute("aria-expanded", "false");
+		fireEvent.click(toggle);
+		expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+		expect(
+			within(dialog).getByText(/bundled WebKit can't initialize its display/i),
+		).toBeInTheDocument();
+		expect(
+			within(dialog).getByText(/LD_PRELOAD=.*libwayland-client/i),
+		).toBeInTheDocument();
+		expect(
+			within(dialog).getByRole("button", {
+				name: /copy the appimage workaround command/i,
+			}),
+		).toBeInTheDocument();
+	});
+
 	it("copies the Homebrew command when the copy button is clicked", async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		Object.defineProperty(window.navigator, "clipboard", {

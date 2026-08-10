@@ -11,6 +11,62 @@ import { Icon } from "./Icon";
 
 const GUIDE_URL = "https://github.com/omidnw/vorynth/blob/master/docs/GUIDE.md";
 
+/** AppImage help — a clickable "?" row below the AppImage downloads that
+ *  expands into the cause plus a copyable fix command (collapse/expand with a
+ *  small animation, matching the app's motion language). */
+function AppImageHelp({
+	caveat,
+	onCopy,
+	copied,
+}: {
+	caveat: NonNullable<DownloadLink["caveat"]>;
+	onCopy: (command: string) => void;
+	copied: boolean;
+}) {
+	const [open, setOpen] = useState(false);
+	return (
+		<div className="appimage-help">
+			<button
+				type="button"
+				className="appimage-help-toggle"
+				aria-expanded={open}
+				aria-controls="appimage-help-panel"
+				onClick={() => setOpen((v) => !v)}
+			>
+				<Icon name={open ? "help" : "help_outline"} size={16} />
+				<span className="appimage-help-toggle-text">
+					AppImage window won&apos;t open? Click here for how to run it and what
+					causes the error.
+				</span>
+				<span className={`appimage-help-chevron${open ? " open" : ""}`}>
+					<Icon name="expand_more" size={18} />
+				</span>
+			</button>
+			{open ? (
+				<div className="appimage-help-panel" id="appimage-help-panel">
+					<p className="appimage-help-text">{caveat.summary}</p>
+					<div className="modal-command-wrap">
+						<div className="modal-command-label">
+							<Icon name="terminal" size={16} />
+							Fix
+							<button
+								type="button"
+								className="modal-copy"
+								onClick={() => onCopy(caveat.command)}
+								aria-label="Copy the AppImage workaround command"
+							>
+								<Icon name={copied ? "check" : "content_copy"} size={14} />
+								{copied ? "Copied" : "Copy"}
+							</button>
+						</div>
+						<code className="modal-command">{caveat.command}</code>
+					</div>
+				</div>
+			) : null}
+		</div>
+	);
+}
+
 /** Download dialog shown when a platform card is clicked. Links come from the
  *  latest GitHub release when reachable (so they always match what's actually
  *  published), falling back to the bundled VORYNTH_VERSION offline. */
@@ -88,6 +144,11 @@ export function DownloadModal({
 			cancelled = true;
 		};
 	}, [platform, sourceOnly]);
+
+	// The AppImage caveat help row renders once, below the last AppImage link.
+	const lastCaveatIndex = links
+		? links.map((l) => Boolean(l.caveat)).lastIndexOf(true)
+		: -1;
 
 	return (
 		<div className="modal-overlay" onClick={onClose}>
@@ -172,7 +233,7 @@ export function DownloadModal({
 							{links === null ? (
 								<span className="modal-loading">Checking GitHub…</span>
 							) : (
-								links.map((link) => (
+								links.map((link, index) => (
 									<div key={link.url ?? link.command} className="modal-link">
 										{link.url ? (
 											<a className="btn btn-primary" href={link.url}>
@@ -202,6 +263,13 @@ export function DownloadModal({
 										)}
 										{link.hint ? (
 											<span className="modal-hint">{link.hint}</span>
+										) : null}
+										{link.caveat && index === lastCaveatIndex ? (
+											<AppImageHelp
+												caveat={link.caveat}
+												onCopy={copyCommand}
+												copied={copied}
+											/>
 										) : null}
 									</div>
 								))

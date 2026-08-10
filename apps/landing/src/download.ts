@@ -205,6 +205,12 @@ export interface DownloadLink {
 	command?: string;
 	/** Short context line shown under the link (e.g. which distro family). */
 	hint?: string;
+	/** Longer explanation shown behind the AppImage "?" toggle — what's wrong,
+	 *  why, and the fix command rendered in a copyable code box. */
+	caveat?: {
+		summary: string;
+		command: string;
+	};
 }
 
 const GITHUB_API_LATEST =
@@ -257,11 +263,24 @@ const HOMEBREW_ENTRY: DownloadLink = {
 	hint: "Recommended — installs and auto-updates via Homebrew.",
 };
 
+/** AppImage caveat — the bundle ships its own libwayland-client (from the
+ *  Ubuntu 24.04 build container). On Wayland sessions with Mesa 25+, WebKit's
+ *  EGL display init fails against that stale library and the window never
+ *  opens. The fix command forces the system's library instead; the .deb/.rpm
+ *  are unaffected (they use the system's WebKit). Shown behind the "?" toggle
+ *  on AppImage download links. */
+const APPIMAGE_WAYLAND_CAVEAT = {
+	summary:
+		"On Wayland with Mesa 25+, the AppImage's bundled WebKit can't initialize its display — it ships its own libwayland-client that newer Mesa rejects — so the window never opens. The .deb and .rpm use the system's WebKit and are unaffected.",
+	command:
+		"LD_PRELOAD=\"$(find /usr/lib -name 'libwayland-client.so.0' | head -1)\" ./Vorynth_*.AppImage",
+};
+
 /** Label + context hint for a release asset on a given platform. */
 function labelAsset(
 	name: string,
 	key: PlatformKey,
-): Pick<DownloadLink, "label" | "hint"> {
+): Pick<DownloadLink, "label" | "hint" | "caveat"> {
 	if (key === "mac") {
 		if (/aarch64|arm64/i.test(name)) {
 			return {
@@ -294,6 +313,7 @@ function labelAsset(
 			return {
 				label: "AppImage — any glibc-based distro",
 				hint: `${arch} · no install — download, make executable, run.`,
+				caveat: APPIMAGE_WAYLAND_CAVEAT,
 			};
 		}
 		if (/\.rpm$/i.test(name)) {
@@ -327,11 +347,13 @@ function linuxFallback(version: string): DownloadLink[] {
 			label: "AppImage — any glibc-based distro",
 			url: url(`Vorynth_${version}_amd64.AppImage`),
 			hint: "x86_64 · no install — download, make executable, run.",
+			caveat: APPIMAGE_WAYLAND_CAVEAT,
 		},
 		{
 			label: "AppImage — any glibc-based distro",
 			url: url(`Vorynth_${version}_aarch64.AppImage`),
 			hint: "ARM64 · no install — download, make executable, run.",
+			caveat: APPIMAGE_WAYLAND_CAVEAT,
 		},
 		{
 			label: "DEB — Debian & Ubuntu",
@@ -389,11 +411,15 @@ export function platformDownloadLinks(
 		);
 		links =
 			hits.length > 0
-				? hits.map((a) => ({
-						label: labelAsset(a.name, key).label,
-						url: a.url,
-						hint: labelAsset(a.name, key).hint,
-					}))
+				? hits.map((a) => {
+						const l = labelAsset(a.name, key);
+						return {
+							label: l.label,
+							url: a.url,
+							hint: l.hint,
+							caveat: l.caveat,
+						};
+					})
 				: fallbackLinks(key, version);
 	} else {
 		links = fallbackLinks(key, version);
