@@ -46,6 +46,13 @@ async function bootstrap() {
 		{ bufferLogs: true },
 	);
 
+	// Run the module lifecycle hooks NOW — most importantly the Database
+	// service's migration (creates the schema + seeds defaults). `resolveHost`
+	// below reads `app_settings`, which must exist even on a FRESH database;
+	// deferring init to `app.listen()` made a fresh install crash with
+	// "no such table: app_settings" (only existing DBs masked it).
+	await app.init();
+
 	app.enableShutdownHooks();
 	app.useGlobalPipes(
 		new ValidationPipe({
