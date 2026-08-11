@@ -454,6 +454,10 @@ jobs:
         uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The runner's Node sometimes can't verify GitHub's TLS chain when
+          # uploading release assets ("self-signed certificate") — use the OS
+          # CA store so the upload isn't flaky.
+          NODE_OPTIONS: --use-system-ca
           # Updater signing (v1.8.0): when present, tauri-cli signs every bundle
           # (`.sig` files) and tauri-action merges them into latest.json — the
           # manifest the in-app updater reads. Store the private key (contents
