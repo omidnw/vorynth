@@ -106,7 +106,9 @@ export function BookmarksPage() {
 						</div>
 					</div>
 					<Link
-						to="/archive"
+						// v1.8.1 — "Organize your saved items" should land on the
+						// COLLECTIONS view, not the flat Items list.
+						to="/archive/collections"
 						className="inline-flex items-center gap-1 font-label text-label-sm text-primary transition-colors hover:text-secondary"
 					>
 						<Icon name="open_in_new" className="text-[16px]" />

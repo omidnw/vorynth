@@ -26,6 +26,8 @@ export const es: TranslationCatalog = {
 		docsTransparency: "Transparencia",
 		docsExpand: "Expandir secciones de documentación",
 		docsCollapse: "Contraer secciones de documentación",
+		archiveExpand: "Expandir el menú de Archivo",
+		archiveCollapse: "Contraer el menú de Archivo",
 		jobsActive_one: "{{count}} trabajo",
 		jobsActive_other: "{{count}} trabajos",
 		items: "Elementos",
@@ -39,6 +41,13 @@ export const es: TranslationCatalog = {
 		title: "Breve de inteligencia de hoy",
 		timer: "Resumen de 10 minutos",
 		stories: "{{count}} historias",
+		searchPlaceholder: "Buscar en el archivo…",
+		viewSelectorAria: "Vista predeterminada de las historias",
+		viewSelectorHint:
+			"Cómo se abren las tarjetas: Auto muestra el análisis cuando existe, Artículo abre el texto, Análisis siempre abre el análisis.",
+		viewAuto: "Auto",
+		viewArticle: "Artículo",
+		viewInsights: "Análisis",
 		sources: "{{count}} fuentes",
 		intelligenceOn: "Modo inteligencia — enriquecimiento con IA activo",
 		newsMode: "Modo noticias — ordenado por frescura y fiabilidad",
@@ -64,6 +73,18 @@ export const es: TranslationCatalog = {
 		emptyRangeTitle: "No hay historias en este rango",
 		emptyRangeBody:
 			"O bien aún no se ha recopilado ningún artículo, o ninguno cae en el período seleccionado. Pulsa <em>Recopilar</em> para traer historias nuevas — sin necesidad de clave API.",
+		searchPage: "Página de búsqueda",
+		searchStories: "Buscar en estas historias…",
+		searchCount: "{{shown}} de {{total}} historias",
+		searchNoResults: "Ninguna historia coincide con tu búsqueda.",
+		updateBrief: "Actualizar mi resumen",
+		updateBriefHint:
+			"Recopila nuevas historias y regenera el resumen con un toque.",
+		generateHint: "Regenera el análisis de IA para el período actual.",
+		generateAnalysis: "Generar análisis",
+		generatingAnalysis: "Generando…",
+		sectionFilters: "Filtros",
+		sectionStories: "Historias",
 	},
 	storyViews: {
 		title: "Historias vistas",
@@ -74,6 +95,8 @@ export const es: TranslationCatalog = {
 		scopeInsight: "Análisis",
 		scopeArticle: "Artículo",
 		scopeBoth: "Análisis + artículo",
+		markReadAria: "Marcar como leído",
+		markUnreadAria: "Marcar como no leído",
 	},
 	why: "Por qué importa",
 	impact: "Impacto",
@@ -204,9 +227,45 @@ export const es: TranslationCatalog = {
 		backgroundTip:
 			"Cuando la ventana está cerrada, Vorynth sigue funcionando en segundo plano: sale por completo del Dock (nada muerto que pulsar) y vive en la barra de menú, tus fuentes siguen recopilándose para que el breve esté listo cuando vuelvas, y Salir desde la bandeja lo cierra por completo.",
 		advancedTitle: "Avanzado",
+		showHeaderLabels: "Mostrar etiquetas junto a los iconos del encabezado",
+		showHeaderLabelsHint:
+			"Texto junto a los iconos de historial, tema y notificaciones en la barra superior. Desactívalo para un encabezado compacto.",
+		navigationTitle: "Navegación",
+		navSidebar: "Barra lateral",
+		navInpage: "En la página",
+		navigationHint:
+			"Dónde viven las subpáginas del Archivo (Elementos, Colecciones, Guardados, Búsqueda, Papelera): un submenú en la barra lateral o la fila de pestañas dentro de la página del Archivo.",
 		showAdvancedFeatures: "Mostrar funciones avanzadas",
 		showAdvancedFeaturesHint:
 			"Revela la página de plugins — los conectores de fuentes y plugins de interfaz que ejecuta Vorynth. La mayoría nunca lo necesita: los conectores de tus fuentes se resuelven automáticamente. Actívalo solo si quieres ver y gestionar la maquinaria tú mismo.",
+		showPlugins: "Mostrar la página de Plugins",
+		showPluginsHint:
+			"Independiente de los ajustes de desarrollador: desactívalo si solo activaste las funciones avanzadas para la sección Developer.",
+		developerTitle: "Desarrollador",
+		developerHint:
+			"Desarrollo contra el motor local: el endpoint de la API y la app que sirve, además de quién puede llamarla por red.",
+		backendUrl: "URL del backend",
+		frontendUrl: "URL del frontend",
+		sameOriginNote:
+			"El motor sirve la app en la misma dirección — ábrela en cualquier navegador.",
+		networkAccess: "Acceso a la red",
+		accessLocal: "Solo local",
+		accessLocalHint:
+			"127.0.0.1 — el motor solo responde en este dispositivo. Predeterminado.",
+		accessAll: "Permitir todo",
+		accessAllHint:
+			"0.0.0.0 — accesible desde cualquier dispositivo de la red (backend y frontend); CORS abierto a cualquier origen.",
+		accessCustom: "IP personalizadas",
+		accessCustomHint:
+			"Solo las IP que indiques (además de 127.0.0.1) pueden llamar al motor desde un navegador.",
+		allowedIps: "IP permitidas",
+		allowedIpsHint:
+			"Separadas por comas — p. ej. 192.168.9.160,10.0.0.5. Permitidas junto a 127.0.0.1.",
+		reachableAt: "Accesible en",
+		networkSecurityNote:
+			"Vorynth no tiene inicio de sesión. Abrirlo a tu red permite que cualquiera en esa red lea y controle tus datos. Actívalo solo en una red de confianza.",
+		networkRestartNote:
+			"La dirección de escucha se aplica la próxima vez que se inicie Vorynth; las reglas CORS e IP se aplican de inmediato.",
 		searchPlaceholder: "Buscar en los ajustes…",
 		searchHint:
 			"Escribe para filtrar — las secciones sin coincidencias se atenúan.",
@@ -350,6 +409,40 @@ export const es: TranslationCatalog = {
 		fontImport: "Importar fuente personalizada",
 		fontReset: "Restablecer",
 		fontImportFailed: "No se pudo cargar el archivo de fuente.",
+		briefActionsTitle: "Acciones de la tarjeta de historia",
+		briefActionsHint:
+			"Ordena los botones de cada tarjeta y elige cuáles van detrás del menú «Más». Arrastra para reordenar.",
+		briefAction: {
+			readSource: "Leer fuente",
+			viewToggle: "Vista",
+			save: "Guardar",
+			inMore: "Mostrar en el menú «Más»",
+		},
+		readerActionsTitle: "Acciones del lector",
+		readerActionsHint:
+			"Ordena los botones de la barra inferior del lector arrastrándolos y elige cuáles van detrás del menú «⋮ Más». Se aplica a las páginas de artículo y de análisis: no se oculta nada.",
+		readerInBar: "En la barra del lector",
+		readerInMore: "Detrás de «⋮ Más»",
+		briefInBar: "En la barra de la tarjeta",
+		briefInMore: "Detrás de «⋮ Más»",
+		readerSettings: "Ajustes del lector",
+		supportReminder: "Mostrar recordatorio de 'apoyar al autor'",
+		supportReminderHint:
+			"Te orienta hacia el sitio original antes de abrir el lector integrado.",
+		keepMediaLocal: "Guardar medios localmente por defecto",
+		keepMediaLocalHint:
+			"Cuando está activo, los medios de los artículos que abres se descargan para lectura sin conexión. Apagado por defecto — los medios se transmiten desde la fuente.",
+		cardClick: "Clic en tarjeta",
+		cardClickHint:
+			"Cómo reacciona una tarjeta de historia cuando presionas y arrastras sobre ella.",
+		dragSelectsText: "Arrastrar selecciona texto",
+		dragSelectsTextHint:
+			"Cuando está activo (por defecto), arrastrar el ratón sobre una historia selecciona el texto sin abrirla — se requiere un clic limpio para abrir. Apágalo si nunca seleccionas texto con el ratón y quieres que cualquier presión-soltado abra la historia.",
+		resetAll: "Restablecer todo",
+		resetting: "Restableciendo…",
+		confirmDialogs: "Diálogos de confirmación",
+		confirmDialogsHint:
+			"Restablece las opciones de «no volver a preguntar» para que Vorynth vuelva a pedir confirmación antes de acciones destructivas.",
 	},
 	provider: {
 		label: "Etiqueta",
@@ -370,8 +463,26 @@ export const es: TranslationCatalog = {
 			"Esta clave no se puede descifrar — es probable que la clave de cifrado local se perdiera al restaurar o limpiar tus datos. Elimina este proveedor y añádelo de nuevo con tu clave API.",
 		labelPlaceholder: "Mi clave Gemini",
 		apiKeyPlaceholder: "pegar clave…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"Déjalo vacío para usar la API oficial de OpenAI (https://api.openai.com/v1).",
+		ollamaMode: "Modo",
+		ollamaLocal: "Local",
+		ollamaCloud: "Nube",
+		ollamaLocalHint:
+			"Tu propio servidor Ollama: se ejecuta en este equipo, sin clave de API.",
+		ollamaCloudHint:
+			"El servicio alojado de Ollama: modelos grandes sin GPU local. Requiere una clave de API de ollama.com/settings/keys.",
 		removeAria: "Eliminar",
+		modelRequired: "Introduce el nombre del modelo.",
+		geminiDocs: "Modelos de Gemini: ",
+		geminiFreeTip:
+			"A partir del 10 de agosto de 2026, gemini-3.1-flash-lite es gratuito con 500 solicitudes al día.",
+		openaiDocs: "Modelos de OpenAI: ",
+		anthropicDocs: "Documentación de Claude: ",
+		ollamaDocs: "Documentación de Ollama: ",
+		ollamaHostTip:
+			"Ollama actúa como proveedor HOST: sus modelos pueden ofrecerse de forma distinta en distintos momentos; consulta su documentación para ver la lista actual.",
 	},
 	onboarding: {
 		welcome: "Bienvenido a Vorynth",
@@ -383,7 +494,7 @@ export const es: TranslationCatalog = {
 		begin: "Empezar",
 		config: "Hazlo más inteligente (opcional)",
 		configBody:
-			"Conecta un servicio de IA para añadir «Por qué importa», «Impacto» y un siguiente paso recomendado a cada historia. Omítelo — Vorynth funciona muy bien solo.",
+			"Conecta un servicio de IA opcional y Vorynth añade una nota corta y sencilla a cada historia — por qué importa, qué cambió y qué puedes hacer. Puedes omitirlo: el resumen diario funciona por sí solo.",
 		selectProvider: "Elige un servicio de IA",
 		apiKey: "Clave API",
 		apiKeyHint:
@@ -392,6 +503,7 @@ export const es: TranslationCatalog = {
 		newsOnlyBody:
 			"El modo noticias recopila y ordena historias sin IA. Puedes añadir un servicio de IA cuando quieras en Ajustes.",
 		continue: "Continuar",
+		modelHint: "Déjalo vacío para usar el modelo predeterminado del proveedor.",
 		back: "Atrás",
 		savingProvider: "Guardando…",
 		topics: "¿Qué te importa?",
@@ -422,13 +534,14 @@ export const es: TranslationCatalog = {
 		recapNews: "Noticias",
 		recapTopics: "Temas",
 		recapNoTopics: "Ninguno — fuentes oficiales",
+		recapNoTopicsOff: "Ninguno — fuentes oficiales desactivadas",
 		recapUiLanguage: "Idioma de la app",
 		recapAiLanguage: "Idioma de IA",
 		officialSources: "Mantener activas las fuentes oficiales",
 		officialSourcesHint:
 			"La lista oficial de noticias de desarrolladores de Vorynth llena tu resumen por defecto. Desactívala si solo quieres tus propios temas.",
-		emptyTopicsOffBody:
-			"No seleccionaste temas y las fuentes oficiales están desactivadas; tu resumen estará vacío. ¿Mantenemos las fuentes oficiales activas?",
+		previewOfficialSources: "Ver fuentes oficiales",
+		officialSourcesListName: "La lista oficial de desarrolladores de Vorynth",
 		modesTitle: "Modo Noticias frente a Modo Inteligencia",
 		newsModeBody:
 			"El modo Noticias recopila y clasifica historias sin IA: sin clave, totalmente privado y funciona en cualquier equipo.",
@@ -446,6 +559,7 @@ export const es: TranslationCatalog = {
 		futureProvidersTip:
 			"Consejo: en el futuro se añadirán más proveedores a esta lista; consulta siempre el registro de cambios.",
 		recapNote: "Todo puede cambiarse en cualquier momento en Ajustes y Perfil.",
+		modelRequired: "Introduce el nombre del modelo para continuar.",
 	},
 	analyzing: {
 		title: "Destilando inteligencia",
@@ -468,6 +582,10 @@ export const es: TranslationCatalog = {
 		trend: "Tendencia",
 		"low-noise": "Bajo ruido",
 	},
+	docs: {
+		searchPlaceholder: "Buscar en la documentación…",
+		noResults: "Ningún documento coincide con «{{q}}».",
+	},
 	common: {
 		collect: "Recopilar",
 		collecting: "Recopilando…",
@@ -475,7 +593,9 @@ export const es: TranslationCatalog = {
 		generating: "Generando…",
 		back: "Atrás",
 		cancel: "Cancelar",
+		close: "Cerrar",
 		noResults: "Sin coincidencias",
+		dontShowAgain: "No volver a mostrar",
 	},
 	archive: {
 		deleteTitle: "¿Eliminar permanentemente?",
@@ -498,6 +618,7 @@ export const es: TranslationCatalog = {
 		moveTo: "Mover a…",
 		archived: "Archivado",
 		item_one: "elemento",
+		showMore: "Mostrar {{count}} más ({{remaining}} restantes)",
 		item_other: "elementos",
 		showArchived: "Mostrar archivados",
 		showingArchived: "Mostrando archivados",
@@ -589,8 +710,8 @@ export const es: TranslationCatalog = {
 		article: "Artículo",
 		openOriginal: "Abrir original",
 		readInVorynth: "Leer en Vorynth",
-		dontShowAgain: "No volver a mostrar esto —",
 		changeInProfile: "cámbialo luego en Perfil.",
+		dontShowAgain: "No volver a mostrar esto —",
 	},
 	profile: {
 		title: "Perfil",
@@ -667,44 +788,19 @@ export const es: TranslationCatalog = {
 		recentSearches: "Búsquedas recientes",
 		noActivity:
 			"Aún no hay actividad. Ejecuta una búsqueda o lee un resumen para llenar esto.",
-		readerSettings: "Ajustes del lector",
-		supportReminder: "Mostrar recordatorio de 'apoyar al autor'",
-		supportReminderHint:
-			"Te orienta hacia el sitio original antes de abrir el lector integrado.",
-		keepMediaLocal: "Guardar medios localmente por defecto",
-		keepMediaLocalHint:
-			"Cuando está activo, los medios de los artículos que abres se descargan para lectura sin conexión. Apagado por defecto — los medios se transmiten desde la fuente.",
 		aiLanguage: "Idioma de salida de IA",
 		aiLanguageHint:
 			"El idioma que usa la IA de Vorynth al responder tus preguntas, generar resúmenes y escribir breves. Elige el idioma en el que quieres las perspectivas.",
-		readerActions: "Acciones del lector",
-		readerActionsHint:
-			"Elige qué acciones de historia permanecen en la barra inferior del lector. Todo lo demás va detrás del menú '⋮ Más' — nada se oculta.",
-		pinned: "En la barra del lector",
-		moreMenu: "Detrás de '⋮ Más'",
-		readerActionsOverflow:
-			"La barra del lector está diseñada para cinco acciones — fijar más puede saturarla.",
-		cardClick: "Clic en tarjeta",
-		cardClickHint:
-			"Cómo reacciona una tarjeta de historia cuando presionas y arrastras sobre ella.",
-		dragSelectsText: "Arrastrar selecciona texto",
-		dragSelectsTextHint:
-			"Cuando está activo (por defecto), arrastrar el ratón sobre una historia selecciona el texto sin abrirla — se requiere un clic limpio para abrir. Apágalo si nunca seleccionas texto con el ratón y quieres que cualquier presión-soltado abra la historia.",
 		aiLanguageAria: "Idioma de salida de IA",
-		resetAll: "Restablecer todo",
-		resetting: "Restableciendo…",
 		categoryIdentity: "Quién eres",
 		categoryAi: "Cómo escribe la IA",
 		categoryLanguages: "Idiomas",
-		categoryReading: "Lectura",
 		searchIdentity:
 			"identidad nombre apellido alias resumen comportamiento intereses temas identity",
 		searchAi:
 			"instrucción personalizada salida ai idioma escribir custom instruction",
 		searchLanguages:
 			"idioma interfaz inglés persa árabe coreano japonés chino hebreo español alemán ruso language",
-		searchReading:
-			"lectura configuración apoyo autor recordatorio medios local acciones clic arrastrar seleccionar texto reader",
 	},
 	media: {
 		title: "Medios locales",
@@ -878,6 +974,8 @@ export const es: TranslationCatalog = {
 		test: "Probar",
 		testing: "Probando…",
 		testOk: "Funciona — {{count}} elemento(s) encontrado(s)",
+		testMissingFields: "La prueba necesita estos campos: {{fields}}",
+		fieldName: "Nombre",
 		testFail: "No se pudo obtener — {{message}}",
 		configLabel: "{{label}}",
 		testHint:
@@ -1033,9 +1131,32 @@ export const es: TranslationCatalog = {
 		listEnableAria: "Encender {{name}}",
 		expandAria: "Mostrar fuentes en {{name}}",
 		collapseAria: "Ocultar fuentes en {{name}}",
+		previewAria: "Vista previa de {{name}}",
+		previewTitle: "{{name}} — fuentes",
+		previewBody: "{{count}} sitios en esta lista.",
+		previewLoading: "Cargando…",
+		previewEmpty: "Esta lista aún no tiene fuentes.",
+		previewOn: "Activado",
+		previewOff: "Desactivado",
 		editDisabledNote:
 			"Las fuentes de una lista no se pueden eliminar individualmente — oculta la lista completa en su lugar.",
 		sourceCountLabel: "{{count}} fuentes",
+		deleteListAria: "Eliminar lista {{name}}",
+		deleteTitle: "¿Eliminar esta lista?",
+		deleteMessage:
+			"{{name}} y sus {{count}} fuentes se eliminarán de forma permanente. Las historias recopiladas también se eliminan; esto no se puede deshacer.",
+		deleteConfirm: "Eliminar lista",
+		deleteForceTitle: "Se eliminarán las historias guardadas",
+		deleteForceBody:
+			"{{count}} historia(s) guardada(s) pertenece(n) a esta lista y también se eliminarán. ¿Eliminar de todos modos?",
+		deleteForceConfirm: "Eliminar de todos modos",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "Actualizar {{name}}",
+		updateListHint:
+			"Comprueba en el repositorio de la comunidad si hay una versión más reciente de esta lista.",
+		updating: "Actualizando…",
+		updated: "Actualizada",
+		upToDate: "Al día",
 	},
 	reference: {
 		greeting: "Hola — este plugin está vivo y contribuyendo.",
@@ -1442,6 +1563,10 @@ export const es: TranslationCatalog = {
 		fromProfile: "desde Perfil",
 		titleSearch: "Historial de búsquedas",
 		tabViews: "Historias vistas",
+		filterPlaceholder: "Filtrar este historial…",
+		recordKeywordTip:
+			"Las búsquedas por palabras clave solo aparecen aquí cuando está activado «Registrar búsquedas por palabras clave»; las búsquedas de IA y los resúmenes siempre se registran.",
+		openSettings: "Abrir ajustes",
 		fromSearch: "desde Búsqueda",
 		entries: "{{count}} entradas",
 		select: "Seleccionar",
@@ -1606,6 +1731,8 @@ export const es: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "Idioma de origen",
+		viewInsight: "Vista de análisis",
+		viewArticle: "Vista de artículo",
 		outputLanguage: "Idioma de salida",
 		generated: "Generado",
 		mixed: "Mixto",

@@ -26,6 +26,8 @@ export const he: TranslationCatalog = {
 		docsTransparency: "שקיפות",
 		docsExpand: "הרחבת קטעי תיעוד",
 		docsCollapse: "כיווץ קטעי תיעוד",
+		archiveExpand: "הרחבת תפריט הארכיון",
+		archiveCollapse: "כיווץ תפריט הארכיון",
 		jobsActive_one: "{{count}} משימה",
 		jobsActive_other: "{{count}} משימות",
 		items: "פריטים",
@@ -39,6 +41,13 @@ export const he: TranslationCatalog = {
 		title: "בריף המודיעין היומי",
 		timer: "בריף של 10 דקות",
 		stories: "{{count}} סיפורים",
+		searchPlaceholder: "חיפוש בארכיון…",
+		viewSelectorAria: "תצוגת ברירת מחדל לסיפורים",
+		viewSelectorHint:
+			"איך נפתחות כרטיסיות הסיפור: אוטומטי מציג תובנות כשקיימות, מאמר פותח את הטקסט, תובנות פותחות תמיד את הניתוח.",
+		viewAuto: "אוטומטי",
+		viewArticle: "מאמר",
+		viewInsights: "תובנות",
 		sources: "{{count}} מקורות",
 		intelligenceOn: "מצב מודיעין — העשרה ב-AI פעילה",
 		newsMode: "מצב חדשות — מדורג לפי טריות ואמינות",
@@ -64,6 +73,17 @@ export const he: TranslationCatalog = {
 		emptyRangeTitle: "אין סיפורים בטווח הזה",
 		emptyRangeBody:
 			"או שעדיין לא נאספו מאמרים, או שאין כאלה שנכללים בתקופה שנבחרה. לחצו על <em>Collect</em> כדי למשוך סיפורים טריים — ללא צורך במפתח API.",
+		searchPage: "דף חיפוש",
+		searchStories: "חפשו בסיפורים האלה…",
+		searchCount: "{{shown}} מתוך {{total}} סיפורים",
+		searchNoResults: "אין סיפורים התואמים לחיפוש שלך.",
+		updateBrief: "עדכון הסיכום שלי",
+		updateBriefHint: "אוסף סיפורים חדשים ומפיק מחדש את הסיכום בהקשה אחת.",
+		generateHint: "מפיק מחדש את ניתוח הבינה המלאכותית לתקופה הנוכחית.",
+		generateAnalysis: "צור ניתוח",
+		generatingAnalysis: "נוצר…",
+		sectionFilters: "מסננים",
+		sectionStories: "סיפורים",
 	},
 	storyViews: {
 		title: "סיפורים שנצפו",
@@ -73,6 +93,8 @@ export const he: TranslationCatalog = {
 		scopeInsight: "אינסייט",
 		scopeArticle: "מאמר",
 		scopeBoth: "אינסייט + מאמר",
+		markReadAria: "סמן כנקרא",
+		markUnreadAria: "סמן כלא נקרא",
 	},
 	why: "למה זה חשוב",
 	impact: "ההשפעה",
@@ -199,9 +221,44 @@ export const he: TranslationCatalog = {
 		backgroundTip:
 			"כשהחלון סגור, Vorynth ממשיך לרוץ ברקע: הוא עוזב את ה-Dock לגמרי (אין שום דבר מת ללחוץ עליו) וגר בשורת התפריטים, המקורות שלכם ממשיכים להיאסף כך שהבריף מוכן כשאתם חוזרים, ו'יציאה' מהמגש מסיימת לגמרי.",
 		advancedTitle: "מתקדם",
+		showHeaderLabels: "הצגת תוויות ליד אייקוני הכותרת",
+		showHeaderLabelsHint:
+			"טקסט ליד אייקוני ההיסטוריה, העיצוב וההודעות בסרגל העליון. כבו אותו לראש קומפקטי.",
+		navigationTitle: "ניווט",
+		navSidebar: "סרגל צד",
+		navInpage: "בתוך הדף",
+		navigationHint:
+			"היכן יחיו תת-הדפים של הארכיון (פריטים, אוספים, שמורים, חיפוש, אשפה) — תפריט משנה בסרגל הצד או שורת הטאבים בתוך דף הארכיון.",
 		showAdvancedFeatures: "הצגת תכונות מתקדמות",
 		showAdvancedFeaturesHint:
 			"חושף את עמוד התוספים — מחברי המקורות ותוספי ה-UI ש-Vorynth מריץ. רוב האנשים אף פעם לא צריכים את זה: מחברים למקורות שלכם נפתרים אוטומטית. הדליקו רק אם אתם רוצים לראות ולנהל את המנגנון בעצמכם.",
+		showPlugins: "הצגת דף התוספים",
+		showPluginsHint:
+			"נפרד מהגדרות המפתח — כבו אותו אם הפעלתם תכונות מתקדמות רק בשביל קטע המפתח.",
+		developerTitle: "מפתח",
+		developerHint:
+			"פיתוח מול המנוע המקומי — נקודת הקצה של ה-API והאפליקציה שהוא מגיש, ומי רשאי לקרוא לו ברשת.",
+		backendUrl: "כתובת Backend",
+		frontendUrl: "כתובת Frontend",
+		sameOriginNote:
+			"המנוע מגיש את האפליקציה באותה כתובת — פתחו אותה בכל דפדפן.",
+		networkAccess: "גישת רשת",
+		accessLocal: "מקומי בלבד",
+		accessLocalHint: "127.0.0.1 — המנוע עונה רק על מכשיר זה. ברירת מחדל.",
+		accessAll: "לאפשר לכולם",
+		accessAllHint:
+			"0.0.0.0 — נגיש מכל מכשיר ברשת (backend ו-frontend); CORS פתוח לכל מקור.",
+		accessCustom: "IP מותאם",
+		accessCustomHint:
+			"רק ה-IPs שתפרטו (בנוסף ל-127.0.0.1) יכולים לקרוא למנוע מדפדפן.",
+		allowedIps: "IPs מורשים",
+		allowedIpsHint:
+			"מופרדים בפסיקים — למשל 192.168.9.160,10.0.0.5. מורשים לצד 127.0.0.1.",
+		reachableAt: "נגיש בכתובת",
+		networkSecurityNote:
+			"ל-Vorynth אין התחברות. פתיחתו לרשת שלכם מאפשרת לכל אחד ברשת לקרוא ולשלוט בנתונים שלכם. הפעילו זאת רק ברשת מהימנה.",
+		networkRestartNote:
+			"כתובת ההאזנה תוחל בהפעלה הבאה של Vorynth; חוקי CORS ו-IP חלים מיד.",
 		searchPlaceholder: "חיפוש הגדרות…",
 		searchHint: "הקלידו לסינון — קטעים ללא התאמה יתעמעמו.",
 		searchButton: "חיפוש",
@@ -337,6 +394,38 @@ export const he: TranslationCatalog = {
 		fontImport: "ייבוא גופן מותאם",
 		fontReset: "איפוס",
 		fontImportFailed: "לא ניתן היה לטעון את קובץ הגופן.",
+		briefActionsTitle: "פעולות בכרטיס סיפור",
+		briefActionsHint:
+			"סדרו את הכפתורים בכל כרטיס סיפור ובחרו אילו מהם חיים מאחורי תפריט «עוד». גררו לסידור מחדש.",
+		briefAction: {
+			readSource: "קריאת מקור",
+			viewToggle: "תצוגה",
+			save: "שמירה",
+			inMore: "הצגה בתפריט «עוד»",
+		},
+		readerActionsTitle: "פעולות הקורא",
+		readerActionsHint:
+			"סדרו את הכפתורים בשורה התחתונה של הקורא על ידי גרירה ובחרו אילו יופיעו מאחורי תפריט «⋮ עוד». חל על דפי המאמר והתובנות — שום דבר לא מוסתר.",
+		readerInBar: "בשורת הקורא",
+		readerInMore: "מאחורי «⋮ עוד»",
+		briefInBar: "בשורת הכרטיס",
+		briefInMore: "מאחורי «⋮ עוד»",
+		readerSettings: "הגדרות קורא",
+		supportReminder: "הצגת תזכורת 'תמכו במחבר'",
+		supportReminderHint: "דוחף אתכם אל האתר המקורי לפני פתיחת הקורא המובנה.",
+		keepMediaLocal: "שמירת מדיה מקומית כברירת מחדל",
+		keepMediaLocalHint:
+			"כשהוא דולק, מדיה ממאמרים שפותחים מורדת לקריאה לא מקוונת. כבוי כברירת מחדל — המדיה מוזרמת מהמקור.",
+		cardClick: "לחיצה על כרטיס",
+		cardClickHint: "איך כרטיס סיפור מגיב כשאתם לוחצים וגוררים עליו.",
+		dragSelectsText: "גרירה בוחרת טקסט",
+		dragSelectsTextHint:
+			"כשהוא דולק (ברירת מחדל), גרירת העכבר מעל סיפור בוחרת טקסט בלי לפתוח אותו — נדרשת לחיצה נקייה כדי לפתוח. כבו אם אתם אף פעם לא בוחרים טקסט בעכבר ורוצים שכל לחיצה-שחרור תפתח את הסיפור.",
+		resetAll: "איפוס הכול",
+		resetting: "מאפס…",
+		confirmDialogs: "תיבות דו-שיח לאישור",
+		confirmDialogsHint:
+			"אפס את בחירות «אל תשאל שוב» כך ש-Vorynth יבקש אישור שוב לפני פעולות הרסניות.",
 	},
 	provider: {
 		label: "תווית",
@@ -357,8 +446,26 @@ export const he: TranslationCatalog = {
 			"לא ניתן לפענח את המפתח הזה — מפתח ההצפנה המקומי אבד כנראה כשהנתונים שלכם שוחזרו או נוקו. הסירו את הספק הזה והוסיפו אותו שוב עם מפתח ה-API שלכם.",
 		labelPlaceholder: "מפתח ה-Gemini שלי",
 		apiKeyPlaceholder: "הדביקו מפתח…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"השאירו ריק כדי להשתמש ב-API הרשמי של OpenAI (https://api.openai.com/v1).",
+		ollamaMode: "מצב",
+		ollamaLocal: "מקומי",
+		ollamaCloud: "ענן",
+		ollamaLocalHint:
+			"שרת Ollama משלך — פועל על המכשיר הזה, ללא צורך במפתח API.",
+		ollamaCloudHint:
+			"השירות המאוחסן של Ollama — מודלים גדולים ללא GPU מקומי. דורש מפתח API מ-ollama.com/settings/keys.",
 		removeAria: "הסרה",
+		modelRequired: "הזינו את שם המודל.",
+		geminiDocs: "מודלים של Gemini: ",
+		geminiFreeTip:
+			"נכון ל-10 באוגוסט 2026, gemini-3.1-flash-lite חינמי עם 500 בקשות ביום.",
+		openaiDocs: "מודלים של OpenAI: ",
+		anthropicDocs: "תיעוד של Claude: ",
+		ollamaDocs: "תיעוד של Ollama: ",
+		ollamaHostTip:
+			"Ollama פועל כספק HOST — המודלים שלו עשויים להיות מוצעים אחרת בזמנים שונים, אז בדקו את התיעוד לרשימה העדכנית.",
 	},
 	onboarding: {
 		welcome: "ברוכים הבאים ל-Vorynth",
@@ -370,7 +477,7 @@ export const he: TranslationCatalog = {
 		begin: "מתחילים",
 		config: "להפוך אותו לחכם יותר (אופציונלי)",
 		configBody:
-			"חברו שירות AI כדי להוסיף 'למה זה חשוב', 'ההשפעה' וצעד הבא מומלץ לכל סיפור. אפשר לדלג — Vorynth עובד מצוין גם לבד.",
+			"חברו שירות AI אופציונלי ו-Vorynth יוסיף לכל סיפור הערה קצרה ופשוטה — למה הוא חשוב, מה השתנה ומה אפשר לעשות. אפשר לדלג: הבריף היומי עובד בלעדיו.",
 		selectProvider: "בחירת שירות AI",
 		apiKey: "מפתח API",
 		apiKeyHint: "נשמר מוצפן על המכשיר הזה ונשלח רק לשירות שבחרתם.",
@@ -378,6 +485,7 @@ export const he: TranslationCatalog = {
 		newsOnlyBody:
 			"מצב חדשות אוסף ומדרג סיפורים ללא AI. אפשר להוסיף שירות AI בכל עת בהגדרות.",
 		continue: "המשך",
+		modelHint: "השאירו ריק כדי להשתמש במודל ברירת המחדל של הספק.",
 		back: "חזרה",
 		savingProvider: "שומר…",
 		topics: "מה חשוב לכם?",
@@ -407,13 +515,14 @@ export const he: TranslationCatalog = {
 		recapNews: "חדשות",
 		recapTopics: "נושאים",
 		recapNoTopics: "אף אחד — מקורות רשמיים",
+		recapNoTopicsOff: "אף אחד — מקורות רשמיים כבויים",
 		recapUiLanguage: "שפת האפליקציה",
 		recapAiLanguage: "שפת AI",
 		officialSources: "השאר מקורות רשמיים פעילים",
 		officialSourcesHint:
 			"רשימת החדשות הרשמית של Vorynth ממלאת את הבריף כברירת מחדל. כבה אותה אם אתה רוצה רק את הנושאים שלך.",
-		emptyTopicsOffBody:
-			"לא נבחרו נושאים והמקורות הרשמיים כבויים — הבריף שלך יהיה ריק. לשמור על מקורות רשמיים?",
+		previewOfficialSources: "הצגת מקורות רשמיים",
+		officialSourcesListName: "רשימת המפתחים הרשמית של Vorynth",
 		modesTitle: "מצב חדשות לעומת מצב אינטליגנציה",
 		newsModeBody:
 			"מצב חדשות אוסף ומדרג סיפורים ללא AI — ללא מפתח, פרטי לחלוטין, עובד על כל מחשב.",
@@ -431,6 +540,7 @@ export const he: TranslationCatalog = {
 		futureProvidersTip:
 			"טיפ: ספקים נוספים יתווספו לרשימה הזו בעתיד — בדקו תמיד את יומן השינויים.",
 		recapNote: "אפשר לשנות הכל בכל עת בהגדרות ובפרופיל.",
+		modelRequired: "הזינו את שם המודל כדי להמשיך.",
 	},
 	analyzing: {
 		title: "מזקקים מודיעין",
@@ -453,6 +563,10 @@ export const he: TranslationCatalog = {
 		trend: "מגמה",
 		"low-noise": "רעש נמוך",
 	},
+	docs: {
+		searchPlaceholder: "חיפוש בתיעוד…",
+		noResults: "אין תיעוד תואם ל-„{{q}}“.",
+	},
 	common: {
 		collect: "איסוף",
 		collecting: "אוסף…",
@@ -460,7 +574,9 @@ export const he: TranslationCatalog = {
 		generating: "מייצר…",
 		back: "חזרה",
 		cancel: "ביטול",
+		close: "סגירה",
 		noResults: "אין התאמות",
+		dontShowAgain: "אל תציג שוב",
 	},
 	search: {
 		title: "חיפוש",
@@ -551,6 +667,7 @@ export const he: TranslationCatalog = {
 		moveTo: "העברה אל…",
 		archived: "בארכיון",
 		item_one: "פריט",
+		showMore: "הצגת {{count}} נוספים ({{remaining}} נותרו)",
 		item_other: "פריטים",
 		showArchived: "הצג בארכיון",
 		showingArchived: "מציג בארכיון",
@@ -636,8 +753,8 @@ export const he: TranslationCatalog = {
 		article: "מאמר",
 		openOriginal: "פתיחת המקור",
 		readInVorynth: "קריאה ב-Vorynth",
-		dontShowAgain: "לא להציג שוב —",
 		changeInProfile: "ניתן לשנות מאוחר יותר בפרופיל.",
+		dontShowAgain: "לא להציג שוב —",
 	},
 	profile: {
 		title: "פרופיל",
@@ -711,41 +828,18 @@ export const he: TranslationCatalog = {
 		topCategories: "הקטגוריות המובילות",
 		recentSearches: "חיפושים אחרונים",
 		noActivity: "אין עדיין פעילות. הריצו חיפוש או קראו בריף כדי למלא את זה.",
-		readerSettings: "הגדרות קורא",
-		supportReminder: "הצגת תזכורת 'תמכו במחבר'",
-		supportReminderHint: "דוחף אתכם אל האתר המקורי לפני פתיחת הקורא המובנה.",
-		keepMediaLocal: "שמירת מדיה מקומית כברירת מחדל",
-		keepMediaLocalHint:
-			"כשהוא דולק, מדיה ממאמרים שפותחים מורדת לקריאה לא מקוונת. כבוי כברירת מחדל — המדיה מוזרמת מהמקור.",
 		aiLanguage: "שפת פלט ה-AI",
 		aiLanguageHint:
 			"השפה ש-Vorynth משתמש בה כשהבינה המלאכותית עונה לשאלות, מייצרת בריפים וכותבת סיכומים. בחרו את השפה שבה אתם רוצים תובנות.",
-		readerActions: "פעולות קורא",
-		readerActionsHint:
-			"בחרו אילו פעולות סיפור נשארות בשורת התחתית של הקורא. כל השאר עובר מאחורי תפריט '⋮ עוד' — שום דבר לא מוסתר.",
-		pinned: "בשורת הקורא",
-		moreMenu: "מאחורי '⋮ עוד'",
-		readerActionsOverflow:
-			"שורת הקורא מיועדת לחמש פעולות — הצמדת עוד עלולה להעמיס.",
-		cardClick: "לחיצה על כרטיס",
-		cardClickHint: "איך כרטיס סיפור מגיב כשאתם לוחצים וגוררים עליו.",
-		dragSelectsText: "גרירה בוחרת טקסט",
-		dragSelectsTextHint:
-			"כשהוא דולק (ברירת מחדל), גרירת העכבר מעל סיפור בוחרת טקסט בלי לפתוח אותו — נדרשת לחיצה נקייה כדי לפתוח. כבו אם אתם אף פעם לא בוחרים טקסט בעכבר ורוצים שכל לחיצה-שחרור תפתח את הסיפור.",
 		aiLanguageAria: "שפת פלט ה-AI",
-		resetAll: "איפוס הכול",
-		resetting: "מאפס…",
 		categoryIdentity: "מי אתם",
 		categoryAi: "איך ה-AI כותב",
 		categoryLanguages: "שפות",
-		categoryReading: "קריאה",
 		searchIdentity:
 			"זהות שם שם משפחה כינוי סיכום התנהגות תחומי עניין נושאים identity",
 		searchAi: "הנחיה מותאמת פלט ai שפה כתיבה custom instruction",
 		searchLanguages:
 			"שפה ממשק אנגלית פרסית ערבית קוריאנית יפנית סינית עברית ספרדית גרמנית רוסית language",
-		searchReading:
-			"קריאה הגדרות תמיכה מחבר תזכורת מדיה מקומי פעולות לחיצה גרירה בחירת טקסט reader",
 	},
 	media: {
 		title: "מדיה מקומית",
@@ -907,6 +1001,8 @@ export const he: TranslationCatalog = {
 		test: "בדיקה",
 		testing: "בודק…",
 		testOk: "עובד — נמצאו {{count}} פריטים",
+		testMissingFields: "הבדיקה דורשת שדות אלה: {{fields}}",
+		fieldName: "שם",
 		testFail: "לא ניתן היה למשוך — {{message}}",
 		configLabel: "{{label}}",
 		testHint: "מביא כמה פריטים בלי לשמור, כדי שתוכלו לבדוק את ההגדרות שלכם.",
@@ -1058,9 +1154,31 @@ export const he: TranslationCatalog = {
 		listEnableAria: "הדלקת {{name}}",
 		expandAria: "הצגת מקורות ב-{{name}}",
 		collapseAria: "הסתרת מקורות ב-{{name}}",
+		previewAria: "תצוגה מקדימה של {{name}}",
+		previewTitle: "{{name}} — מקורות",
+		previewBody: "{{count}} אתרים ברשימה זו.",
+		previewLoading: "טוען…",
+		previewEmpty: "לרשימה זו עדיין אין מקורות.",
+		previewOn: "פעיל",
+		previewOff: "כבוי",
 		editDisabledNote:
 			"אי אפשר למחוק מקורות ברשימה בנפרד — הסתירו את הרשימה כולה במקום.",
 		sourceCountLabel: "{{count}} מקורות",
+		deleteListAria: "מחק רשימה {{name}}",
+		deleteTitle: "למחוק רשימה זו?",
+		deleteMessage:
+			"{{name}} וכל {{count}} המקורות שלה יוסרו לצמיתות. גם הסיפורים שנאספו יימחקו — אי אפשר לבטל פעולה זו.",
+		deleteConfirm: "מחק רשימה",
+		deleteForceTitle: "סיפורים שמורים יימחקו",
+		deleteForceBody:
+			"{{count}} סיפור שמור שייך לרשימה זו וגם יימחק. למחוק בכל זאת?",
+		deleteForceConfirm: "מחק בכל זאת",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "עדכן {{name}}",
+		updateListHint: "בדוק במאגר הקהילה אם קיימת גרסה חדשה יותר של רשימה זו.",
+		updating: "מתעדכן…",
+		updated: "עודכן",
+		upToDate: "עדכני",
 	},
 	reference: {
 		greeting: "שלום — התוסף הזה חי ותורם.",
@@ -1380,6 +1498,10 @@ export const he: TranslationCatalog = {
 		fromProfile: "מהפרופיל",
 		titleSearch: "היסטוריית חיפושים",
 		tabViews: "סיפורים שנצפו",
+		filterPlaceholder: "סינון ההיסטוריה…",
+		recordKeywordTip:
+			"חיפושי מילות מפתח מופיעים כאן רק כשהפעלתם «רישום חיפושי מילות מפתח» — חיפושי AI ותקצירים נרשמים תמיד.",
+		openSettings: "פתיחת הגדרות",
 		fromSearch: "מהחיפוש",
 		entries: "{{count}} ערכים",
 		select: "בחירה",
@@ -1537,6 +1659,8 @@ export const he: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "שפת מקור",
+		viewInsight: "תצוגת תובנה",
+		viewArticle: "תצוגת מאמר",
 		outputLanguage: "שפת פלט",
 		generated: "נוצר",
 		mixed: "מעורב",

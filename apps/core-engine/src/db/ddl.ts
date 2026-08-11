@@ -407,6 +407,17 @@ export const ADDITIVE_DDLS = [
 	"ALTER TABLE ai_insights ADD COLUMN original_significance TEXT",
 	"ALTER TABLE ai_insights ADD COLUMN original_impact TEXT",
 	"ALTER TABLE ai_insights ADD COLUMN original_recommended_action TEXT",
+	// v1.8.1 — explicit read state on viewed stories. Opening a story marks its
+	// view read; the reader's "Mark read" button toggles it. NOT NULL with a
+	// DEFAULT so the ALTER works on non-empty tables (existing rows = unread).
+	"ALTER TABLE story_views ADD COLUMN read INTEGER NOT NULL DEFAULT 0",
+	// v1.8.1 — source-list deletion. A list the user deletes is flagged instead
+	// of removed outright (the seed skips deleted lists, so an official list
+	// stays gone across restarts — R-A10: nothing silently resurrects).
+	"ALTER TABLE source_lists ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0",
+	// v1.8.1 — a community list's repo file path (e.g. "sources/security.json"),
+	// powering the per-list "Update" button. NULL for official/imported lists.
+	"ALTER TABLE source_lists ADD COLUMN repo_path TEXT",
 ];
 
 /** Seed defaults the freshly migrated database needs to operate. */
@@ -441,9 +452,26 @@ export function seedDefaults(db: Database.Database): void {
 		// snippet-only stories, stale-translation repair, missing-insight
 		// backfill). On by default; users can turn it off from Settings.
 		"dataHealth.autoCheck": true,
-		// v1.8.0 — which story-reader footer actions stay in the primary bar;
-		// the rest move behind the "More ⋮" menu (customizable in Profile).
-		"ui.readerPinnedActions": ["markRead", "save", "share", "back"],
+		// v1.8.0 — the story-reader footer (article + insight pages): the full
+		// action ORDER (drag-reorderable in Profile) + which ones sit behind the
+		// "More ⋮" menu. v1.8.1 — the order became a setting; the legacy
+		// `ui.readerPinnedActions` (pinned ids only) still seeds older databases.
+		"ui.readerActions": [
+			"markRead",
+			"save",
+			"recollect",
+			"retranslate",
+			"share",
+			"export",
+			"openOriginal",
+			"back",
+		],
+		"ui.readerActionsInMore": [
+			"recollect",
+			"retranslate",
+			"export",
+			"openOriginal",
+		],
 		// v1.8.0 — the period summary's ORIGINAL version language. "auto" = the
 		// majority language of the summary's stories; otherwise a BCP-47 code.
 		"intelligence.summaryOriginalLanguage": "auto",
@@ -456,6 +484,27 @@ export function seedDefaults(db: Database.Database): void {
 		// resolve invisibly for non-technical users; "plugin" terminology stays
 		// behind the advanced gate.
 		"ui.showAdvancedFeatures": false,
+		// v1.8.1 — network access (Settings → Advanced → Developer). "local"
+		// keeps the engine loopback-only; "all"/"custom" expose it to the
+		// network (0.0.0.0) with a CORS allowlist. Allowed IPs are
+		// comma-separated and allowed alongside 127.0.0.1.
+		"network.accessMode": "local",
+		"network.allowedIps": "",
+		// v1.8.1 — separate the Plugins page from the advanced gate: a user can
+		// enable advanced features for the Developer section without seeing
+		// plugin machinery. Default true (advanced still reveals Plugins).
+		"ui.showPlugins": true,
+		// v1.8.1 — text labels next to the top-bar icons (default on).
+		"ui.showHeaderLabels": true,
+		// v1.8.1 — Archive sub-pages live in a sidebar submenu by default;
+		// "inpage" restores the old in-page tab row (Settings → General → Nav).
+		"ui.archiveNavMode": "sidebar",
+		// v1.9.0 — story-card footer actions (Settings → General → Story card
+		// actions): the full order + which ones sit behind the More ⋮ menu.
+		// v1.8.1 — Save (bookmark) is the card's quick action; "Mark read"
+		// lives on the reader bar + Viewed-stories history instead.
+		"ui.briefActions": ["readSource", "viewToggle", "save"],
+		"ui.briefActionsInMore": [],
 	};
 	const seedSetting = db.prepare(
 		"INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
@@ -660,7 +709,18 @@ export function seedSources(db: Database.Database): void {
 		INSERT OR IGNORE INTO sources (id, name, url, type, category, adapter, configuration, enabled, list_id, country, city, language, scope, authority, impact_areas)
 		VALUES (@id, @name, @url, @type, @category, @adapter, @configuration, 1, @listId, @country, @city, @language, @scope, @authority, @impactAreas)
 	`);
+	// v1.8.1 — a deleted list stays deleted: skip its seed sources so a restart
+	// never resurrects the source rows the delete removed (the list row itself
+	// is protected by the `deleted` flag in seedSourceLists).
+	const deletedListIds = new Set(
+		(
+			db
+				.prepare("SELECT id FROM source_lists WHERE deleted = 1")
+				.all() as Array<{ id: string }>
+		).map((r) => r.id),
+	);
 	for (const s of SEED_SOURCES) {
+		if (s.listId && deletedListIds.has(s.listId)) continue;
 		const meta = SEED_SOURCE_METADATA[s.id];
 		insert.run({
 			...s,
@@ -811,6 +871,9 @@ export const SEED_SOURCE_LISTS: SourceListSeed[] = [DEVELOPER_SEED_LIST];
  * subsequent run is a no-op.
  */
 export function seedSourceLists(db: Database.Database): void {
+	// v1.8.1 — INSERT OR IGNORE leaves a deleted list's row untouched (it stays
+	// `deleted = 1`), so an official list the user deleted stays gone across
+	// restarts. seedSources skips its source rows the same way.
 	const insert = db.prepare(`
 		INSERT OR IGNORE INTO source_lists (id, name, description, origin, nsfw, enabled, version, sources_json, curator)
 		VALUES (?, ?, ?, ?, ?, 1, ?, ?, NULL)

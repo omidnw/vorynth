@@ -16,8 +16,13 @@ export function buildAnalyzePrompt(input: AnalyzeInput): {
 	// from the user's language, the same request also returns the analysis in
 	// the source language (stored as the insight's `original*` fields), so an
 	// insight always has both versions for bilingual display and export.
+	// v1.8.1 — an untagged source (no `sourceLanguage`) still gets the
+	// source-language version: the model DETECTS the article's language and
+	// reports it back, so the engine can tell a real bilingual insight from a
+	// same-language reword.
+	const autoDetect = !input.sourceLanguage;
 	const bilingual =
-		input.sourceLanguage &&
+		!input.sourceLanguage ||
 		input.sourceLanguage.toLowerCase() !== input.outputLanguage.toLowerCase();
 
 	const system = [
@@ -32,7 +37,9 @@ export function buildAnalyzePrompt(input: AnalyzeInput): {
 		"kept in parentheses on first mention, e.g. \u201C\u06A9\u0644\u0627\u0648\u062F\u0641\u0644\u0631 (Cloudflare)\u201D.",
 		...(bilingual
 			? [
-					`Also write the ENTIRE analysis again in the story's source language: ${input.sourceLanguage}.`,
+					input.sourceLanguage
+						? `Also write the ENTIRE analysis again in the story's source language: ${input.sourceLanguage}.`
+						: 'Also write the ENTIRE analysis again in the story\'s ORIGINAL language (detect it from the article text — e.g. "en", "de", "fa").',
 				]
 			: []),
 	].join(" ");
@@ -53,6 +60,11 @@ export function buildAnalyzePrompt(input: AnalyzeInput): {
 		'  "category": "one of: ai | software-engineering | programming-languages | web-development | backend | devops | cloud | security | open-source | other"',
 		...(bilingual
 			? [
+					...(autoDetect
+						? [
+								'  "sourceLanguage": "ISO 639-1 code of the article\'s original language",',
+							]
+						: []),
 					'  "originalSummary": "summary written in the source language",',
 					'  "originalSignificance": "significance written in the source language",',
 					'  "originalImpact": "impact written in the source language",',

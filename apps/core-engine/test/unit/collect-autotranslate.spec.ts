@@ -53,6 +53,10 @@ function controller(
 	const jobs = new JobsService(tdb.service);
 	const intelligence = {
 		canTranslate: jest.fn(async () => canTranslate),
+		// v1.8.1 — the collect runner asks canAutoAnalyze first (Intelligence
+		// mode gates auto-analysis); default false here so the old translate
+		// chain is exercised unless a test flips it.
+		canAutoAnalyze: jest.fn(async () => false),
 		translateAllStories: jest.fn(async () => 0),
 	} as unknown as IntelligenceService;
 	const search = {} as unknown as SearchService;
@@ -103,6 +107,40 @@ describe("auto-translate after collect", () => {
 			(j) => j.kind === "translate",
 		);
 		expect(translates).toHaveLength(0);
+	});
+
+	it("chains an analyze-missing job (then translation) in Intelligence mode (v1.8.1)", async () => {
+		const jobs = new JobsService(tdb.service);
+		const intelligence = {
+			canTranslate: jest.fn(async () => true),
+			canAutoAnalyze: jest.fn(async () => true),
+			translateAllStories: jest.fn(async () => 0),
+			missingInsightCount: jest.fn(() => 1),
+			backfillMissingInsights: jest.fn(async () => 1),
+		} as unknown as IntelligenceService;
+		// The controller registers the "collect" + "analyze-missing" runners in
+		// its constructor.
+		new JobsController(
+			jobs,
+			crawlerStub([{ sourceId: "s1", collected: 4 }]),
+			intelligence,
+			{} as unknown as SearchService,
+		);
+		const collect = jobs.start({ kind: "collect" });
+		await waitFor(() => jobs.get(collect.id)?.status === "done");
+
+		// The collect chained analyze-missing; when it finishes it chains the
+		// translate job, so both appear.
+		await waitFor(() =>
+			[...jobs.list().active, ...jobs.list().recent].some(
+				(j) => j.kind === "analyze-missing",
+			),
+		);
+		await waitFor(() =>
+			[...jobs.list().active, ...jobs.list().recent].some(
+				(j) => j.kind === "translate",
+			),
+		);
 	});
 
 	it("does not chain a translate job when collect found nothing new", async () => {

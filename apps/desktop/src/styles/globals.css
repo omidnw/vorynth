@@ -208,3 +208,16 @@
 		@apply my-6 border-outline-variant;
 	}
 }
+
+/* v1.8.1 — large monitors: on a 1920px+ display, scale the whole UI up one
+   notch (the type scale is rem-based, so growing the root font-size grows
+   every font proportionally without breaking layout) and widen the content
+   column so a 32" screen isn't a narrow ribbon. */
+@media (min-width: 1920px) {
+	html {
+		font-size: 17px;
+	}
+	.max-w-max-content-width {
+		max-width: 1000px;
+	}
+}

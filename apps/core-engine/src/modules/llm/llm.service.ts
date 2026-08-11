@@ -409,9 +409,13 @@ export class LlmService implements OnModuleInit {
 						model: opts.model,
 					});
 				case "ollama":
+					// v1.8.1 — apiKey is optional (local needs none; Ollama Cloud
+					// sends it as a bearer header). tryBuild already decrypted the
+					// stored key into opts.apiKey when one exists.
 					return new OllamaProvider({
 						baseUrl: opts.baseUrl,
 						model: opts.model,
+						apiKey: opts.apiKey,
 					});
 				default:
 					return null;

@@ -37,6 +37,9 @@ export const en = {
 		docsTransparency: "Transparency",
 		docsExpand: "Expand Docs sections",
 		docsCollapse: "Collapse Docs sections",
+		// v1.8.1 — the expandable Archive sidebar submenu.
+		archiveExpand: "Expand the Archive menu",
+		archiveCollapse: "Collapse the Archive menu",
 		jobsActive_one: "{{count}} job",
 		jobsActive_other: "{{count}} jobs",
 		items: "Items",
@@ -50,6 +53,14 @@ export const en = {
 		title: "Today's Intelligence Brief",
 		timer: "10-minute briefing",
 		stories: "{{count}} stories",
+		// v1.8.1 — brief search + default view selector.
+		searchPlaceholder: "Search the archive…",
+		viewSelectorAria: "Default view for stories",
+		viewSelectorHint:
+			"How story cards open: Auto shows the insight when a story has one, Article opens the article text, Insights always opens the analysis.",
+		viewAuto: "Auto",
+		viewArticle: "Article",
+		viewInsights: "Insights",
 		sources: "{{count}} sources",
 		intelligenceOn: "Intelligence mode — AI enrichment active",
 		newsMode: "News mode — ranked by freshness & reliability",
@@ -76,6 +87,19 @@ export const en = {
 		emptyRangeTitle: "No stories in this range",
 		emptyRangeBody:
 			"Either no articles have been collected yet, or none fall in the selected period. Hit <em>Collect</em> to pull fresh stories — no API key required.",
+		// v1.9.0 — the Search Page button + in-brief search + Update-my-brief.
+		searchPage: "Search Page",
+		searchStories: "Search these stories…",
+		searchCount: "{{shown}} of {{total}} stories",
+		searchNoResults: "No stories match your search.",
+		updateBrief: "Update my brief",
+		updateBriefHint:
+			"Collects new stories and regenerates the brief in one tap.",
+		generateHint: "Regenerates the AI analysis for the current period.",
+		generateAnalysis: "Generate analysis",
+		generatingAnalysis: "Generating…",
+		sectionFilters: "Filters",
+		sectionStories: "Stories",
 	},
 	storyViews: {
 		title: "Viewed stories",
@@ -86,6 +110,9 @@ export const en = {
 		scopeInsight: "Insight",
 		scopeArticle: "Article",
 		scopeBoth: "Insight + article",
+		// v1.8.1 — persisted read-state toggle on each viewed story.
+		markReadAria: "Mark read",
+		markUnreadAria: "Mark unread",
 	},
 	why: "Why it matters",
 	impact: "Impact",
@@ -221,6 +248,81 @@ export const en = {
 		showAdvancedFeatures: "Show advanced features",
 		showAdvancedFeaturesHint:
 			"Reveals the Plugins page — the source connectors and UI plugins Vorynth runs. Most people never need this: connectors for your sources resolve automatically. Turn it on only if you want to see and manage the machinery yourself.",
+		// v1.8.1 — separate the Plugins page from the advanced gate.
+		showPlugins: "Show the Plugins page",
+		showPluginsHint:
+			"Separate from the developer settings — turn this off if you only enabled advanced features for the Developer section.",
+		// v1.8.1 — Developer section: engine network access for builders.
+		developerTitle: "Developer",
+		developerHint:
+			"Building against the local engine — the API endpoint and the app it serves, plus who may call it over the network.",
+		backendUrl: "Backend URL",
+		frontendUrl: "Frontend URL",
+		sameOriginNote:
+			"The engine serves the app at the same address — open it in any browser.",
+		networkAccess: "Network access",
+		accessLocal: "Local only",
+		accessLocalHint:
+			"127.0.0.1 — the engine answers only on this device. Default.",
+		accessAll: "Allow all",
+		accessAllHint:
+			"0.0.0.0 — reachable from every device on the network (backend and frontend); CORS open to any origin.",
+		accessCustom: "Custom IPs",
+		accessCustomHint:
+			"Only the IPs you list (plus 127.0.0.1) may call the engine from a browser.",
+		allowedIps: "Allowed IPs",
+		allowedIpsHint:
+			"Comma-separated — e.g. 192.168.9.160,10.0.0.5. Allowed alongside 127.0.0.1.",
+		reachableAt: "Reachable at",
+		networkSecurityNote:
+			"Vorynth has no login. Opening it to your network lets anyone on that network read and control your data. Only enable this on a trusted network.",
+		networkRestartNote:
+			"The listening address is applied the next time Vorynth starts; CORS and IP rules apply immediately.",
+		// v1.8.1 — header icon labels + Archive navigation mode.
+		showHeaderLabels: "Show icon labels in the header",
+		showHeaderLabelsHint:
+			"Text next to the History, theme, and notification icons in the top bar. Turn off for a compact header.",
+		navigationTitle: "Navigation",
+		navSidebar: "Sidebar",
+		navInpage: "On the page",
+		navigationHint:
+			"Where the Archive sub-pages (Items, Collections, Bookmarks, Search, Trash) live — a sidebar submenu, or the tab row inside the Archive page.",
+		// v1.9.0 — story-card footer actions (order + More menu).
+		briefActionsTitle: "Story card actions",
+		briefActionsHint:
+			"Order the buttons on each story card, and choose which live behind the More menu. Drag to reorder.",
+		briefAction: {
+			readSource: "Read source",
+			viewToggle: "View",
+			save: "Save",
+			inMore: "Show in the More menu",
+		},
+		// v1.8.1 — reader (Article/Insight) bottom-bar actions, moved here from
+		// the Profile page so the related "actions" settings live together.
+		readerActionsTitle: "Reader actions",
+		readerActionsHint:
+			"Order the buttons of the reader's bottom bar by dragging, and choose which live behind the 'More ⋮' menu. Applies to the Article and Insight pages — nothing is hidden.",
+		readerInBar: "In the reader bar",
+		readerInMore: "Behind 'More ⋮'",
+		briefInBar: "In the card bar",
+		briefInMore: "Behind 'More ⋮'",
+		readerSettings: "Reader settings",
+		supportReminder: "Show 'support the author' reminder",
+		supportReminderHint:
+			"Nudges you toward the original site before opening the in-app reader.",
+		keepMediaLocal: "Keep media locally by default",
+		keepMediaLocalHint:
+			"When on, media from articles you open is downloaded for offline reading. Off by default — media streams from the source.",
+		cardClick: "Card click",
+		cardClickHint: "How a story card reacts when you press and drag across it.",
+		dragSelectsText: "Drag selects text",
+		dragSelectsTextHint:
+			"When on (default), dragging the mouse over a story selects the text without opening it — a clean click is required to open. Turn off if you never select text with the mouse and want any press-release to open the story.",
+		resetAll: "Reset all",
+		resetting: "Resetting…",
+		confirmDialogs: "Confirmation dialogs",
+		confirmDialogsHint:
+			'Reset every "don\'t ask again" choice so Vorynth asks for confirmation again before destructive actions.',
 		searchPlaceholder: "Search settings…",
 		searchHint: "Type to filter — sections without a match are dimmed.",
 		searchButton: "Search",
@@ -231,8 +333,11 @@ export const en = {
 		categoryPlugins: "Plugins",
 		// v1.8.0 — per-category search keywords, localized per UI language so the
 		// Settings search matches the selected language (not just English).
+		// v1.8.1 — "appearance"/"theme"/"language" were REMOVED from the General
+		// blob: they now live in per-card blobs, so the search rings the card,
+		// not the whole category.
 		searchGeneral:
-			"engine status version mode news intelligence appearance theme welcome setup onboarding launch startup background login language profile advanced features plug updates update upgrade check notifications bell job os",
+			"engine status version mode news intelligence welcome setup onboarding launch startup background login advanced features plug updates update upgrade check notifications bell job os",
 		searchIntelligence:
 			"provider llm gemini openai anthropic ollama api key usage tokens requests rate limit summary original language regenerate insights translate stories ai",
 		searchData:
@@ -388,8 +493,28 @@ export const en = {
 			"This key can't be decrypted — the local encryption key was likely lost when your data was restored or cleaned up. Remove this provider and add it again with your API key.",
 		labelPlaceholder: "My Gemini key",
 		apiKeyPlaceholder: "paste key…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		// v1.8.1 — per-provider Base URL placeholders + mode copy.
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"Leave empty to use the official OpenAI API (https://api.openai.com/v1).",
+		ollamaMode: "Mode",
+		ollamaLocal: "Local",
+		ollamaCloud: "Cloud",
+		ollamaLocalHint:
+			"Your own Ollama server — runs on this machine, no API key needed.",
+		ollamaCloudHint:
+			"Ollama's hosted service — big models without a local GPU. Requires an API key from ollama.com/settings/keys.",
 		removeAria: "Remove",
+		// v1.9.0 — the model name is required + per-provider docs/tips.
+		modelRequired: "Enter the model name.",
+		geminiDocs: "Gemini models: ",
+		geminiFreeTip:
+			"As of August 10, 2026, gemini-3.1-flash-lite is free with 500 requests per day.",
+		openaiDocs: "OpenAI models: ",
+		anthropicDocs: "Claude docs: ",
+		ollamaDocs: "Ollama docs: ",
+		ollamaHostTip:
+			"Ollama acts as a HOST provider — its models can be offered differently at different times, so check its docs for the current list.",
 	},
 	onboarding: {
 		welcome: "Welcome to Vorynth",
@@ -401,11 +526,15 @@ export const en = {
 		begin: "Get Started",
 		config: "Make it smarter (optional)",
 		configBody:
-			"Connect an AI service to add “Why it matters”, “Impact”, and a recommended next step to every story. Skip this — Vorynth works great on its own.",
+			"Connect an optional AI service and Vorynth adds a short plain-language note to every story — why it matters, what changed, and what to do about it. You can skip this: the daily brief works on its own.",
 		selectProvider: "Choose an AI service",
 		apiKey: "API Key",
 		apiKeyHint:
 			"Stored encrypted on this device and sent only to the service you chose.",
+		// v1.8.1 — optional model override on the provider step.
+		modelHint: "Leave empty to use the provider\u2019s default model.",
+		// v1.9.0 — the model name is required to continue with a provider.
+		modelRequired: "Enter the model name to continue.",
 		newsOnly: "Skip for now — News mode",
 		newsOnlyBody:
 			"News mode collects and ranks stories without AI. You can add an AI service any time in Settings.",
@@ -457,13 +586,16 @@ export const en = {
 		officialSources: "Keep official sources enabled",
 		officialSourcesHint:
 			"Vorynth's official developer-news list fills your brief by default. Turn it off if you only want your own topics.",
-		emptyTopicsOffBody:
-			"No topics selected and official sources are off — your brief will be empty. Keep official sources on?",
+		// v1.8.1 — preview the official list's sites before deciding.
+		previewOfficialSources: "View official sources",
+		officialSourcesListName: "Vorynth's official developer list",
 		recapMode: "Mode",
 		recapIntelligence: "Intelligence",
 		recapNews: "News",
 		recapTopics: "Topics",
 		recapNoTopics: "None — official sources",
+		// v1.8.1 — honest recap when the user turned official sources off.
+		recapNoTopicsOff: "None — official sources off",
 		recapUiLanguage: "App language",
 		recapAiLanguage: "AI language",
 		recapNote: "Everything can be changed anytime in Settings and Profile.",
@@ -496,7 +628,14 @@ export const en = {
 		generating: "Generating…",
 		back: "Back",
 		cancel: "Cancel",
+		close: "Close",
 		noResults: "No matches",
+		dontShowAgain: "Don't show again",
+	},
+	docs: {
+		// v1.8.1 — docs search.
+		searchPlaceholder: "Search the docs…",
+		noResults: "No docs match \u201c{{q}}\u201d.",
 	},
 	search: {
 		title: "Search",
@@ -589,6 +728,8 @@ export const en = {
 		moveTo: "Move to…",
 		archived: "Archived",
 		item_one: "item",
+		// v1.8.1 — say how many load and how many remain.
+		showMore: "Show more {{count}} ({{remaining}} remaining)",
 		item_other: "items",
 		showArchived: "Show archived",
 		showingArchived: "Showing archived",
@@ -769,37 +910,13 @@ export const en = {
 		recentSearches: "Recent searches",
 		noActivity:
 			"No activity yet. Run a search or read a briefing to populate this.",
-		readerSettings: "Reader settings",
-		supportReminder: "Show 'support the author' reminder",
-		supportReminderHint:
-			"Nudges you toward the original site before opening the in-app reader.",
-		keepMediaLocal: "Keep media locally by default",
-		keepMediaLocalHint:
-			"When on, media from articles you open is downloaded for offline reading. Off by default — media streams from the source.",
 		aiLanguage: "AI Output Language",
 		aiLanguageHint:
 			"The language Vorynth's AI uses when answering your questions, generating briefs, and writing summaries. Choose the language you want insights in.",
-		/** Reader action bar customization (v1.8.0). */
-		readerActions: "Reader actions",
-		readerActionsHint:
-			"Choose which story actions stay in the reader's bottom bar. Everything else moves behind the 'More ⋮' menu — nothing is hidden.",
-		pinned: "In the reader bar",
-		moreMenu: "Behind 'More ⋮'",
-		readerActionsOverflow:
-			"The reader bar is designed for five actions — pinning more can crowd it.",
-		/** Story-card click behavior (v1.8.0). */
-		cardClick: "Card click",
-		cardClickHint: "How a story card reacts when you press and drag across it.",
-		dragSelectsText: "Drag selects text",
-		dragSelectsTextHint:
-			"When on (default), dragging the mouse over a story selects the text without opening it — a clean click is required to open. Turn off if you never select text with the mouse and want any press-release to open the story.",
 		aiLanguageAria: "AI output language",
-		resetAll: "Reset all",
-		resetting: "Resetting…",
 		categoryIdentity: "Who you are",
 		categoryAi: "How the AI writes",
 		categoryLanguages: "Languages",
-		categoryReading: "Reading",
 		// v1.8.0 — per-category search keywords, localized per UI language so the
 		// Profile search matches the selected language (not just English).
 		searchIdentity:
@@ -807,8 +924,6 @@ export const en = {
 		searchAi: "custom instruction ai output language write",
 		searchLanguages:
 			"language ui english persian arabic korean japanese chinese hebrew spanish german russian",
-		searchReading:
-			"reader settings support author reminder media local actions card click drag selects text",
 	},
 	media: {
 		title: "Local media",
@@ -979,6 +1094,9 @@ export const en = {
 		test: "Test",
 		testing: "Testing…",
 		testOk: "Works — {{count}} item(s) found",
+		// v1.8.1 — required-field validation before Test/Add.
+		testMissingFields: "Test needs these fields: {{fields}}",
+		fieldName: "Name",
 		testFail: "Couldn't fetch — {{message}}",
 		configLabel: "{{label}}",
 		testHint:
@@ -1140,9 +1258,34 @@ export const en = {
 		listEnableAria: "Turn {{name}} on",
 		expandAria: "Show sources in {{name}}",
 		collapseAria: "Hide sources in {{name}}",
+		// v1.8.1 — sources preview modal.
+		previewAria: "Preview {{name}}",
+		previewTitle: "{{name}} — sources",
+		previewBody: "{{count}} sites in this list.",
+		previewLoading: "Loading…",
+		previewEmpty: "This list has no sources yet.",
+		previewOn: "On",
+		previewOff: "Off",
 		editDisabledNote:
 			"Sources in a list can't be deleted individually — hide the whole list instead.",
 		sourceCountLabel: "{{count}} sources",
+		// v1.8.1 — permanently deleting a list (official or community).
+		deleteListAria: "Delete list {{name}}",
+		deleteTitle: "Delete this list?",
+		deleteMessage:
+			"{{name}} and all {{count}} of its sources will be permanently removed. Collected stories are deleted too — this cannot be undone.",
+		deleteConfirm: "Delete list",
+		deleteForceTitle: "Saved stories will be deleted",
+		deleteForceBody:
+			"{{count}} saved storie(s) belong to this list and will be deleted too. Delete anyway?",
+		deleteForceConfirm: "Delete anyway",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "Update {{name}}",
+		updateListHint:
+			"Check the community repo for a newer version of this list.",
+		updating: "Updating…",
+		updated: "Updated",
+		upToDate: "Up to date",
 	},
 	// Reference Plugin (v1.8.0) — the runtime-plugin template.
 	reference: {
@@ -1478,6 +1621,11 @@ export const en = {
 		fromProfile: "from Profile",
 		titleSearch: "Search History",
 		tabViews: "Viewed stories",
+		// v1.8.1 — filter the active history + the recording tip.
+		filterPlaceholder: "Filter this history…",
+		recordKeywordTip:
+			"Keyword searches only appear here when \u2018Record keyword searches\u2019 is on — the AI (Ask) searches and briefings are always recorded.",
+		openSettings: "Open Settings",
 		fromSearch: "from Search",
 		entries: "{{count}} entries",
 		select: "Select",
@@ -1643,6 +1791,9 @@ export const en = {
 	},
 	insight: {
 		sourceLanguage: "Source language",
+		// v1.8.1 — explicit view indicator chips.
+		viewInsight: "Insight view",
+		viewArticle: "Article view",
 		outputLanguage: "Output language",
 		generated: "Generated",
 		mixed: "Mixed",

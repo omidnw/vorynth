@@ -14,6 +14,13 @@ import { useEffect, useState } from "react";
 export interface CategorySearchInput {
 	id: string;
 	search: string;
+	/**
+	 * v1.8.1 — per-card keyword blobs. A query that matches an ITEM rings that
+	 * card instead of the whole category (e.g. "appearance" only rings the
+	 * Appearance card, and "translate" also suggests the Language card). The
+	 * category stays visible whenever the category blob OR any item matches.
+	 */
+	items?: { id: string; search: string }[];
 }
 
 export interface CategorySearchState {
@@ -36,9 +43,15 @@ export interface CategorySearchState {
 	matches: (id: string) => boolean;
 	/**
 	 * Category ids matching the current query — the sections to highlight with
-	 * a ring while searching. Empty when the query is empty.
+	 * a ring while searching. Empty when the query is empty. v1.8.1 — only the
+	 * CATEGORY BLOB counts here; a query that only matches an item rings the
+	 * card, not the whole section.
 	 */
 	highlightedIds: string[];
+	/** v1.8.1 — whether a specific card inside a category matches the query. */
+	matchesItem: (categoryId: string, itemId: string) => boolean;
+	/** v1.8.1 — all matched (categoryId, itemId) pairs, for the card rings. */
+	highlightedItemIds: Array<{ categoryId: string; itemId: string }>;
 }
 
 export function useCategorySearch(
@@ -47,14 +60,26 @@ export function useCategorySearch(
 	const [query, setQuery] = useState("");
 	const [activeId, setActiveId] = useState(categories[0]?.id ?? "");
 	const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
+	const [highlightedItemIds, setHighlightedItemIds] = useState<
+		Array<{ categoryId: string; itemId: string }>
+	>([]);
 
 	const normalized = query.trim().toLowerCase();
 
 	const matches = (id: string): boolean => {
 		if (normalized === "") return true;
 		const cat = categories.find((c) => c.id === id);
-		return (cat?.search ?? "").includes(normalized);
+		if ((cat?.search ?? "").includes(normalized)) return true;
+		return (cat?.items ?? []).some((it) => it.search.includes(normalized));
 	};
+
+	const matchesItem = (categoryId: string, itemId: string): boolean =>
+		normalized !== "" &&
+		(categories
+			.find((c) => c.id === categoryId)
+			?.items?.find((it) => it.id === itemId)?.search ?? "").includes(
+			normalized,
+		);
 
 	const visibleCount =
 		normalized === ""
@@ -75,10 +100,24 @@ export function useCategorySearch(
 	useEffect(() => {
 		if (normalized === "") {
 			setHighlightedIds([]);
+			setHighlightedItemIds([]);
 			return;
 		}
-		const matched = categories.filter((c) => matches(c.id)).map((c) => c.id);
+		// v1.8.1 — the category ring only fires on a CATEGORY blob match; a
+		// query that only matches an item rings the card instead.
+		const matched = categories
+			.filter((c) => c.search.includes(normalized))
+			.map((c) => c.id);
 		setHighlightedIds(matched);
+		const items: Array<{ categoryId: string; itemId: string }> = [];
+		for (const c of categories) {
+			for (const it of c.items ?? []) {
+				if (it.search.includes(normalized)) {
+					items.push({ categoryId: c.id, itemId: it.id });
+				}
+			}
+		}
+		setHighlightedItemIds(items);
 	}, [normalized]);
 
 	// Track the in-view category while scrolling; if none is in the active
@@ -127,5 +166,7 @@ export function useCategorySearch(
 		noResults: normalized !== "" && visibleCount === 0,
 		matches,
 		highlightedIds,
+		matchesItem,
+		highlightedItemIds,
 	};
 }

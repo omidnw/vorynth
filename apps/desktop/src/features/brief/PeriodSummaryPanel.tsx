@@ -50,6 +50,8 @@ export function PeriodSummaryPanel({
 	const [summary, setSummary] = useState<PeriodSummary | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [showExport, setShowExport] = useState(false);
+	// v1.8.1 — a CLOSE button hides the panel; a fresh summary brings it back.
+	const [dismissed, setDismissed] = useState(false);
 	// v1.8.0 — a bilingual summary carries its original-language version; this
 	// toggles between the user's language and the majority-story language.
 	const [showOriginal, setShowOriginal] = useState(false);
@@ -65,9 +67,11 @@ export function PeriodSummaryPanel({
 		if ("ok" in result && result.ok === false) {
 			setSummary(null);
 			setError(result.reason);
+			setDismissed(false);
 		} else if ("period" in result) {
 			setSummary(result);
 			setError(null);
+			setDismissed(false);
 		}
 	}, [jobs.recent]);
 
@@ -114,6 +118,9 @@ export function PeriodSummaryPanel({
 		showOriginal && hasOriginal
 			? (summary?.originalTakeaways ?? summary?.takeaways ?? [])
 			: (summary?.takeaways ?? []);
+
+	// v1.8.1 — CLOSE hides the panel (a new summary brings it back).
+	if (dismissed) return null;
 
 	return (
 		<GhostCard className="mb-10 border-s-2 border-s-primary">
@@ -256,6 +263,15 @@ export function PeriodSummaryPanel({
 							})}
 						</p>
 						<div className="flex flex-wrap items-center gap-2">
+							{/* v1.8.1 — dismiss the panel (the next summary brings it back). */}
+							<Button
+								variant="ghost"
+								size="sm"
+								icon="close"
+								onClick={() => setDismissed(true)}
+							>
+								{t("common.close")}
+							</Button>
 							{storyExports.length > 0 ? (
 								<Button
 									variant="secondary"

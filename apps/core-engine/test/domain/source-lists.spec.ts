@@ -1,6 +1,8 @@
-import { ServiceUnavailableException } from "@nestjs/common";
+import { ConflictException, ServiceUnavailableException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { createTestDb, type TestDb } from "../helpers/db.js";
-import { seedSourceLists } from "../../src/db/ddl.js";
+import { seedSourceLists, seedSources } from "../../src/db/ddl.js";
+import { attachSpine, createSpine } from "../../src/db/spine.js";
 import { CrawlerService } from "../../src/modules/crawler/crawler.service.js";
 import { PluginsService } from "../../src/modules/plugins/plugins.service.js";
 import { ConnectorRegistryService } from "../../src/modules/connector-registry/connector-registry.service.js";
@@ -538,7 +540,9 @@ describe("source lists: import (v1.8.0)", () => {
 				origin: "import",
 				enabled: false,
 			});
-			expect(imported.sourceCount).toBe(0);
+			// v1.8.1 — sourceCount counts the cached DEFINITIONS even before
+			// materialization (the old SQL join only saw rows, so this was 0).
+			expect(imported.sourceCount).toBe(1);
 
 			const enabled = await lists.enable("my-feeds");
 			expect(enabled.enabled).toBe(true);
@@ -577,6 +581,288 @@ describe("source lists: import (v1.8.0)", () => {
 			await expect(lists.importListFile(bad)).rejects.toThrow(
 				"sourceList.importInvalid",
 			);
+		} finally {
+			db.close();
+		}
+	});
+});
+
+describe("source lists: count fix + sources preview (v1.8.1)", () => {
+	const previewList = JSON.stringify({
+		id: "preview-list",
+		name: "Preview List",
+		description: "The v1.8.0 '0 sources' regression fixture",
+		nsfw: false,
+		version: "1.0.0",
+		sources: [
+			{
+				id: "src-prev-a",
+				name: "Site A",
+				url: "https://a.example/feed.xml",
+				type: "rss",
+				adapter: "rss",
+				category: "security",
+				configuration: { feedUrl: "https://a.example/feed.xml" },
+			},
+			{
+				id: "src-prev-b",
+				name: "Site B",
+				url: "https://b.example/feed.xml",
+				type: "rss",
+				adapter: "rss",
+				category: "ai",
+				configuration: { feedUrl: "https://b.example/feed.xml" },
+			},
+		],
+	});
+
+	const fetcher: CatalogFetcher = {
+		getText: async (url: string) => {
+			const treeUrl =
+				"https://api.github.com/repos/omidnw/vorynth/git/trees/master?recursive=1";
+			if (url === treeUrl) {
+				return JSON.stringify({
+					tree: [{ path: "sources/preview.json", type: "blob" }],
+				});
+			}
+			if (
+				url ===
+				"https://raw.githubusercontent.com/omidnw/vorynth/master/sources/preview.json"
+			) {
+				return previewList;
+			}
+			return null;
+		},
+	};
+
+	it("a downloaded-but-not-enabled list reports its cached definition count, not 0", async () => {
+		// The v1.8.0 regression: after "Check GitHub for lists", every community
+		// list card said "0 sources" — the SQL join only counts MATERIALIZED
+		// rows, and a not-yet-enabled list has none (its definitions live in
+		// sources_json).
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db, fetcher);
+			await lists.refreshCatalog();
+			const info = (await lists.list()).find((l) => l.id === "preview-list")!;
+			expect(info.enabled).toBe(false);
+			expect(info.sourceCount).toBe(2); // definitions, not rows
+			expect(info.enabledCount).toBe(0); // nothing materialized yet
+		} finally {
+			db.close();
+		}
+	});
+
+	it("sources() previews the cached definitions, merging the materialized enabled state", async () => {
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db, fetcher);
+			await lists.refreshCatalog();
+
+			const before = await lists.sources("preview-list");
+			expect(before).toHaveLength(2);
+			expect(before[0]).toMatchObject({
+				name: "Site A",
+				url: "https://a.example/feed.xml",
+				enabled: false,
+			});
+
+			await lists.enable("preview-list");
+			const after = await lists.sources("preview-list");
+			expect(after.map((s) => s.enabled)).toEqual([true, true]);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("official list: sources() returns all its definitions, all enabled", async () => {
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db);
+			const dev = await lists.sources("developer");
+			expect(dev.length).toBeGreaterThanOrEqual(20);
+			expect(dev.every((s) => s.enabled)).toBe(true);
+			expect(dev.every((s) => s.name && s.url)).toBe(true);
+		} finally {
+			db.close();
+		}
+	});
+});
+
+describe("source lists: permanent delete (v1.8.1)", () => {
+	/** A saved story owned by a source of the seeded developer list. */
+	function seedListArticle(db: TestDb): { spineId: string } {
+		const raw = db.service.rawDb;
+		const articleId = randomUUID();
+		const spineId = createSpine(raw, "article");
+		raw
+			.prepare(
+				`INSERT INTO articles (id, source_id, title, content, url, hash, published_at, collected_at)
+				 VALUES (?, 'src-nodejs', 'Test story', 'body', 'https://example.com/a', ?, ?, ?)`,
+			)
+			.run(articleId, randomUUID(), Date.now(), Date.now());
+		attachSpine(raw, "articles", articleId, spineId);
+		return { spineId };
+	}
+
+	it("remove tombstones the list, removes its sources, and hides it everywhere", async () => {
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db);
+			await lists.remove("developer");
+
+			// Gone from list() / get() / the crawler gate.
+			expect(
+				(await lists.list()).find((l) => l.id === "developer"),
+			).toBeUndefined();
+			await expect(lists.get("developer")).rejects.toThrow();
+			await expect(lists.getEnabledListIds()).resolves.toEqual(new Set());
+
+			// The list's sources are removed with it.
+			const rows = db.service.rawDb
+				.prepare(
+					"SELECT COUNT(*) AS n FROM sources WHERE list_id = 'developer'",
+				)
+				.get() as { n: number };
+			expect(rows.n).toBe(0);
+
+			// The tombstone is marked (and no longer "enabled").
+			const row = db.service.rawDb
+				.prepare(
+					"SELECT deleted, enabled FROM source_lists WHERE id = 'developer'",
+				)
+				.get() as { deleted: number; enabled: number };
+			expect(row.deleted).toBe(1);
+			expect(row.enabled).toBe(0);
+		} finally {
+			db.close();
+		}
+	});
+
+	it("a deleted list can't be re-enabled and a repeat delete is a clean 404", async () => {
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db);
+			await lists.remove("developer");
+			await expect(lists.enable("developer")).rejects.toThrow();
+			await expect(lists.remove("developer")).rejects.toThrow();
+		} finally {
+			db.close();
+		}
+	});
+
+	it("refuses 409 BOOKMARKED_ARTICLES_EXIST for saved stories; force proceeds", async () => {
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db);
+			const { spineId } = seedListArticle(db);
+			db.service.rawDb
+				.prepare(
+					"INSERT INTO bookmarks (id, content_item_id, created_at) VALUES (?, ?, ?)",
+				)
+				.run(randomUUID(), spineId, Date.now());
+
+			await expect(lists.remove("developer")).rejects.toMatchObject({
+				status: 409,
+				response: expect.objectContaining({
+					code: "BOOKMARKED_ARTICLES_EXIST",
+				}),
+			});
+			// Nothing changed until the explicit force.
+			expect(
+				(await lists.list()).find((l) => l.id === "developer"),
+			).toBeDefined();
+
+			await lists.remove("developer", true);
+			expect(
+				(await lists.list()).find((l) => l.id === "developer"),
+			).toBeUndefined();
+		} finally {
+			db.close();
+		}
+	});
+
+	it("seeds never resurrect a deleted official list or its sources", async () => {
+		const db = createTestDb();
+		try {
+			const lists = makeLists(db);
+			await lists.remove("developer");
+
+			// Re-run the seeder exactly as startup does on every boot.
+			seedSourceLists(db.service.rawDb);
+			seedSources(db.service.rawDb);
+
+			const rows = db.service.rawDb
+				.prepare(
+					"SELECT COUNT(*) AS n FROM sources WHERE list_id = 'developer'",
+				)
+				.get() as { n: number };
+			expect(rows.n).toBe(0);
+			const row = db.service.rawDb
+				.prepare("SELECT deleted FROM source_lists WHERE id = 'developer'")
+				.get() as { deleted: number };
+			expect(row.deleted).toBe(1);
+			// Still invisible and off the crawler gate.
+			expect(
+				(await lists.list()).find((l) => l.id === "developer"),
+			).toBeUndefined();
+			await expect(lists.getEnabledListIds()).resolves.toEqual(new Set());
+		} finally {
+			db.close();
+		}
+	});
+
+	it("a community catalog refresh never resurrects a deleted list", async () => {
+		const db = createTestDb();
+		try {
+			const securityList = JSON.stringify({
+				id: "security-news",
+				name: "Security News",
+				description: "Community security feeds",
+				nsfw: false,
+				version: "1.0.0",
+				sources: [
+					{
+						id: "src-sec-snyk",
+						name: "Snyk Security",
+						url: "https://snyk.io/blog/feed.xml",
+						type: "rss",
+						adapter: "rss",
+						category: "security",
+						configuration: { feedUrl: "https://snyk.io/blog/feed.xml" },
+					},
+				],
+			});
+			const fetcher: CatalogFetcher = {
+				getText: async (url: string) => {
+					const treeUrl =
+						"https://api.github.com/repos/omidnw/vorynth/git/trees/master?recursive=1";
+					if (url === treeUrl) {
+						return JSON.stringify({
+							tree: [{ path: "sources/security.json", type: "blob" }],
+						});
+					}
+					if (
+						url ===
+						"https://raw.githubusercontent.com/omidnw/vorynth/master/sources/security.json"
+					) {
+						return securityList;
+					}
+					return null;
+				},
+			};
+
+			const lists = makeLists(db, fetcher);
+			await lists.refreshCatalog();
+			await lists.remove("security-news");
+
+			// A refresh while the file is still in the repo: deleted stays deleted.
+			const again = makeLists(db, fetcher);
+			const result = await again.refreshCatalog();
+			expect(result.added).toEqual([]);
+			expect(
+				(await again.list()).find((l) => l.id === "security-news"),
+			).toBeUndefined();
 		} finally {
 			db.close();
 		}

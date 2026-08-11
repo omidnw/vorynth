@@ -101,6 +101,13 @@ export function parseDraft(raw: string): InsightDraft {
 			? Math.max(0, Math.min(10, score))
 			: 0,
 		category: String(obj.category ?? "other"),
+		// v1.8.1 — auto-detect mode (untagged sources): the model reports the
+		// article's source language so the engine can tell a real bilingual
+		// insight from a same-language reword.
+		sourceLanguage:
+			typeof obj.sourceLanguage === "string" && obj.sourceLanguage.trim()
+				? obj.sourceLanguage.trim().toLowerCase()
+				: undefined,
 		// v1.8.0 — bilingual generation: the source-language version, when the
 		// model returned one.
 		originalSummary: String(obj.originalSummary ?? ""),

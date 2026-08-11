@@ -49,6 +49,14 @@ cp apps/core-engine/dist-bundle/{index.js,launcher.cjs,better_sqlite3.node} "$DE
 
 The binaries dir holds the portable `node` binary + the engine bundle + native `better_sqlite3.node`. It is what Tauri ships as `resources/binaries/`.
 
+**Also stage the built frontend** (v1.8.1) — the engine serves it over HTTP so the Developer section's frontend URL is a real `http://ip:port`:
+
+```bash
+rm -rf "$DEST/web" && cp -R apps/desktop/dist "$DEST/web"
+```
+
+(The engine resolves it via `VORYNTH_SIDECAR_DIR` set by the launcher; skip this only when the frontend was NOT rebuilt — the engine then just skips web serving.)
+
 ### 3. Build the desktop app
 
 ```bash

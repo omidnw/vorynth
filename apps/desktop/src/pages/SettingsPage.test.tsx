@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 	deleteProvider: vi.fn(),
 	activateProvider: vi.fn(),
 	setMode: vi.fn(),
+	fetchNetworkInfo: vi.fn(),
 	fetchUsage: vi.fn(),
 	resetUsage: vi.fn(),
 	exportBackup: vi.fn(),
@@ -53,6 +54,10 @@ vi.mock("@/features/llm/llm-api.js", () => ({
 vi.mock("@/features/llm/usage-api.js", () => ({
 	fetchUsage: mocks.fetchUsage,
 	resetUsage: mocks.resetUsage,
+}));
+
+vi.mock("@/features/network/network-api.js", () => ({
+	fetchNetworkInfo: mocks.fetchNetworkInfo,
 }));
 
 vi.mock("@/features/backup/backup-api.js", () => ({
@@ -127,6 +132,14 @@ beforeEach(() => {
 	mocks.deleteProvider.mockResolvedValue(undefined);
 	mocks.activateProvider.mockResolvedValue(undefined);
 	mocks.setMode.mockResolvedValue(undefined);
+	mocks.fetchNetworkInfo.mockResolvedValue({
+		accessMode: "local",
+		allowedIps: [],
+		host: "127.0.0.1",
+		port: 34117,
+		lanIps: [],
+		backendUrl: "http://127.0.0.1:34117",
+	});
 	mocks.exportBackup.mockResolvedValue({
 		path: "",
 		sizeBytes: 0,
@@ -220,5 +233,124 @@ describe("SettingsPage — category rail + search (category chrome)", () => {
 		expect(container.querySelector("#settings-general")).not.toHaveClass(
 			"hidden",
 		);
+	});
+});
+
+describe("SettingsPage — LLM provider form (v1.8.1)", () => {
+	it("Ollama cloud shows the API key + ollama.com default and saves both", async () => {
+		const user = userEvent.setup();
+		renderSettingsPage();
+
+		await user.click(screen.getByRole("button", { name: "Add Provider" }));
+		await user.click(screen.getByRole("button", { name: "Ollama" }));
+
+		// Local is the default mode — no API key field yet.
+		expect(screen.queryByPlaceholderText("paste key…")).not.toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Cloud" }));
+
+		// Cloud reveals the key field + defaults the base URL to ollama.com.
+		const keyInput = screen.getByPlaceholderText("paste key…");
+		await user.type(keyInput, "sk-ollama-cloud");
+		expect(
+			screen.getByPlaceholderText("https://ollama.com"),
+		).toBeInTheDocument();
+
+		// v1.9.0 — the model name is required; type it before saving. Its
+		// placeholder is an example ("e.g. llama3.2"), never a preselected value.
+		await user.type(screen.getByPlaceholderText(/llama3.2/), "llama3.3");
+		await user.click(screen.getByRole("button", { name: "Save Provider" }));
+		expect(mocks.saveProvider).toHaveBeenCalledWith(
+			expect.objectContaining({
+				kind: "ollama",
+				apiKey: "sk-ollama-cloud",
+				baseUrl: "https://ollama.com",
+				defaultModel: "llama3.3",
+				enabled: true,
+			}),
+		);
+	});
+
+	it("Ollama local keeps the localhost default and stores no key", async () => {
+		const user = userEvent.setup();
+		renderSettingsPage();
+
+		await user.click(screen.getByRole("button", { name: "Add Provider" }));
+		await user.click(screen.getByRole("button", { name: "Ollama" }));
+		// v1.9.0 — the model name is required; type it before saving.
+		await user.type(screen.getByPlaceholderText(/llama3.2/), "llama3.3");
+		await user.click(screen.getByRole("button", { name: "Save Provider" }));
+
+		expect(mocks.saveProvider).toHaveBeenCalledWith(
+			expect.objectContaining({
+				kind: "ollama",
+				apiKey: undefined,
+				baseUrl: "http://localhost:11434",
+				defaultModel: "llama3.3",
+			}),
+		);
+	});
+
+	it("OpenAI shows the base URL field with the official-API hint", async () => {
+		const user = userEvent.setup();
+		renderSettingsPage();
+
+		await user.click(screen.getByRole("button", { name: "Add Provider" }));
+		await user.click(screen.getByRole("button", { name: "OpenAI" }));
+
+		expect(
+			screen.getByPlaceholderText("https://api.openai.com/v1"),
+		).toBeInTheDocument();
+		expect(screen.getByText(/official OpenAI API/i)).toBeInTheDocument();
+
+		await user.type(screen.getByPlaceholderText("paste key…"), "sk-openai");
+		// v1.9.0 — the model name is required; type it before saving.
+		await user.type(screen.getByPlaceholderText(/gpt-4o-mini/), "gpt-4o-mini");
+		await user.click(screen.getByRole("button", { name: "Save Provider" }));
+		expect(mocks.saveProvider).toHaveBeenCalledWith(
+			expect.objectContaining({
+				kind: "openai",
+				apiKey: "sk-openai",
+				baseUrl: undefined,
+				defaultModel: "gpt-4o-mini",
+			}),
+		);
+	});
+
+	it("blocks saving a provider with an empty model name (v1.9.0)", async () => {
+		const user = userEvent.setup();
+		renderSettingsPage();
+
+		await user.click(screen.getByRole("button", { name: "Add Provider" }));
+		await user.click(screen.getByRole("button", { name: "Gemini" }));
+		await user.click(screen.getByRole("button", { name: "Save Provider" }));
+
+		// The inline error shows and nothing is persisted.
+		expect(screen.getByText("Enter the model name.")).toBeInTheDocument();
+		expect(mocks.saveProvider).not.toHaveBeenCalled();
+
+		// Typing a model clears the error; the next Save goes through.
+		await user.type(
+			screen.getByPlaceholderText(/gemini-2.0-flash/),
+			"gemini-2.0-flash",
+		);
+		expect(screen.queryByText("Enter the model name.")).not.toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Save Provider" }));
+		expect(mocks.saveProvider).toHaveBeenCalledTimes(1);
+	});
+
+	it("advanced on reveals the Developer section with the backend URL", async () => {
+		mocks.fetchSettings.mockResolvedValue({
+			"ui.showAdvancedFeatures": true,
+			"network.accessMode": "local",
+			"network.allowedIps": "",
+		});
+		renderSettingsPage();
+
+		expect(await screen.findByText("Developer")).toBeInTheDocument();
+		expect(screen.getByText("Backend URL")).toBeInTheDocument();
+		// v1.8.1 — the engine serves the app too, so the frontend URL is the
+		// SAME http://ip:port address as the backend (not tauri://…).
+		expect(screen.getAllByText("http://127.0.0.1:34117")).toHaveLength(2);
+		expect(screen.getByText("Frontend URL")).toBeInTheDocument();
 	});
 });

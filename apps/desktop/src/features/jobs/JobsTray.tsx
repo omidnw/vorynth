@@ -211,6 +211,8 @@ function kindIcon(kind: JobKind): string {
 			return "translate";
 		case "recollect-one":
 			return "refresh";
+		case "analyze-missing":
+			return "psychology";
 		default:
 			return "task";
 	}

@@ -6,6 +6,8 @@ import {
 import { Logger, ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module.js";
 import { resolvePort } from "./common/runtime/port.js";
+import { NetworkService } from "./modules/network/network.service.js";
+import { registerWebServing } from "./common/web/serve-frontend.js";
 
 /**
  * Core Engine bootstrap.
@@ -20,7 +22,6 @@ async function bootstrap() {
 	const logger = new Logger("VorynthCore");
 
 	const port = await resolvePort(process.env, process.argv);
-	const host = process.env.HOST ?? "127.0.0.1";
 
 	const fastify = new FastifyAdapter({
 		logger: false,
@@ -53,11 +54,29 @@ async function bootstrap() {
 			forbidNonWhitelisted: true,
 		}),
 	);
+
+	// v1.8.1 — network access: the host is resolved from the Developer settings
+	// (loopback by default; 0.0.0.0 when the user opens the engine to the
+	// network). Env HOST still overrides. The CORS origin callback reads the
+	// LIVE settings per request, so access-mode / allowlist changes apply
+	// immediately; the listening host applies on the next launch.
+	const network = app.get(NetworkService);
+	network.setPort(port);
+	const host = process.env.HOST ?? network.resolveHost();
+
 	app.enableCors({
-		origin: true, // local-only engine — any origin is safe
+		// The engine is a local service with no login: CORS guards browser
+		// cross-origin requests only (curl/scripts are never gated), per the
+		// access mode the user chose in Settings → Advanced → Developer.
+		origin: (origin, cb) => cb(null, network.isOriginAllowed(origin)),
 		methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization", "Accept"],
 	});
+
+	// v1.8.1 — serve the built frontend at the engine's root so the Developer
+	// section's frontend URL is a real http://ip:port address. Registered AFTER
+	// the Nest routes (API wins); see serve-frontend.ts.
+	registerWebServing(app.getHttpAdapter().getInstance(), logger);
 
 	await app.listen(port, host, () => {
 		logger.log(`Vorynth Core Engine listening on http://${host}:${port}`);

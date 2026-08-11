@@ -14,6 +14,7 @@ import { IntelligenceModule } from "./modules/intelligence/intelligence.module.j
 import { SearchModule } from "./modules/search/search.module.js";
 import { BackupModule } from "./modules/backup/backup.module.js";
 import { StoryViewsModule } from "./modules/story-views/story-views.module.js";
+import { NetworkModule } from "./modules/network/network.module.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { SchedulerModule } from "./modules/scheduler/scheduler.module.js";
 import { MediaModule } from "./modules/media/media.module.js";
@@ -75,6 +76,8 @@ import { UsageModule } from "./modules/usage/usage.module.js";
 		TrashModule,
 		// v1.8.0 — storage + resource usage snapshot (Settings "Storage & Usage").
 		UsageModule,
+		// v1.8.1 — network access mode + CORS allowlist (Developer settings).
+		NetworkModule,
 	],
 })
 export class AppModule {}

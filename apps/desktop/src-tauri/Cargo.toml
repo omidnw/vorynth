@@ -1,6 +1,6 @@
 [package]
 name = "vorynth-desktop"
-version = "1.8.0"
+version = "1.8.1"
 description = "Vorynth — local-first personal intelligence engine"
 authors = ["Omid Reza Keshtkar <omidrezakeshtkar@icloud.com>"]
 license = "MIT"

@@ -32,6 +32,10 @@ export function AdvancedSection() {
 	});
 
 	const showAdvanced = settings?.["ui.showAdvancedFeatures"] === true;
+	// v1.8.1 — the Plugins page is a separate switch from the advanced gate:
+	// someone enabling advanced for the Developer section may not want plugin
+	// machinery (default true — advanced still reveals Plugins).
+	const showPlugins = settings?.["ui.showPlugins"] !== false;
 
 	return (
 		<GhostCard>
@@ -39,13 +43,24 @@ export function AdvancedSection() {
 				<Icon name="developer_mode" className="text-base" />
 				{t("settings.advancedTitle")}
 			</h3>
-			<Toggle
-				icon="extension"
-				label={t("settings.showAdvancedFeatures")}
-				hint={t("settings.showAdvancedFeaturesHint")}
-				checked={showAdvanced}
-				onChange={(on) => patch.mutate({ "ui.showAdvancedFeatures": on })}
-			/>
+			<div className="space-y-4">
+				<Toggle
+					icon="extension"
+					label={t("settings.showAdvancedFeatures")}
+					hint={t("settings.showAdvancedFeaturesHint")}
+					checked={showAdvanced}
+					onChange={(on) => patch.mutate({ "ui.showAdvancedFeatures": on })}
+				/>
+				{showAdvanced ? (
+					<Toggle
+						icon="extension"
+						label={t("settings.showPlugins")}
+						hint={t("settings.showPluginsHint")}
+						checked={showPlugins}
+						onChange={(on) => patch.mutate({ "ui.showPlugins": on })}
+					/>
+				) : null}
+			</div>
 		</GhostCard>
 	);
 }

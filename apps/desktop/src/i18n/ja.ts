@@ -26,6 +26,8 @@ export const ja: TranslationCatalog = {
 		docsTransparency: "透明性",
 		docsExpand: "ドキュメントのセクションを展開",
 		docsCollapse: "ドキュメントのセクションを折りたたむ",
+		archiveExpand: "アーカイブメニューを開く",
+		archiveCollapse: "アーカイブメニューを閉じる",
 		jobsActive_one: "{{count}}件のジョブ",
 		jobsActive_other: "{{count}}件のジョブ",
 		items: "アイテム",
@@ -39,6 +41,13 @@ export const ja: TranslationCatalog = {
 		title: "今日のインテリジェンスブリーフ",
 		timer: "10分ブリーフィング",
 		stories: "{{count}}件の記事",
+		searchPlaceholder: "アーカイブを検索…",
+		viewSelectorAria: "ストーリーのデフォルト表示",
+		viewSelectorHint:
+			"ストーリーカードの開き方：自動はインサイトがあれば表示し、記事は本文を開き、インサイトは常に分析を開きます。",
+		viewAuto: "自動",
+		viewArticle: "記事",
+		viewInsights: "インサイト",
 		sources: "{{count}}件のソース",
 		intelligenceOn: "インテリジェンスモード — AI補強が有効",
 		newsMode: "ニュースモード — 新しさと信頼性でランク付け",
@@ -64,6 +73,18 @@ export const ja: TranslationCatalog = {
 		emptyRangeTitle: "この範囲に記事がありません",
 		emptyRangeBody:
 			"まだ記事が収集されていないか、選択した期間に該当する記事がない可能性があります。<em>収集</em>を押して新しい記事を取得してください — APIキーは不要です。",
+		searchPage: "検索ページ",
+		searchStories: "これらのストーリーを検索…",
+		searchCount: "{{total}}件中{{shown}}件のストーリー",
+		searchNoResults: "検索に一致するストーリーはありません。",
+		updateBrief: "ブリーフを更新",
+		updateBriefHint:
+			"新しいストーリーを収集し、ワンタップでブリーフを再生成します。",
+		generateHint: "現在の期間のAI分析を再生成します。",
+		generateAnalysis: "分析を生成",
+		generatingAnalysis: "生成中…",
+		sectionFilters: "フィルター",
+		sectionStories: "ストーリー",
 	},
 	storyViews: {
 		title: "閲覧したストーリー",
@@ -74,6 +95,8 @@ export const ja: TranslationCatalog = {
 		scopeInsight: "インサイト",
 		scopeArticle: "記事",
 		scopeBoth: "インサイト + 記事",
+		markReadAria: "既読にする",
+		markUnreadAria: "未読にする",
 	},
 	why: "重要な理由",
 	impact: "影響",
@@ -202,9 +225,44 @@ export const ja: TranslationCatalog = {
 		backgroundTip:
 			"ウィンドウを閉じると、Vorynthはバックグラウンドで動作し続けます：Dockから完全に消え（クリックする死んだものはなく）、メニューバーに住み、ソースは収集され続けるので戻ったときブリーフが準備されており、トレイの終了で完全に終了します。",
 		advancedTitle: "詳細",
+		showHeaderLabels: "ヘッダーのアイコンにラベルを表示",
+		showHeaderLabelsHint:
+			"上部バーの履歴・テーマ・通知アイコンの横にテキストを表示。コンパクトなヘッダーにする場合はオフに。",
+		navigationTitle: "ナビゲーション",
+		navSidebar: "サイドバー",
+		navInpage: "ページ内",
+		navigationHint:
+			"アーカイブのサブページ（項目、コレクション、ブックマーク、検索、ゴミ箱）の場所 — サイドバーのサブメニューか、アーカイブページ内のタブ行。",
 		showAdvancedFeatures: "詳細機能を表示",
 		showAdvancedFeaturesHint:
 			"プラグインページを表示します — Vorynthが実行するソースコネクタとUIプラグイン。ほとんどの人は必要ありません：ソース用のコネクタは自動的に解決されます。自分で仕組みを見て管理したい場合にのみオンにしてください。",
+		showPlugins: "プラグインページを表示",
+		showPluginsHint:
+			"開発者設定とは別の切り替えです。Developer セクションのためだけに詳細設定を有効にした場合はオフにしてください。",
+		developerTitle: "開発者",
+		developerHint:
+			"ローカルエンジンでの開発 — APIエンドポイントと配信されるアプリ、およびネットワーク経由で呼び出せる相手。",
+		backendUrl: "バックエンドURL",
+		frontendUrl: "フロントエンドURL",
+		sameOriginNote:
+			"エンジンは同じアドレスでアプリを配信します — 任意のブラウザで開けます。",
+		networkAccess: "ネットワークアクセス",
+		accessLocal: "ローカルのみ",
+		accessLocalHint: "127.0.0.1 — このデバイス上でのみ応答します。デフォルト。",
+		accessAll: "すべて許可",
+		accessAllHint:
+			"0.0.0.0 — ネットワーク上のすべてのデバイス（バックエンドとフロントエンド）から到達可能。CORSはすべてのオリジンに開放。",
+		accessCustom: "カスタムIP",
+		accessCustomHint:
+			"リストしたIP（127.0.0.1 に加えて）だけがブラウザからエンジンを呼び出せます。",
+		allowedIps: "許可されたIP",
+		allowedIpsHint:
+			"カンマ区切り — 例: 192.168.9.160,10.0.0.5。127.0.0.1 と合わせて許可されます。",
+		reachableAt: "アクセス可能なURL",
+		networkSecurityNote:
+			"Vorynthにはログインがありません。ネットワークに公開すると、そのネットワーク上の誰でもデータを読み取り・制御できます。信頼できるネットワークでのみ有効にしてください。",
+		networkRestartNote:
+			"リッスンアドレスは次回のVorynth起動時に適用されます。CORSとIPのルールはすぐに適用されます。",
 		searchPlaceholder: "設定を検索…",
 		searchHint: "入力して絞り込み — 一致しないセクションは薄暗く表示されます。",
 		searchButton: "検索",
@@ -344,6 +402,38 @@ export const ja: TranslationCatalog = {
 		fontImport: "カスタムフォントをインポート",
 		fontReset: "リセット",
 		fontImportFailed: "フォントファイルを読み込めませんでした。",
+		briefActionsTitle: "ストーリーカードの操作",
+		briefActionsHint:
+			"各ストーリーカードのボタンの順序と、「その他」メニューに入れるボタンを選べます。ドラッグで並べ替え。",
+		briefAction: {
+			readSource: "ソースを読む",
+			viewToggle: "表示",
+			save: "保存",
+			inMore: "「その他」メニューに表示",
+		},
+		readerActionsTitle: "リーダーのアクション",
+		readerActionsHint:
+			"ドラッグでリーダーの下部バーのボタンの順序を並べ替え、「⋮ その他」メニューに置くものを選べます。記事ページとインサイトページに適用されます — 何も隠れていません。",
+		readerInBar: "リーダーバーに",
+		readerInMore: "「⋮ その他」の背後",
+		briefInBar: "カードバーに",
+		briefInMore: "「⋮ その他」の背後",
+		readerSettings: "リーダー設定",
+		supportReminder: "「著者を支援」リマインダーを表示",
+		supportReminderHint: "アプリ内リーダーを開く前に元のサイトへ促します。",
+		keepMediaLocal: "デフォルトでメディアをローカルに保持",
+		keepMediaLocalHint:
+			"オンの場合、開いた記事のメディアがオフライン閲覧用にダウンロードされます。デフォルトはオフ — メディアはソースからストリーミングされます。",
+		cardClick: "カードクリック",
+		cardClickHint: "記事カードが押してドラッグしたときにどう反応するか。",
+		dragSelectsText: "ドラッグでテキストを選択",
+		dragSelectsTextHint:
+			"オンの場合（デフォルト）、記事上でマウスをドラッグすると開かずにテキストが選択されます — 開くにはクリーンなクリックが必要です。マウスでテキストを選択せず、押して離すと記事が開くようにしたい場合はオフにしてください。",
+		resetAll: "すべてリセット",
+		resetting: "リセット中…",
+		confirmDialogs: "確認ダイアログ",
+		confirmDialogsHint:
+			"「再度確認しない」の選択をリセットし、破壊的な操作の前に再度確認を求めるようにします。",
 	},
 	provider: {
 		label: "ラベル",
@@ -364,8 +454,26 @@ export const ja: TranslationCatalog = {
 			"このキーは復号できません — データの復元やクリーンアップの際にローカル暗号化キーが失われた可能性があります。このプロバイダーを削除し、APIキーを入れて再度追加してください。",
 		labelPlaceholder: "私のGeminiキー",
 		apiKeyPlaceholder: "キーを貼り付け…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"空のままにすると、公式のOpenAI API（https://api.openai.com/v1）が使われます。",
+		ollamaMode: "モード",
+		ollamaLocal: "ローカル",
+		ollamaCloud: "クラウド",
+		ollamaLocalHint:
+			"自分で立てたOllamaサーバー — このマシン上で動作し、APIキーは不要です。",
+		ollamaCloudHint:
+			"Ollamaのホスト型サービス — ローカルGPUなしで大きなモデルを使えます。ollama.com/settings/keys のAPIキーが必要です。",
 		removeAria: "削除",
+		modelRequired: "モデル名を入力してください。",
+		geminiDocs: "Geminiモデル: ",
+		geminiFreeTip:
+			"2026年8月10日時点で、gemini-3.1-flash-liteは1日500リクエストまで無料です。",
+		openaiDocs: "OpenAIモデル: ",
+		anthropicDocs: "Claudeドキュメント: ",
+		ollamaDocs: "Ollamaドキュメント: ",
+		ollamaHostTip:
+			"OllamaはHOSTプロバイダーとして動作します。モデルは時期によって異なる場合があるため、最新のリストはドキュメントで確認してください。",
 	},
 	onboarding: {
 		welcome: "Vorynthへようこそ",
@@ -377,7 +485,7 @@ export const ja: TranslationCatalog = {
 		begin: "始める",
 		config: "もっと賢くする（任意）",
 		configBody:
-			"AIサービスを接続して、すべての記事に「重要な理由」「影響」「推奨される次の一手」を追加します。スキップしても構いません — Vorynthは単体でも素晴らしく動作します。",
+			"任意のAIサービスを接続すると、Vorynthは各ストーリーに短い平易なメモを追加します — なぜ重要なのか、何が変わったのか、何をすべきか。スキップしても毎日のブリーフは問題なく機能します。",
 		selectProvider: "AIサービスを選択",
 		apiKey: "APIキー",
 		apiKeyHint:
@@ -386,6 +494,7 @@ export const ja: TranslationCatalog = {
 		newsOnlyBody:
 			"ニュースモードはAIなしで記事を収集しランク付けします。いつでも設定からAIサービスを追加できます。",
 		continue: "続ける",
+		modelHint: "空のままにすると、プロバイダーのデフォルトモデルが使われます。",
 		back: "戻る",
 		savingProvider: "保存中…",
 		topics: "何が重要ですか？",
@@ -416,13 +525,14 @@ export const ja: TranslationCatalog = {
 		recapNews: "ニュース",
 		recapTopics: "トピック",
 		recapNoTopics: "なし — 公式ソース",
+		recapNoTopicsOff: "なし — 公式ソースはオフ",
 		recapUiLanguage: "アプリ言語",
 		recapAiLanguage: "AI言語",
 		officialSources: "公式ソースを有効のままにする",
 		officialSourcesHint:
 			"Vorynthの公式デベロッパーニュース一覧がデフォルトでブリーフを埋めます。自分で選んだトピックだけが必要ならオフにしてください。",
-		emptyTopicsOffBody:
-			"トピックが選択されておらず、公式ソースもオフです。ブリーフが空になります。公式ソースをオンにしておきますか？",
+		previewOfficialSources: "公式ソースを表示",
+		officialSourcesListName: "Vorynth公式デベロッパーリスト",
 		modesTitle: "ニュースモードとインテリジェンスモード",
 		newsModeBody:
 			"ニュースモードはAIなしでストーリーを収集・順位付けします。キー不要、完全にプライベート、どのマシンでも動作します。",
@@ -440,6 +550,7 @@ export const ja: TranslationCatalog = {
 		futureProvidersTip:
 			"ヒント: 今後もこのリストにプロバイダーが追加されます。新機能はチェンジログで確認してください。",
 		recapNote: "すべて設定とプロフィールでいつでも変更できます。",
+		modelRequired: "続行するにはモデル名を入力してください。",
 	},
 	analyzing: {
 		title: "インテリジェンスを抽出中",
@@ -462,6 +573,10 @@ export const ja: TranslationCatalog = {
 		trend: "トレンド",
 		"low-noise": "低ノイズ",
 	},
+	docs: {
+		searchPlaceholder: "ドキュメントを検索…",
+		noResults: "「{{q}}」に一致するドキュメントはありません。",
+	},
 	common: {
 		collect: "収集",
 		collecting: "収集中…",
@@ -469,7 +584,9 @@ export const ja: TranslationCatalog = {
 		generating: "生成中…",
 		back: "戻る",
 		cancel: "キャンセル",
+		close: "閉じる",
 		noResults: "一致する項目がありません",
+		dontShowAgain: "今後表示しない",
 	},
 	search: {
 		title: "検索",
@@ -562,6 +679,7 @@ export const ja: TranslationCatalog = {
 		moveTo: "移動先…",
 		archived: "アーカイブ済み",
 		item_one: "項目",
+		showMore: "さらに{{count}}件表示（残り{{remaining}}件）",
 		item_other: "項目",
 		showArchived: "アーカイブを表示",
 		showingArchived: "アーカイブを表示中",
@@ -650,8 +768,8 @@ export const ja: TranslationCatalog = {
 		article: "記事",
 		openOriginal: "原文を開く",
 		readInVorynth: "Vorynthで読む",
-		dontShowAgain: "今後は表示しない —",
 		changeInProfile: "後でプロフィールで変更できます。",
+		dontShowAgain: "今後は表示しない —",
 	},
 	profile: {
 		title: "プロフィール",
@@ -728,41 +846,18 @@ export const ja: TranslationCatalog = {
 		recentSearches: "最近の検索",
 		noActivity:
 			"まだアクティビティがありません。検索を実行するか、ブリーフィングを読んで埋めてください。",
-		readerSettings: "リーダー設定",
-		supportReminder: "「著者を支援」リマインダーを表示",
-		supportReminderHint: "アプリ内リーダーを開く前に元のサイトへ促します。",
-		keepMediaLocal: "デフォルトでメディアをローカルに保持",
-		keepMediaLocalHint:
-			"オンの場合、開いた記事のメディアがオフライン閲覧用にダウンロードされます。デフォルトはオフ — メディアはソースからストリーミングされます。",
 		aiLanguage: "AI出力言語",
 		aiLanguageHint:
 			"VorynthのAIが質問への回答、ブリーフの生成、サマリーの作成に使う言語。インサイトを受け取りたい言語を選んでください。",
-		readerActions: "リーダーアクション",
-		readerActionsHint:
-			"どの記事アクションをリーダーの下部バーに残すか選んでください。残りは「⋮ その他」メニューの後ろに移動します — 何も隠されません。",
-		pinned: "リーダーバーに",
-		moreMenu: "「⋮ その他」の後ろに",
-		readerActionsOverflow:
-			"リーダーバーは5つのアクション用に設計されています — それ以上ピン留めすると混雑します。",
-		cardClick: "カードクリック",
-		cardClickHint: "記事カードが押してドラッグしたときにどう反応するか。",
-		dragSelectsText: "ドラッグでテキストを選択",
-		dragSelectsTextHint:
-			"オンの場合（デフォルト）、記事上でマウスをドラッグすると開かずにテキストが選択されます — 開くにはクリーンなクリックが必要です。マウスでテキストを選択せず、押して離すと記事が開くようにしたい場合はオフにしてください。",
 		aiLanguageAria: "AI出力言語",
-		resetAll: "すべてリセット",
-		resetting: "リセット中…",
 		categoryIdentity: "あなたについて",
 		categoryAi: "AIの書き方",
 		categoryLanguages: "言語",
-		categoryReading: "読書",
 		searchIdentity:
 			"アイデンティティ 名前 姓 別名 行動まとめ 興味 トピック identity",
 		searchAi: "カスタム指示 ai 出力 言語 執筆 custom instruction",
 		searchLanguages:
 			"言語 ui 英語 ペルシャ語 アラビア語 韓国語 日本語 中国語 ヘブライ語 スペイン語 ドイツ語 ロシア語 language",
-		searchReading:
-			"読書 設定 サポート 著者 リマインダー メディア ローカル アクション クリック ドラッグ テキスト選択 reader",
 	},
 	media: {
 		title: "ローカルメディア",
@@ -935,6 +1030,8 @@ export const ja: TranslationCatalog = {
 		test: "テスト",
 		testing: "テスト中…",
 		testOk: "動作します — {{count}}件のアイテムを検出",
+		testMissingFields: "テストには次のフィールドが必要です: {{fields}}",
+		fieldName: "名前",
 		testFail: "取得できませんでした — {{message}}",
 		configLabel: "{{label}}",
 		testHint: "保存せずに数アイテムを取得して、設定を確認できます。",
@@ -1089,9 +1186,32 @@ export const ja: TranslationCatalog = {
 		listEnableAria: "{{name}}をオンにする",
 		expandAria: "{{name}}のソースを表示",
 		collapseAria: "{{name}}のソースを非表示",
+		previewAria: "{{name}}をプレビュー",
+		previewTitle: "{{name}} — ソース",
+		previewBody: "このリストには{{count}}サイトがあります。",
+		previewLoading: "読み込み中…",
+		previewEmpty: "このリストにはまだソースがありません。",
+		previewOn: "オン",
+		previewOff: "オフ",
 		editDisabledNote:
 			"リスト内のソースは個別に削除できません — 代わりにリスト全体を非表示にしてください。",
 		sourceCountLabel: "ソース{{count}}件",
+		deleteListAria: "リスト {{name}} を削除",
+		deleteTitle: "このリストを削除しますか？",
+		deleteMessage:
+			"{{name}} とその {{count}} 件のソースは完全に削除されます。収集したストーリーも削除され、元に戻すことはできません。",
+		deleteConfirm: "リストを削除",
+		deleteForceTitle: "保存済みストーリーが削除されます",
+		deleteForceBody:
+			"このリストには保存済みストーリーが {{count}} 件あり、それらも削除されます。それでも削除しますか？",
+		deleteForceConfirm: "それでも削除",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "{{name}} を更新",
+		updateListHint:
+			"コミュニティリポジトリでこのリストの新しいバージョンを確認します。",
+		updating: "更新中…",
+		updated: "更新しました",
+		upToDate: "最新です",
 	},
 	reference: {
 		greeting: "こんにちは — このプラグインは生きていて貢献しています。",
@@ -1422,6 +1542,10 @@ export const ja: TranslationCatalog = {
 		fromProfile: "プロフィールから",
 		titleSearch: "検索履歴",
 		tabViews: "閲覧したストーリー",
+		filterPlaceholder: "履歴をフィルタ…",
+		recordKeywordTip:
+			"キーワード検索は「キーワード検索を記録」がオンのときだけここに表示されます。AI検索とブリーフィングは常に記録されます。",
+		openSettings: "設定を開く",
 		fromSearch: "検索から",
 		entries: "{{count}}件のエントリ",
 		select: "選択",
@@ -1583,6 +1707,8 @@ export const ja: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "ソース言語",
+		viewInsight: "インサイト表示",
+		viewArticle: "記事表示",
 		outputLanguage: "出力言語",
 		generated: "生成",
 		mixed: "混在",

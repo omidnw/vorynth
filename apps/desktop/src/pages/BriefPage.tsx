@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { BriefEntry, BriefPeriod } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { Input } from "@/components/ui/Input";
 import { DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
+import { DismissibleTip } from "@/components/ui/DismissibleTip";
 import { BriefItemView } from "@/features/brief/BriefItemView.js";
 import { PeriodSummaryPanel } from "@/features/brief/PeriodSummaryPanel.js";
 import { fetchRange } from "@/features/brief/brief-api.js";
-import { fetchSettings } from "@/features/history/history-api.js";
+import {
+	fetchSettings,
+	patchSettings,
+} from "@/features/history/history-api.js";
 import { DocsHelpButton } from "@/features/docs/DocsHelpButton.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 
@@ -128,6 +133,13 @@ export function BriefPage() {
 	const generateActive = isActive("generate");
 	const busy = collectActive || generateActive;
 
+	// v1.9.0 — "Update my brief": collect new stories then regenerate the AI
+	// analysis in one tap (runs sequentially; the page stays disabled while busy).
+	const runUpdate = async () => {
+		await startCollect();
+		await startGenerate({ cap: 10, period });
+	};
+
 	const { data, isLoading } = useQuery({
 		queryKey: ["reports", "range", period],
 		queryFn: () => fetchRange(period),
@@ -143,18 +155,40 @@ export function BriefPage() {
 		staleTime: 60_000,
 	});
 	const dragSelectsText = appSettings?.["ui.dragSelectsText"] ?? true;
+	// v1.8.1 — brief-wide default view (Auto / Article / Insights), shared with
+	// the story cards below.
+	const queryClient = useQueryClient();
+	const defaultView =
+		(appSettings?.["brief.defaultView"] as
+			"auto" | "article" | "insights" | undefined) ?? "auto";
+	const setDefaultView = (view: "auto" | "article" | "insights") => {
+		void patchSettings({ "brief.defaultView": view });
+		queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+	};
+	// v1.9.0 — in-brief search (title + body, case-insensitive). Filtering is
+	// applied FIRST, then the existing sort mode + page size.
+	const [briefQ, setBriefQ] = useState("");
+	const searching = briefQ.trim() !== "";
 
 	const intelligenceEnabled = data?.intelligenceEnabled ?? false;
 	const allEntries = data?.entries ?? [];
 
-	// Apply the chosen sort mode + domain filter client-side.
+	// v1.9.0 — apply the domain filter + the in-brief search FIRST, then sort.
 	const visible = useMemo(() => {
-		const filtered =
-			domainFilter !== null
-				? allEntries.filter(
-						(e) => categoryLabel(t, e.category) === domainFilter,
-					)
-				: allEntries;
+		const q = briefQ.trim().toLowerCase();
+		const filtered = allEntries.filter((e) => {
+			if (
+				domainFilter !== null &&
+				categoryLabel(t, e.category) !== domainFilter
+			)
+				return false;
+			if (q) {
+				const title = (e.article.title ?? "").toLowerCase();
+				const content = (e.article.content ?? "").toLowerCase();
+				if (!title.includes(q) && !content.includes(q)) return false;
+			}
+			return true;
+		});
 		const sorted = [...filtered];
 		if (sort === "newest") {
 			sorted.sort(
@@ -168,14 +202,28 @@ export function BriefPage() {
 		}
 		// Re-rank after sort so the visible rank numbers are 1..N.
 		return sorted.slice(0, limit).map((e, i) => ({ ...e, rank: i + 1 }));
-	}, [allEntries, domainFilter, sort, limit, t]);
+	}, [allEntries, domainFilter, sort, limit, briefQ, t]);
 
-	/** Total entries after the domain filter (independent of the page size). */
-	const filteredCount = () =>
-		domainFilter !== null
-			? allEntries.filter((e) => categoryLabel(t, e.category) === domainFilter)
-					.length
-			: allEntries.length;
+	/**
+	 * Total entries after the domain filter + in-brief search (independent of
+	 * the page size) — feeds both the "N of M" count and the Load-more button.
+	 */
+	const filteredCount = useMemo(() => {
+		const q = briefQ.trim().toLowerCase();
+		return allEntries.filter((e) => {
+			if (
+				domainFilter !== null &&
+				categoryLabel(t, e.category) !== domainFilter
+			)
+				return false;
+			if (q) {
+				const title = (e.article.title ?? "").toLowerCase();
+				const content = (e.article.content ?? "").toLowerCase();
+				if (!title.includes(q) && !content.includes(q)) return false;
+			}
+			return true;
+		}).length;
+	}, [allEntries, domainFilter, briefQ, t]);
 
 	return (
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
@@ -210,101 +258,162 @@ export function BriefPage() {
 							: t("brief.newsMode")}
 					</span>
 				</div>
-				<div className="mt-6 flex flex-wrap gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						icon="bookmark"
-						onClick={() => navigate("/bookmarks")}
-						title={t("brief.savedStories")}
-					>
-						Bookmarks
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						icon="tune"
-						onClick={() => navigate("/archive/search")}
-					>
-						{t("search.advanced")}
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						icon="sync"
-						onClick={() => void startCollect()}
-						disabled={busy}
-					>
-						{collectActive ? t("common.collecting") : t("common.collect")}
-					</Button>
-					<Button
-						variant="secondary"
-						size="sm"
-						icon="bolt"
-						iconFill={intelligenceEnabled}
-						onClick={() => void startGenerate({ cap: 10, period })}
-						disabled={busy}
-					>
-						{generateActive ? t("common.generating") : t("common.generate")}
-					</Button>
-				</div>
 			</header>
 
-			{/* Period + sort selectors */}
-			<div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-				<div className="flex flex-wrap items-center gap-2">
-					<span className="me-2 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
-						Range
-					</span>
-					{periods(t).map((p) => (
-						<button
-							key={p.value}
-							onClick={() => setPeriod(p.value)}
-							className={`rounded px-3 py-1 font-label text-label-md transition-colors ${
-								period === p.value
-									? "bg-primary text-on-primary"
-									: "text-on-surface-variant hover:bg-surface-variant"
-							}`}
-						>
-							{p.label}
-						</button>
-					))}
-				</div>
-				<div className="flex items-center gap-2">
-					<span className="me-1 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
-						Sort
-					</span>
-					{sortModes(t).map((m) => (
-						<button
-							key={m.value}
-							onClick={() => setSort(m.value)}
-							title={m.label}
-							className={`flex items-center gap-1 rounded px-2 py-1 font-label text-label-sm transition-colors ${
-								sort === m.value
-									? "bg-secondary-container text-on-secondary-container"
-									: "text-on-surface-variant hover:bg-surface-variant"
-							}`}
-						>
-							<Icon name={m.icon} className="text-[16px]" />
-							<span className="hidden sm:inline">{m.label}</span>
-						</button>
-					))}
-					<div className="ms-1 h-5 w-px bg-outline-variant" />
+			{/* Action row — the one-tap Update leads; Collect / Generate Brief
+			    stay for granular control; Search Page points at the archive. */}
+			<div className="mt-6 flex flex-wrap items-center gap-2">
+				<Button
+					icon="bolt"
+					iconFill
+					onClick={() => void runUpdate()}
+					disabled={busy}
+					title={t("brief.updateBriefHint")}
+				>
+					{t("brief.updateBrief")}
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					icon="bookmark"
+					onClick={() => navigate("/bookmarks")}
+					title={t("brief.savedStories")}
+				>
+					Bookmarks
+				</Button>
+				{/* v1.9.0 — search is its own page; this button says so. */}
+				<Button
+					variant="ghost"
+					size="sm"
+					icon="search"
+					onClick={() => navigate("/archive/search")}
+				>
+					{t("brief.searchPage")}
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					icon="sync"
+					onClick={() => void startCollect()}
+					disabled={busy}
+				>
+					{collectActive ? t("common.collecting") : t("common.collect")}
+				</Button>
+				<Button
+					variant="secondary"
+					size="sm"
+					icon="bolt"
+					iconFill={intelligenceEnabled}
+					onClick={() => void startGenerate({ cap: 10, period })}
+					disabled={busy}
+					title={t("brief.generateHint")}
+				>
+					{/* v1.8.1 — clearer than "Generate Brief": this button only
+					    regenerates the AI analysis, it doesn't collect. */}
+					{generateActive
+						? t("brief.generatingAnalysis")
+						: t("brief.generateAnalysis")}
+				</Button>
+			</div>
+			{/* v1.8.1 — default view for the story cards (Auto / Article /
+			    Insights) on its OWN row, separate from the action buttons.
+			    Insight default + a configured provider auto-generates missing
+			    insights after a collect. w-fit keeps the box the size of its
+			    content — it never stretches across the page. */}
+			<div
+				className="mt-4 flex w-fit items-center gap-1 rounded border border-outline-variant p-0.5"
+				role="group"
+				aria-label={t("brief.viewSelectorAria")}
+			>
+				{(
+					[
+						{ value: "auto", label: t("brief.viewAuto") },
+						{ value: "article", label: t("brief.viewArticle") },
+						{ value: "insights", label: t("brief.viewInsights") },
+					] as const
+				).map((v) => (
 					<button
+						key={v.value}
 						type="button"
-						onClick={clearPersisted}
-						title={t("brief.resetFilters")}
-						className="flex items-center gap-1 rounded px-2 py-1 font-label text-label-sm text-on-surface-variant transition-colors hover:text-error"
+						aria-pressed={defaultView === v.value}
+						onClick={() => setDefaultView(v.value)}
+						title={v.label}
+						className={`rounded px-2 py-1 font-label text-label-sm transition-colors ${
+							defaultView === v.value
+								? "bg-primary text-on-primary"
+								: "text-on-surface-variant hover:bg-surface-variant"
+						}`}
 					>
-						<Icon name="clear" className="text-[16px]" />
-						<span className="hidden sm:inline">{t("brief.clear")}</span>
+						{v.label}
 					</button>
+				))}
+			</div>
+			{/* v1.8.1 — one-time explanation of the selector above; "Don't show
+			    this again" persists in ui.tipsDismissed. */}
+			<DismissibleTip id="brief-view-selector" className="mt-3">
+				{t("brief.viewSelectorHint")}
+			</DismissibleTip>
+
+			{/* Filters — period + sort (v1.9.0: labelled, bordered section). */}
+			<div className="mt-8 border-t border-outline-variant pt-4">
+				<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
+					{t("brief.sectionFilters")}
+				</span>
+				<div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+					<div className="flex flex-wrap items-center gap-2">
+						<span className="me-2 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
+							Range
+						</span>
+						{periods(t).map((p) => (
+							<button
+								key={p.value}
+								onClick={() => setPeriod(p.value)}
+								className={`rounded px-3 py-1 font-label text-label-md transition-colors ${
+									period === p.value
+										? "bg-primary text-on-primary"
+										: "text-on-surface-variant hover:bg-surface-variant"
+								}`}
+							>
+								{p.label}
+							</button>
+						))}
+					</div>
+					<div className="flex items-center gap-2">
+						<span className="me-1 font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
+							Sort
+						</span>
+						{sortModes(t).map((m) => (
+							<button
+								key={m.value}
+								onClick={() => setSort(m.value)}
+								title={m.label}
+								className={`flex items-center gap-1 rounded px-2 py-1 font-label text-label-sm transition-colors ${
+									sort === m.value
+										? "bg-secondary-container text-on-secondary-container"
+										: "text-on-surface-variant hover:bg-surface-variant"
+								}`}
+							>
+								<Icon name={m.icon} className="text-[16px]" />
+								<span className="hidden sm:inline">{m.label}</span>
+							</button>
+						))}
+						<div className="ms-1 h-5 w-px bg-outline-variant" />
+						<button
+							type="button"
+							onClick={clearPersisted}
+							title={t("brief.resetFilters")}
+							className="flex items-center gap-1 rounded px-2 py-1 font-label text-label-sm text-on-surface-variant transition-colors hover:text-error"
+						>
+							<Icon name="clear" className="text-[16px]" />
+							<span className="hidden sm:inline">{t("brief.clear")}</span>
+						</button>
+					</div>
 				</div>
 			</div>
 
 			{/* Live-collect indicator */}
 			{collectActive ? (
-				<div className="mb-6 flex items-center gap-3 border-s-2 border-s-secondary bg-surface-container-low px-4 py-3 rounded">
+				<div className="mt-6 flex items-center gap-3 border-s-2 border-s-secondary bg-surface-container-low px-4 py-3 rounded">
 					<Icon name="sync" className="animate-spin-reverse text-secondary" />
 					<span className="font-body text-body-md text-on-surface">
 						Collecting from sources in the background — you can navigate away;
@@ -313,101 +422,145 @@ export function BriefPage() {
 				</div>
 			) : null}
 
-			{/* Period summary panel (LLM-only) */}
-			<PeriodSummaryPanel
-				period={period}
-				intelligenceEnabled={intelligenceEnabled}
-			/>
+			{/* Period summary panel (LLM-only). v1.8.1 — breathing room from the
+			    sort row above (the box used to sit flush against the chips). */}
+			<div className="mt-5">
+				<PeriodSummaryPanel
+					period={period}
+					intelligenceEnabled={intelligenceEnabled}
+				/>
+			</div>
 
-			{/* Filters bar */}
-			<div className="mb-12 flex items-center gap-8 overflow-x-auto border-b border-outline-variant pb-6 no-scrollbar">
-				<div className="flex items-center gap-3">
-					<span className="font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
-						{t("brief.domains")}
-					</span>
-					<button
-						onClick={() => setDomainFilter(null)}
-						className={`rounded px-3 py-1 font-label text-label-md transition-colors ${
-							domainFilter === null
-								? "bg-secondary-container text-on-secondary-container"
-								: "text-on-surface-variant hover:text-primary"
-						}`}
-					>
-						{t("brief.all")}
-					</button>
-					{DOMAIN_CATEGORIES.map((d) => {
-						const label = t(`categories.${d}`);
-						return (
-							<button
-								key={d}
-								onClick={() => setDomainFilter(label)}
-								className={`px-3 py-1 font-label text-label-md transition-colors hover:text-primary ${
-									domainFilter === label
-										? "text-primary underline underline-offset-4"
-										: "text-on-surface-variant"
-								}`}
-							>
-								{label}
-							</button>
-						);
-					})}
+			{/* Search + domains — the in-brief search lives below the domain chips. */}
+			<div className="mt-8 border-t border-outline-variant pt-4">
+				<div className="flex items-center gap-8 overflow-x-auto no-scrollbar">
+					<div className="flex items-center gap-3">
+						<span className="font-label text-label-sm uppercase tracking-wider text-on-surface-variant">
+							{t("brief.domains")}
+						</span>
+						<button
+							onClick={() => setDomainFilter(null)}
+							className={`rounded px-3 py-1 font-label text-label-md transition-colors ${
+								domainFilter === null
+									? "bg-secondary-container text-on-secondary-container"
+									: "text-on-surface-variant hover:text-primary"
+							}`}
+						>
+							{t("brief.all")}
+						</button>
+						{DOMAIN_CATEGORIES.map((d) => {
+							const label = t(`categories.${d}`);
+							return (
+								<button
+									key={d}
+									onClick={() => setDomainFilter(label)}
+									className={`px-3 py-1 font-label text-label-md transition-colors hover:text-primary ${
+										domainFilter === label
+											? "text-primary underline underline-offset-4"
+											: "text-on-surface-variant"
+									}`}
+								>
+									{label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+
+				{/* v1.9.0 — in-brief search: title OR body, case-insensitive. */}
+				<div className="mt-4 max-w-md">
+					<Input
+						value={briefQ}
+						onChange={(e) => setBriefQ(e.target.value)}
+						placeholder={t("brief.searchStories")}
+						icon="search"
+						aria-label={t("brief.searchStories")}
+					/>
+					{searching ? (
+						<p className="mt-2 flex items-center gap-1.5 font-body text-body-sm text-on-surface-variant">
+							{filteredCount === 0 ? (
+								<>
+									<Icon name="search_off" className="text-[16px]" />
+									<span>{t("brief.searchNoResults")}</span>
+								</>
+							) : (
+								t("brief.searchCount", {
+									shown: visible.length,
+									total: filteredCount,
+								})
+							)}
+						</p>
+					) : null}
 				</div>
 			</div>
 
-			{isLoading ? (
-				<LoadingState />
-			) : visible.length > 0 ? (
-				<div className="space-y-20">
-					{visible.map((entry: BriefEntry) => (
-						<BriefItemView
-							key={entry.article.id}
-							entry={entry}
-							intelligenceEnabled={intelligenceEnabled}
-							dragSelectsText={dragSelectsText}
+			{/* Stories */}
+			<div className="mt-8 border-t border-outline-variant pt-4">
+				<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
+					{t("brief.sectionStories")}
+				</span>
+				<div className="mt-6">
+					{isLoading ? (
+						<LoadingState />
+					) : visible.length > 0 ? (
+						<div className="space-y-20">
+							{visible.map((entry: BriefEntry) => (
+								<BriefItemView
+									key={entry.article.id}
+									entry={entry}
+									intelligenceEnabled={intelligenceEnabled}
+									dragSelectsText={dragSelectsText}
+								/>
+							))}
+						</div>
+					) : searching ? (
+						<p className="flex items-center gap-1.5 font-body text-body-md text-on-surface-variant">
+							<Icon name="search_off" className="text-[18px]" />
+							{t("brief.searchNoResults")}
+						</p>
+					) : (
+						<EmptyState
+							onCollect={() => void startCollect()}
+							busy={busy}
+							error={lastError}
 						/>
-					))}
+					)}
 				</div>
-			) : (
-				<EmptyState
-					onCollect={() => void startCollect()}
-					busy={busy}
-					error={lastError}
-				/>
-			)}
 
-			{filteredCount() > visible.length ? (
-				<div className="mt-20 border-t border-outline-variant pt-12 text-center">
-					<Button
-						variant="secondary"
-						iconRight="expand_more"
-						onClick={() => setLimit((l) => l + 30)}
+				{filteredCount > visible.length ? (
+					<div className="mt-12 border-t border-outline-variant pt-8 text-center">
+						<Button
+							variant="secondary"
+							iconRight="expand_more"
+							onClick={() => setLimit((l) => l + 30)}
+						>
+							Load {Math.min(30, filteredCount - visible.length)} more stories
+						</Button>
+					</div>
+				) : null}
+
+				{!intelligenceEnabled && allEntries.length > 0 ? (
+					<div
+						className="mt-8 flex cursor-pointer items-center gap-3 border-s-2 border-s-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
+						onClick={() => navigate("/settings")}
+						role="button"
+						tabIndex={0}
 					>
-						Load {Math.min(30, filteredCount() - visible.length)} more stories
-					</Button>
-				</div>
-			) : null}
+						<Icon name="tips_and_updates" className="text-secondary" />
+						<p className="font-body text-body-md text-on-surface-variant">
+							<Trans t={t} i18nKey="brief.newsHint">
+								<span className="underline">{t("nav.settings")}</span>
+							</Trans>
+						</p>
+					</div>
+				) : null}
 
-			{!intelligenceEnabled && allEntries.length > 0 ? (
-				<div
-					className="mt-8 flex cursor-pointer items-center gap-3 border-s-2 border-s-secondary bg-surface-container-low px-5 py-3 rounded transition-colors hover:bg-surface-container-high"
-					onClick={() => navigate("/settings")}
-					role="button"
-					tabIndex={0}
-				>
-					<Icon name="tips_and_updates" className="text-secondary" />
-					<p className="font-body text-body-md text-on-surface-variant">
-						<Trans t={t} i18nKey="brief.newsHint">
-							<span className="underline">{t("nav.settings")}</span>
-						</Trans>
-					</p>
-				</div>
-			) : null}
-
-			{intelligenceEnabled ? (
-				<div className="mt-4">
-					<DomainTag>{t("brief.intelligenceActive")}</DomainTag>
-				</div>
-			) : null}
+				{intelligenceEnabled ? (
+					<div className="mt-4">
+						<DomainTag>{t("brief.intelligenceActive")}</DomainTag>
+					</div>
+				) : null}
+			</div>
 		</section>
 	);
 }

@@ -17,7 +17,12 @@ import {
  * results, new-version pings). Also syncs the `notifications.*` persisted
  * settings into the store so the watchers know what's on.
  */
-export function NotificationCenter() {
+export function NotificationCenter({
+	showLabel = false,
+}: {
+	/** v1.8.1 — show a text label next to the bell (header labels setting). */
+	showLabel?: boolean;
+}) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const items = useNotificationsStore((s) => s.items);
@@ -67,18 +72,27 @@ export function NotificationCenter() {
 				onClick={() => setOpen((o) => !o)}
 				aria-label={t("notifications.aria")}
 				aria-expanded={open}
-				className="relative rounded p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+				className="relative flex items-center gap-1.5 rounded p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
 			>
-				<Icon name="notifications" className="text-[22px]" />
-				{count > 0 ? (
-					<span className="absolute end-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 font-mono text-[10px] font-bold leading-none text-on-error">
-						{count > 9 ? "9+" : count}
+				{/* v1.8.1 — the badge sits on the ICON (like a phone/dock badge),
+				    not next to the text label. */}
+				<span className="relative inline-flex">
+					<Icon name="notifications" className="text-[24px]" />
+					{count > 0 ? (
+						<span className="absolute end-[-4px] top-[-4px] flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 font-mono text-[10px] font-bold leading-none text-on-error">
+							{count > 9 ? "9+" : count}
+						</span>
+					) : null}
+				</span>
+				{showLabel ? (
+					<span className="hidden font-label text-label-sm md:inline">
+						{t("notifications.title")}
 					</span>
 				) : null}
 			</button>
 
 			{open ? (
-				<div className="absolute end-0 top-full z-50 mt-2 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-outline-variant bg-surface-container shadow-2xl">
+				<div className="absolute end-0 top-full z-50 mt-2 w-[430px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-outline-variant bg-surface-container shadow-2xl">
 					<div className="flex items-center justify-between gap-2 border-b border-outline-variant px-4 py-3">
 						<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface">
 							{t("notifications.title")}

@@ -46,18 +46,22 @@ import { fetchPlugins } from "@/features/plugins/plugins-api.js";
 import {
 	createSource,
 	deleteSource,
+	deleteSourceList,
 	disableSourceList,
 	enableSourceGroup,
 	enableSourceList,
 	fetchSourceArticles,
+	fetchSourceListSources,
 	fetchSourceLists,
 	fetchSources,
 	importSourceList,
 	refreshSourceLists,
 	toggleSource,
 	updateSource,
+	updateSourceList,
 	verifySource,
 } from "@/features/sources/sources-api.js";
+import { SourceListPreviewDialog } from "@/features/sources/SourceListPreviewDialog.js";
 import {
 	buildTagVocabulary,
 	suggestTags,
@@ -271,6 +275,17 @@ export function SourcesPage() {
 		id: string;
 		count: number;
 	} | null>(null);
+	/** v1.8.1 — source-list preview modal target (list id), null = closed. */
+	const [previewListId, setPreviewListId] = useState<string | null>(null);
+	/** v1.8.1 — list awaiting the delete confirmation (first step). */
+	const [confirmListDeleteId, setConfirmListDeleteId] = useState<string | null>(
+		null,
+	);
+	/** v1.8.1 — list whose sources own saved stories: force-confirm step. */
+	const [forceListDelete, setForceListDelete] = useState<{
+		id: string;
+		count: number;
+	} | null>(null);
 	/** Source form dialog state: closed, create, or edit an existing source. */
 	const [formState, setFormState] = useState<
 		{ mode: "create" } | { mode: "edit"; source: Source } | null
@@ -411,6 +426,59 @@ export function SourcesPage() {
 			enabled ? enableSourceList(id) : disableSourceList(id),
 		onSuccess: invalidate,
 	});
+	/**
+	 * v1.8.1 — list deletion respects domain ownership (R-A10): the engine
+	 * refuses (409 BOOKMARKED_ARTICLES_EXIST) when the list's sources own saved
+	 * stories. We surface that as an explicit "N saved stories will be deleted —
+	 * delete anyway?" confirmation before retrying with force.
+	 */
+	const listDelete = useMutation({
+		mutationFn: ({ id, force }: { id: string; force?: boolean }) =>
+			deleteSourceList(id, force),
+		onSuccess: () => {
+			invalidate();
+			setConfirmListDeleteId(null);
+			setForceListDelete(null);
+		},
+		onError: (err, vars) => {
+			if (err instanceof ApiException && err.status === 409 && !vars.force) {
+				const details = err.details as
+					{ code?: string; bookmarkedCount?: number } | undefined;
+				if (details?.code === "BOOKMARKED_ARTICLES_EXIST") {
+					setForceListDelete({
+						id: vars.id,
+						count: details.bookmarkedCount ?? 0,
+					});
+					return;
+				}
+			}
+			setForceListDelete(null);
+		},
+	});
+	/**
+	 * v1.8.1 — per-list "Update": fetch the list's repo file and apply it if
+	 * newer (preserving the user's enabled choice, never duplicating sources).
+	 * The transient feedback shows "Updated" vs "Up to date" next to the button.
+	 */
+	const [updateState, setUpdateState] = useState<{
+		id: string;
+		status: "updating" | "updated" | "upToDate";
+	} | null>(null);
+	const updateTimer = useRef<number | null>(null);
+	const listUpdate = useMutation({
+		mutationFn: (id: string) => updateSourceList(id),
+		onMutate: (id) => setUpdateState({ id, status: "updating" }),
+		onSuccess: (res, id) => {
+			invalidate();
+			setUpdateState({
+				id,
+				status: res.updated ? "updated" : "upToDate",
+			});
+			if (updateTimer.current) window.clearTimeout(updateTimer.current);
+			updateTimer.current = window.setTimeout(() => setUpdateState(null), 4000);
+		},
+		onError: () => setUpdateState(null),
+	});
 	/** Master switch on a category/country/city/language group (v1.8.0). */
 	const groupToggle = useMutation({
 		mutationFn: (input: BulkSourceEnableInput) => enableSourceGroup(input),
@@ -479,6 +547,17 @@ export function SourcesPage() {
 	const browseLists = allBrowse.filter(
 		(l) => showAdult || !l.nsfw || !hideAdult,
 	);
+
+	// v1.8.1 — sources preview modal: the target list's sites (from its cached
+	// definitions, so it works even before the list is enabled/materialized).
+	const previewTarget = previewListId
+		? (lists.find((l) => l.id === previewListId) ?? null)
+		: null;
+	const { data: previewSources = [], isLoading: previewLoading } = useQuery({
+		queryKey: ["source-list-sources", previewListId],
+		queryFn: () => (previewListId ? fetchSourceListSources(previewListId) : []),
+		enabled: previewListId !== null,
+	});
 
 	return (
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
@@ -658,6 +737,10 @@ export function SourcesPage() {
 												onEditSource={(s) =>
 													setFormState({ mode: "edit", source: s })
 												}
+												onPreview={() => setPreviewListId(l.id)}
+												onDelete={() => setConfirmListDeleteId(l.id)}
+												updateState={updateState}
+												onUpdate={(id) => listUpdate.mutate(id)}
 											/>
 										))}
 									</div>
@@ -912,6 +995,10 @@ export function SourcesPage() {
 											if (l.nsfw) setConfirmAdultId(l.id);
 											else listToggle.mutate({ id: l.id, enabled: true });
 										}}
+										onPreview={() => setPreviewListId(l.id)}
+										onDelete={() => setConfirmListDeleteId(l.id)}
+										updateState={updateState}
+										onUpdate={(id) => listUpdate.mutate(id)}
 									/>
 								))}
 							</div>
@@ -945,6 +1032,56 @@ export function SourcesPage() {
 					setConfirmAdultId(null);
 				}}
 				onCancel={() => setConfirmAdultId(null)}
+			/>
+
+			{/* v1.8.1 — delete a list: first confirm. The engine 409s when the list's
+    sources own saved stories, which opens the force dialog below. */}
+			<ConfirmDialog
+				open={Boolean(confirmListDeleteId)}
+				title={t("sourceLists.deleteTitle")}
+				message={t("sourceLists.deleteMessage", {
+					name: lists.find((l) => l.id === confirmListDeleteId)?.name ?? "",
+					count:
+						lists.find((l) => l.id === confirmListDeleteId)?.sourceCount ?? 0,
+				})}
+				confirmLabel={t("sourceLists.deleteConfirm")}
+				icon="delete"
+				danger
+				onConfirm={() => {
+					if (!confirmListDeleteId) return;
+					listDelete.mutate({ id: confirmListDeleteId });
+					setConfirmListDeleteId(null);
+				}}
+				onCancel={() => setConfirmListDeleteId(null)}
+			/>
+
+			{/* v1.8.1 — list deletion with saved stories: explicit force confirm. */}
+			<ConfirmDialog
+				open={Boolean(forceListDelete)}
+				title={t("sourceLists.deleteForceTitle")}
+				message={
+					forceListDelete
+						? t("sourceLists.deleteForceBody", { count: forceListDelete.count })
+						: ""
+				}
+				confirmLabel={t("sourceLists.deleteForceConfirm")}
+				icon="warning"
+				danger
+				onConfirm={() => {
+					if (!forceListDelete) return;
+					listDelete.mutate({ id: forceListDelete.id, force: true });
+					setForceListDelete(null);
+				}}
+				onCancel={() => setForceListDelete(null)}
+			/>
+
+			{/* v1.8.1 — see what a list's sites are before enabling/adding it. */}
+			<SourceListPreviewDialog
+				open={Boolean(previewListId)}
+				listName={previewTarget?.name ?? ""}
+				sources={previewSources}
+				loading={previewLoading}
+				onClose={() => setPreviewListId(null)}
 			/>
 
 			{/* Delete confirmation — always show before removing a source. */}
@@ -1109,6 +1246,61 @@ export function SourcesPage() {
 	);
 }
 
+/**
+ * v1.8.1 — the per-list "Update" control for downloaded community lists. A
+ * click fetches the list's repo file and applies it when newer; the transient
+ * chip shows "Updating…" / "Updated" / "Up to date".
+ */
+function ListUpdateControl({
+	list,
+	updateState,
+	onUpdate,
+}: {
+	list: SourceListInfo;
+	updateState: {
+		id: string;
+		status: "updating" | "updated" | "upToDate";
+	} | null;
+	onUpdate: (id: string) => void;
+}) {
+	const { t } = useTranslation();
+	if (updateState?.id === list.id) {
+		const { status } = updateState;
+		return (
+			<span className="inline-flex items-center gap-1 rounded-full bg-primary-container px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-primary-container">
+				<Icon
+					name={status === "updated" ? "check" : "sync"}
+					className={
+						status === "updating"
+							? "animate-spin-reverse text-[12px]"
+							: "text-[12px]"
+					}
+				/>
+				{status === "updating"
+					? t("sourceLists.updating")
+					: status === "updated"
+						? t("sourceLists.updated")
+						: t("sourceLists.upToDate")}
+			</span>
+		);
+	}
+	return (
+		<Tooltip
+			label={t("sourceLists.updateListHint", { name: list.name })}
+			position="bottom"
+		>
+			<button
+				type="button"
+				onClick={() => onUpdate(list.id)}
+				aria-label={t("sourceLists.updateListAria", { name: list.name })}
+				className="p-2 text-on-surface-variant transition-colors hover:text-primary"
+			>
+				<Icon name="system_update" className="text-[18px]" />
+			</button>
+		</Tooltip>
+	);
+}
+
 /** One enabled list as a group: header (badges, counts, master switch) + its
  * sources when expanded. List sources are toggled/edited but never deleted —
  * the list owns them (hide the whole list instead). */
@@ -1124,6 +1316,10 @@ function SourceListGroup({
 	onCustomRange,
 	onToggleSourceExpand,
 	onEditSource,
+	onPreview,
+	onDelete,
+	updateState,
+	onUpdate,
 }: {
 	list: SourceListInfo;
 	sources: Source[];
@@ -1142,6 +1338,16 @@ function SourceListGroup({
 	onCustomRange: (id: string) => void;
 	onToggleSourceExpand: (id: string) => void;
 	onEditSource: (s: Source) => void;
+	/** v1.8.1 — open the sources preview modal for this list. */
+	onPreview: () => void;
+	/** v1.8.1 — permanently delete this list (confirm flow). */
+	onDelete: () => void;
+	/** v1.8.1 — per-list update feedback ("Updating…" / "Updated" / "Up to date"). */
+	updateState: {
+		id: string;
+		status: "updating" | "updated" | "upToDate";
+	} | null;
+	onUpdate: (id: string) => void;
 }) {
 	const { t } = useTranslation();
 	return (
@@ -1218,6 +1424,39 @@ function SourceListGroup({
 									list.enabled ? "start-[22px]" : "start-0.5",
 								)}
 							/>
+						</button>
+					</Tooltip>
+					<Tooltip
+						label={t("sourceLists.previewAria", { name: list.name })}
+						position="bottom"
+					>
+						<button
+							type="button"
+							onClick={onPreview}
+							aria-label={t("sourceLists.previewAria", { name: list.name })}
+							className="p-2 text-on-surface-variant transition-colors hover:text-primary"
+						>
+							<Icon name="visibility" className="text-[18px]" />
+						</button>
+					</Tooltip>
+					{list.canUpdate ? (
+						<ListUpdateControl
+							list={list}
+							updateState={updateState}
+							onUpdate={onUpdate}
+						/>
+					) : null}
+					<Tooltip
+						label={t("sourceLists.deleteListAria", { name: list.name })}
+						position="bottom"
+					>
+						<button
+							type="button"
+							onClick={onDelete}
+							aria-label={t("sourceLists.deleteListAria", { name: list.name })}
+							className="p-2 text-on-surface-variant transition-colors hover:text-error"
+						>
+							<Icon name="delete" className="text-[18px]" />
 						</button>
 					</Tooltip>
 					<Tooltip
@@ -1457,9 +1696,23 @@ function SourceGroupCard({
 function BrowseListCard({
 	list,
 	onAdd,
+	onPreview,
+	onDelete,
+	updateState,
+	onUpdate,
 }: {
 	list: SourceListInfo;
 	onAdd: () => void;
+	/** v1.8.1 — open the sources preview modal for this list. */
+	onPreview: () => void;
+	/** v1.8.1 — permanently delete this list (confirm flow). */
+	onDelete: () => void;
+	/** v1.8.1 — per-list update feedback ("Updating…" / "Updated" / "Up to date"). */
+	updateState: {
+		id: string;
+		status: "updating" | "updated" | "upToDate";
+	} | null;
+	onUpdate: (id: string) => void;
 }) {
 	const { t } = useTranslation();
 	return (
@@ -1499,14 +1752,49 @@ function BrowseListCard({
 					) : null}
 				</div>
 			</div>
-			<Button
-				size="sm"
-				icon="add"
-				onClick={onAdd}
-				aria-label={t("sourceLists.addListAria", { name: list.name })}
-			>
-				{t("sourceLists.addList")}
-			</Button>
+			<div className="flex shrink-0 items-center gap-1">
+				<Tooltip
+					label={t("sourceLists.previewAria", { name: list.name })}
+					position="bottom"
+				>
+					<button
+						type="button"
+						onClick={onPreview}
+						aria-label={t("sourceLists.previewAria", { name: list.name })}
+						className="p-2 text-on-surface-variant transition-colors hover:text-primary"
+					>
+						<Icon name="visibility" className="text-[18px]" />
+					</button>
+				</Tooltip>
+				<Tooltip
+					label={t("sourceLists.deleteListAria", { name: list.name })}
+					position="bottom"
+				>
+					<button
+						type="button"
+						onClick={onDelete}
+						aria-label={t("sourceLists.deleteListAria", { name: list.name })}
+						className="p-2 text-on-surface-variant transition-colors hover:text-error"
+					>
+						<Icon name="delete" className="text-[18px]" />
+					</button>
+				</Tooltip>
+				{list.canUpdate ? (
+					<ListUpdateControl
+						list={list}
+						updateState={updateState}
+						onUpdate={onUpdate}
+					/>
+				) : null}
+				<Button
+					size="sm"
+					icon="add"
+					onClick={onAdd}
+					aria-label={t("sourceLists.addListAria", { name: list.name })}
+				>
+					{t("sourceLists.addList")}
+				</Button>
+			</div>
 		</GhostCard>
 	);
 }
@@ -2350,6 +2638,44 @@ function SourceFormDialog({
 		},
 	});
 
+	// v1.8.1 — required-field validation for Test + Add: tell the user WHICH
+	// fields are missing instead of silently doing nothing, and focus the first
+	// one. The manifest marks each field `required`.
+	const [missingFields, setMissingFields] = useState<string[]>([]);
+	const configValue = (key: string) => (values[key] ?? "").trim();
+	const missingRequired = () => {
+		const missing: string[] = [];
+		for (const f of configFields) {
+			if (f.required === true && !configValue(f.key)) missing.push(f.label);
+		}
+		return missing;
+	};
+	const runTest = () => {
+		const missing = missingRequired();
+		if (missing.length > 0) {
+			setMissingFields(missing);
+			const first = configFields.find(
+				(f) => f.required === true && !configValue(f.key),
+			);
+			if (first) {
+				document.getElementById(`source-form-field-${first.key}`)?.focus();
+			}
+			return;
+		}
+		setMissingFields([]);
+		verify.mutate();
+	};
+	// Scroll the test result into view when it lands (v1.8.1).
+	const verifyResultRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (verifyResult) {
+			verifyResultRef.current?.scrollIntoView({
+				behavior: "smooth",
+				block: "nearest",
+			});
+		}
+	}, [verifyResult]);
+
 	const pending = isEdit ? save.isPending : create.isPending;
 
 	const submit = () => {
@@ -2383,7 +2709,11 @@ function SourceFormDialog({
 		return () => window.removeEventListener("keydown", onKey);
 	}, [onClose]);
 
-	const canSubmit = Boolean(name.trim() && primaryUrl.trim()) && !pending;
+	// v1.8.1 — Add requires every manifest-required field, not just the URL.
+	const canSubmit =
+		Boolean(name.trim() && primaryUrl.trim()) &&
+		configFields.every((f) => f.required !== true || configValue(f.key)) &&
+		!pending;
 
 	const setField = (key: string, value: string) => {
 		setValues((prev) => ({ ...prev, [key]: value }));
@@ -2796,9 +3126,21 @@ function SourceFormDialog({
 								</p>
 							) : null}
 
+							{/* v1.8.1 — which required fields are still empty (Test/Add). */}
+							{missingFields.length > 0 ? (
+								<p className="font-body text-body-sm text-error">
+									{t("sources.testMissingFields", {
+										fields: missingFields.join(", "),
+									})}
+								</p>
+							) : null}
+
 							{/* v1.8.0 — dry-run the config before saving (POST /sources/verify). */}
 							{verifyResult ? (
-								<div className="rounded border border-outline-variant bg-surface-container-low p-3">
+								<div
+									ref={verifyResultRef}
+									className="rounded border border-outline-variant bg-surface-container-low p-3"
+								>
 									<p
 										className={`font-body text-body-sm ${
 											verifyResult.ok ? "text-on-surface" : "text-error"
@@ -2828,8 +3170,8 @@ function SourceFormDialog({
 							variant="ghost"
 							size="sm"
 							icon="wifi_tethering"
-							disabled={!primaryUrl.trim() || verify.isPending}
-							onClick={() => verify.mutate()}
+							disabled={verify.isPending}
+							onClick={runTest}
 						>
 							{verify.isPending ? t("sources.testing") : t("sources.test")}
 						</Button>
@@ -2874,6 +3216,13 @@ function ConfigFieldInput({
 				>
 					{field.label}
 				</label>
+				{/* v1.8.1 — required-field marker, kept OUTSIDE the <label> so the
+				    accessible name stays exactly the field label. */}
+				{field.required === true ? (
+					<span className="text-error" aria-hidden="true">
+						*
+					</span>
+				) : null}
 				{field.hint ? <FieldHelp label={field.hint} /> : null}
 			</div>
 			<div className="mt-1">
@@ -2884,6 +3233,7 @@ function ConfigFieldInput({
 						onChange={(e) => onChange(e.target.value)}
 						rows={2}
 						placeholder={field.placeholder}
+						aria-required={field.required === true}
 						className="w-full border border-outline-variant bg-transparent px-4 py-3 font-mono text-mono-technical text-on-surface outline-none transition-colors placeholder:text-on-tertiary-container focus:border-secondary"
 					/>
 				) : (
@@ -2899,6 +3249,7 @@ function ConfigFieldInput({
 							}
 						}}
 						placeholder={field.placeholder}
+						aria-required={field.required === true}
 						icon={
 							field.type === "url"
 								? "link"

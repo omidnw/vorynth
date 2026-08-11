@@ -331,6 +331,22 @@ export interface SourceListSourceDefinition {
 	impactAreas?: string[] | null;
 }
 
+/**
+ * v1.8.1 — one row of the sources preview modal: a list's cached definition
+ * merged with the materialized row's `enabled` state. A list that hasn't been
+ * enabled yet has no `sources` rows, so `enabled` is false for all of them.
+ */
+export interface SourceListSourcePreview {
+	/** Fixed source id — stable across refreshes so toggles/edits survive. */
+	id: string;
+	name: string;
+	/** The site's URL (the feed/API endpoint lives in `configuration`). */
+	url: string;
+	category: SourceCategory;
+	adapter: string;
+	enabled: boolean;
+}
+
 /** One curated list of sources (official or community). */
 export interface SourceListInfo {
 	id: string;
@@ -356,6 +372,12 @@ export interface SourceListInfo {
 	sourceCount: number;
 	/** How many of this list's sources are individually enabled. */
 	enabledCount: number;
+	/**
+	 * v1.8.1 — a community list downloaded from the repo has an "Update"
+	 * button (a newer file there updates its sources). False for
+	 * official/imported lists and lists whose repo path is unknown.
+	 */
+	canUpdate: boolean;
 	/** ISO timestamp of the last catalog refresh (community), or null. */
 	updatedAt: string | null;
 	createdAt: string;
@@ -1147,7 +1169,7 @@ export interface TodaysBrief {
  * `/status` endpoint, the Settings page, the Changelog) reads this same
  * constant so they never drift.
  */
-export const VORYNTH_VERSION = "1.8.0";
+export const VORYNTH_VERSION = "1.8.1";
 
 /** Engine status surfaced to the UI (e.g. onboarding, settings). */
 export interface EngineStatus {
@@ -1389,7 +1411,9 @@ export type JobKind =
 	| "translate-one"
 	| "recollect-one"
 	| "ask"
-	| "health-check";
+	| "health-check"
+	// v1.8.1 — auto-analyze after collect: generate missing insights.
+	| "analyze-missing";
 export type JobStatus = "queued" | "running" | "done" | "error" | "canceled";
 
 export interface JobProgress {
@@ -1527,6 +1551,11 @@ export interface StoryViewEntry {
 	/** Joined from `articles` at read time (R-A09 — never duplicated). */
 	articleTitle: string;
 	scope: StoryViewScope;
+	/**
+	 * v1.8.1 — explicit read state. Opening a story marks its view read; the
+	 * reader's "Mark read" button toggles it (PATCH /story-views/:id).
+	 */
+	read: boolean;
 	/** ISO timestamp of the (last) view. */
 	viewedAt: string;
 }
@@ -1534,6 +1563,11 @@ export interface StoryViewEntry {
 export interface RecordStoryViewInput {
 	articleId: string;
 	scope: "insight" | "article";
+}
+
+/** v1.8.1 — toggle the read flag on a story view (the "Mark read" button). */
+export interface SetStoryViewReadInput {
+	read: boolean;
 }
 
 export interface StoryViewList {
@@ -1651,6 +1685,18 @@ export type AppSettings = Record<string, unknown> & {
 	 */
 	"ui.readerPinnedActions"?: string[];
 	/**
+	 * v1.8.1 — the story-reader footer action ORDER (article + insight pages):
+	 * ids from the canonical list, drag-reordered on the Profile page. Missing
+	 * → the canonical order.
+	 */
+	"ui.readerActions"?: string[];
+	/**
+	 * v1.8.1 — story-reader footer actions to hide behind the "More ⋮" menu
+	 * (ids from `ui.readerActions`). Missing → the legacy
+	 * `ui.readerPinnedActions` (all non-pinned ids), else the default set.
+	 */
+	"ui.readerActionsInMore"?: string[];
+	/**
 	 * v1.8.0 — story-card click behavior. When true (default), dragging the
 	 * mouse over a brief card selects text and does NOT open the story — a
 	 * clean click is required. Turn off to open the story on any press-release,
@@ -1664,7 +1710,80 @@ export type AppSettings = Record<string, unknown> & {
 	 * "plugin" terminology; source connectors resolve invisibly.
 	 */
 	"ui.showAdvancedFeatures"?: boolean;
+	/**
+	 * v1.8.1 — whether the Plugins page is shown. Separate from the advanced
+	 * gate: a user can enable advanced features for the Developer section
+	 * without seeing plugin machinery. Default true.
+	 */
+	"ui.showPlugins"?: boolean;
+	/**
+	 * v1.8.1 — network access (Settings → Advanced → Developer). "local"
+	 * (default) keeps the engine on 127.0.0.1 with CORS for the app
+	 * itself only. "all" binds 0.0.0.0 and opens CORS to any origin (reachable
+	 * from every device on the network). "custom" binds 0.0.0.0 but CORS only
+	 * allows `network.allowedIps` alongside 127.0.0.1.
+	 */
+	"network.accessMode"?: "local" | "all" | "custom";
+	/**
+	 * v1.8.1 — comma-separated IPs allowed alongside 127.0.0.1 when
+	 * `network.accessMode` is "custom" (e.g. "192.168.9.160,10.0.0.5").
+	 */
+	"network.allowedIps"?: string;
+	/**
+	 * v1.8.1 — ids of dismissed contextual tips (see `DismissibleTip`).
+	 * An empty/missing array shows every tip once.
+	 */
+	"ui.tipsDismissed"?: string[];
+	/**
+	 * v1.8.1 — text labels next to the top-bar icons (History / theme /
+	 * Notifications). Default true; turn off for a compact header.
+	 */
+	"ui.showHeaderLabels"?: boolean;
+	/**
+	 * v1.8.1 — where the Archive sub-pages live. "sidebar" (default): an
+	 * expandable Archive submenu in the sidebar; "inpage": the in-page tab row
+	 * on the Archive page (the pre-1.8.1 behavior).
+	 */
+	"ui.archiveNavMode"?: "sidebar" | "inpage";
+	/**
+	 * v1.9.0 — the story-card footer action order (Settings → General → Story
+	 * card actions). The four ids are `readSource` (the "Read source" link),
+	 * `viewToggle` (Article ⇄ Insights), `markRead` (the Mark-read button) and
+	 * `save` (Save/Bookmark). The footer renders them in this order; the More
+	 * button always stays last. Missing → all four in the default order.
+	 */
+	"ui.briefActions"?: string[];
+	/**
+	 * v1.9.0 — which story-card footer actions live behind the "More ⋮" menu
+	 * instead of the primary bar (ids from `ui.briefActions`). Missing → none.
+	 */
+	"ui.briefActionsInMore"?: string[];
 };
+
+// ──────────────────────────────────────────────────────────────────────────
+// Network access (v1.8.1 — Settings → Advanced → Developer)
+// ──────────────────────────────────────────────────────────────────────────
+
+export type NetworkAccessMode = "local" | "all" | "custom";
+
+/**
+ * Resolved engine network access, from `GET /network`. The Developer settings
+ * section displays this (backend URL, LAN addresses) and edits the two
+ * app_settings keys that drive it.
+ */
+export interface NetworkInfo {
+	/** "local" (loopback only) · "all" (0.0.0.0, any origin) · "custom" (0.0.0.0 + allowlisted IPs). */
+	accessMode: NetworkAccessMode;
+	/** Comma-split IPs currently allowlisted in `network.allowedIps`. */
+	allowedIps: string[];
+	/** The host the engine listens on (127.0.0.1 or 0.0.0.0). */
+	host: string;
+	port: number;
+	/** Detected non-loopback IPv4 addresses of this machine. */
+	lanIps: string[];
+	/** The local backend URL, e.g. "http://127.0.0.1:34117". */
+	backendUrl: string;
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Archive (v1.6.0) — unified user-owned intelligence space

@@ -108,6 +108,9 @@ function makeService(tdb: TestDb) {
 		}),
 		analyze: jest.fn(),
 		summarize: jest.fn(),
+		// v1.8.1 — canAutoAnalyze reads mode + provider availability.
+		getMode: () => "news",
+		isAvailable: jest.fn(async () => true),
 	} as unknown as LlmService;
 
 	// `translateStory` returns the refreshed ArticleDetail via NewsService —
@@ -166,7 +169,11 @@ function makeService(tdb: TestDb) {
 	);
 	return {
 		svc,
-		llm: llm as unknown as { generate: jest.Mock },
+		llm: llm as unknown as {
+			generate: jest.Mock;
+			getMode: () => string;
+			isAvailable: jest.Mock;
+		},
 		news: news as unknown as { getArticleDetail: jest.Mock },
 	};
 }
@@ -238,6 +245,44 @@ describe("translateStory", () => {
 		expect(llm.generate).not.toHaveBeenCalled();
 		expect(detail?.article.translatedContent).toBe("old:art-1");
 		expect(row(tdb, "art-1").title).toBe("Original Title 1");
+	});
+
+	it("does not translate a title already in the target script (v1.8.1)", async () => {
+		// An untagged source + a Persian title, intelligence language = Persian.
+		const raw = tdb.service.rawDb;
+		raw.prepare(
+			`INSERT INTO sources (id, name, url, type, category, adapter)
+			 VALUES ('src-fa', 'FA', 'https://fa.example', 'rss', 'other', 'rss')`,
+		).run();
+		raw.prepare(
+			`INSERT INTO articles (id, source_id, title, content, url, hash)
+			 VALUES ('art-fa', 'src-fa', 'آپدیت مهم منتشر شد', 'متن فارسی', 'https://fa.example/1', 'hash-fa')`,
+		).run();
+		raw.prepare(
+			"UPDATE user_profile SET preferred_intelligence_language = 'fa' WHERE id = 'default'",
+		).run();
+
+		const { svc, llm } = makeService(tdb);
+		const detail = await svc.translateStory("art-fa");
+
+		// Same-script guard: the LLM is never called, the title stays as-is.
+		expect(llm.generate).not.toHaveBeenCalled();
+		expect(detail?.article.title).toBe("آپدیت مهم منتشر شد");
+	});
+
+	it("canAutoAnalyze gates on intelligence mode + provider (v1.8.1)", async () => {
+		const { svc, llm } = makeService(tdb);
+
+		// News mode → false even with a provider configured (R-A03).
+		expect(await svc.canAutoAnalyze()).toBe(false);
+
+		// Intelligence mode + provider → true.
+		llm.getMode = () => "intelligence";
+		expect(await svc.canAutoAnalyze()).toBe(true);
+
+		// Provider missing → false even in intelligence mode.
+		llm.isAvailable.mockResolvedValue(false);
+		expect(await svc.canAutoAnalyze()).toBe(false);
 	});
 
 	it("re-translates an already-translated story when force is set", async () => {

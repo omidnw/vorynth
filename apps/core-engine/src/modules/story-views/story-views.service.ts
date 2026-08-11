@@ -43,10 +43,14 @@ export class StoryViewsService {
 			.get(articleId) as
 			{ id: number; scope: StoryViewScope; viewed_at: number } | undefined;
 
+		// v1.8.1 — opening a story counts as reading it (read = true). The
+		// reader's "Mark read" button toggles the flag on the view row.
 		if (last && now - last.viewed_at <= StoryViewsService.MERGE_WINDOW_MS) {
 			const merged: StoryViewScope = last.scope === scope ? last.scope : "both";
 			this.db.rawDb
-				.prepare("UPDATE story_views SET scope = ?, viewed_at = ? WHERE id = ?")
+				.prepare(
+					"UPDATE story_views SET scope = ?, viewed_at = ?, read = 1 WHERE id = ?",
+				)
 				.run(merged, now, last.id);
 			this.logger.debug(`merged story view → ${articleId} (${merged})`);
 			return { id: last.id, scope: merged };
@@ -54,11 +58,42 @@ export class StoryViewsService {
 
 		const info = this.db.rawDb
 			.prepare(
-				"INSERT INTO story_views (article_id, scope, viewed_at) VALUES (?, ?, ?)",
+				"INSERT INTO story_views (article_id, scope, viewed_at, read) VALUES (?, ?, ?, 1)",
 			)
 			.run(articleId, scope, now);
 		this.logger.debug(`recorded story view → ${articleId} (${scope})`);
 		return { id: Number(info.lastInsertRowid), scope };
+	}
+
+	/** Toggle the explicit read flag on a view row (the "Mark read" button). */
+	setRead(id: number, read: boolean): void {
+		this.db.rawDb
+			.prepare("UPDATE story_views SET read = ? WHERE id = ?")
+			.run(read ? 1 : 0, id);
+	}
+
+	/**
+	 * v1.8.1 — mark a STORY read (the brief-card "Mark read" button). Toggles
+	 * the latest view row for the article; a story that was never opened gets
+	 * a view row so the flag has a home (it then appears in Viewed stories).
+	 */
+	setArticleRead(articleId: string, read: boolean): void {
+		const last = this.db.rawDb
+			.prepare(
+				"SELECT id FROM story_views WHERE article_id = ? ORDER BY id DESC LIMIT 1",
+			)
+			.get(articleId) as { id: number } | undefined;
+		if (last) {
+			this.db.rawDb
+				.prepare("UPDATE story_views SET read = ? WHERE id = ?")
+				.run(read ? 1 : 0, last.id);
+			return;
+		}
+		this.db.rawDb
+			.prepare(
+				"INSERT INTO story_views (article_id, scope, viewed_at, read) VALUES (?, 'article', ?, ?)",
+			)
+			.run(articleId, Date.now(), read ? 1 : 0);
 	}
 
 	/** Most recent story views, newest first, joined with the article title. */
@@ -66,7 +101,7 @@ export class StoryViewsService {
 		const rows = this.db.rawDb
 			.prepare(
 				`SELECT sv.id AS id, sv.article_id AS article_id, sv.scope AS scope,
-				        sv.viewed_at AS viewed_at, a.title AS article_title
+				        sv.read AS read, sv.viewed_at AS viewed_at, a.title AS article_title
 				 FROM story_views sv
 				 JOIN articles a ON a.id = sv.article_id
 				 ORDER BY sv.id DESC
@@ -76,6 +111,7 @@ export class StoryViewsService {
 			id: number;
 			article_id: string;
 			scope: StoryViewScope;
+			read: number;
 			viewed_at: number;
 			article_title: string;
 		}>;
@@ -85,6 +121,7 @@ export class StoryViewsService {
 			articleId: r.article_id,
 			articleTitle: r.article_title,
 			scope: r.scope,
+			read: r.read === 1,
 			viewedAt: new Date(r.viewed_at).toISOString(),
 		}));
 	}

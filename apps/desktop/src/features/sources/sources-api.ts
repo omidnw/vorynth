@@ -7,6 +7,7 @@ import type {
 	SourceArticlesResult,
 	SourceGroupDimension,
 	SourceListInfo,
+	SourceListSourcePreview,
 	SourceRange,
 	UpdateSourceInput,
 	VerifySourceInput,
@@ -124,11 +125,52 @@ export async function disableSourceList(id: string): Promise<SourceListInfo> {
 	});
 }
 
+/**
+ * v1.8.1 — permanently delete a list (official or community). The engine
+ * REFUSES (409 BOOKMARKED_ARTICLES_EXIST) when the list's sources own saved
+ * stories; `force` confirms the explicit "Delete anyway" flow and removes
+ * those too. A deleted list stays deleted across restarts.
+ */
+export async function deleteSourceList(
+	id: string,
+	force = false,
+): Promise<void> {
+	await apiFetch<{ id: string; removed: boolean }>(
+		`/source-lists/${encodeURIComponent(id)}${force ? "?force=true" : ""}`,
+		{ method: "DELETE" },
+	);
+}
+
+/**
+ * v1.8.1 — a list's sites for the preview modal, from its cached definitions
+ * (works whether or not the list is enabled/materialized yet).
+ */
+export async function fetchSourceListSources(
+	id: string,
+): Promise<SourceListSourcePreview[]> {
+	return apiFetch<SourceListSourcePreview[]>(
+		`/source-lists/${encodeURIComponent(id)}/sources`,
+	);
+}
+
 /** Sync the community catalog from the GitHub repo (offline cache kept). */
 export async function refreshSourceLists(): Promise<RefreshCatalogResult> {
 	return apiFetch<RefreshCatalogResult>("/source-lists/refresh", {
 		method: "POST",
 	});
+}
+
+/**
+ * v1.8.1 — update ONE downloaded community list from its repo file (the
+ * per-list "Update" button). `updated` tells the UI whether the file changed.
+ */
+export async function updateSourceList(
+	id: string,
+): Promise<{ updated: boolean; info: SourceListInfo }> {
+	return apiFetch<{ updated: boolean; info: SourceListInfo }>(
+		`/source-lists/${encodeURIComponent(id)}/update`,
+		{ method: "POST" },
+	);
 }
 
 /**

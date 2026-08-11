@@ -338,7 +338,11 @@ export function ArchivePage() {
 										className="inline-flex cursor-pointer items-center gap-1.5 rounded font-label text-label-md text-primary transition-colors hover:text-secondary"
 									>
 										<Icon name="expand_more" className="text-[18px]" />
-										Show more ({total - items.length} remaining)
+										{/* v1.8.1 — say how many load and how many remain. */}
+										{t("archive.showMore", {
+											count: PAGE_SIZE,
+											remaining: total - items.length,
+										})}
 									</button>
 								</div>
 							) : null}

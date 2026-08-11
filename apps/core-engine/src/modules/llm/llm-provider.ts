@@ -71,6 +71,44 @@ export interface InsightDraft {
 	originalSignificance?: string;
 	originalImpact?: string;
 	originalRecommendedAction?: string;
+	/**
+	 * v1.8.1 — the source language the model detected when the story's source
+	 * was UNTAGGED (auto-detect bilingual generation). Lets the engine drop the
+	 * "original" when the article is already in the output language, so the UI
+	 * never shows a misleading Original toggle for same-language content.
+	 */
+	sourceLanguage?: string;
+}
+
+/**
+ * v1.8.1 — normalize a draft's bilingual originals against the output language.
+ * With auto-detection (untagged sources) the model reports the detected source
+ * language: when the article is already in the output language the "original"
+ * would be the same language — drop it. Empty originals (the model returned
+ * nothing) are dropped too. Returns the draft with those fields cleared.
+ */
+export function localizeOriginalDraft(
+	draft: InsightDraft,
+	outputLanguage: string,
+): InsightDraft {
+	const sameLang = Boolean(
+		draft.sourceLanguage &&
+		draft.sourceLanguage.toLowerCase() === outputLanguage.toLowerCase(),
+	);
+	const keep = (s: string | undefined): string | undefined =>
+		s && s.trim() ? s : undefined;
+	return {
+		...draft,
+		sourceLanguage: sameLang ? undefined : draft.sourceLanguage,
+		originalSummary: sameLang ? undefined : keep(draft.originalSummary),
+		originalSignificance: sameLang
+			? undefined
+			: keep(draft.originalSignificance),
+		originalImpact: sameLang ? undefined : keep(draft.originalImpact),
+		originalRecommendedAction: sameLang
+			? undefined
+			: keep(draft.originalRecommendedAction),
+	};
 }
 
 /**

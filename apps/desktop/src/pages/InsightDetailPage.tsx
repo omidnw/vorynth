@@ -4,7 +4,10 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { locationHasHistory } from "@/lib/router/has-history.js";
 import type { Insight } from "@vorynth/types";
 import { apiFetch } from "@/lib/api/config";
-import { recordStoryView } from "@/features/story-views/story-views-api.js";
+import {
+	recordStoryView,
+	setStoryViewRead,
+} from "@/features/story-views/story-views-api.js";
 import {
 	fetchArticleDetail,
 	translateArticle,
@@ -15,6 +18,7 @@ import { ImportanceBadge, DomainTag } from "@/components/ui/Badge";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
 import { ReaderActionBar } from "@/features/reader/ReaderActionBar";
+import { readerActionLayout } from "@/features/reader/reader-actions.js";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { usePluginStoryExports } from "@/plugins/plugin-hooks";
 import { fetchSettings } from "@/features/history/history-api.js";
@@ -38,6 +42,9 @@ export function InsightDetailPage() {
 	const { id = "" } = useParams();
 	const navigate = useNavigate();
 	const location = useLocation();
+	// v1.8.1 — opening the insight counts as READING; the view id returned by
+	// the record call lets the "Mark read" button toggle the persisted flag.
+	const [viewId, setViewId] = useState<number | null>(null);
 	const [read, setRead] = useState(false);
 	const [showExport, setShowExport] = useState(false);
 	/** v1.8.0 — show the insight as first written instead of the translation. */
@@ -62,12 +69,19 @@ export function InsightDetailPage() {
 	// v1.8.0 — story-view history: opening the insight records scope='insight'
 	// so the Brief History tab can show which story was read, when, and on
 	// which surface. Best-effort; a failed record never breaks the read.
+	// v1.8.1 — opening counts as READING (read=true), and the returned view id
+	// lets the "Mark read" button toggle the persisted flag.
 	useEffect(() => {
 		if (!insight?.articleId) return;
 		void recordStoryView({
 			articleId: insight.articleId,
 			scope: "insight",
-		}).catch(() => undefined);
+		})
+			.then((res) => {
+				setViewId(res.id);
+				setRead(true);
+			})
+			.catch(() => undefined);
 	}, [insight?.articleId]);
 
 	// Resolve the underlying article so we can link out to the original source.
@@ -99,7 +113,7 @@ export function InsightDetailPage() {
 		queryKey: ["app-settings"],
 		queryFn: fetchSettings,
 	});
-	const readerPinned = settings?.["ui.readerPinnedActions"];
+	const readerLayout = readerActionLayout(settings);
 	// Real save — bookmark flag on the article's content item (v1.6.0).
 	const bookmark = useBookmarkToggle(articleDetail?.article.contentItemId);
 	// Exporter plugin panels (Story Renderer: Markdown / HTML / screenshot).
@@ -155,18 +169,17 @@ export function InsightDetailPage() {
 	return (
 		<article className="mx-auto w-full max-w-max-content-width px-gutter pb-32 pt-8">
 			<header className="mb-12">
-				<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-					<button
-						type="button"
-						onClick={goBack}
-						className="inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
-					>
-						<Icon name="arrow_back" className="text-[18px]" />
-						Back
-					</button>
+				{/* v1.8.1 — the top-left back button is gone: the floating action
+				    bar below carries Back, so a duplicate here was redundant. */}
+				<div className="mb-6 flex flex-wrap items-center justify-end gap-4">
 					<DocsHelpButton sectionId="brief" />
 				</div>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
+					{/* v1.8.1 — always know which view you're in. */}
+					<span className="inline-flex items-center gap-1 rounded bg-primary-container px-2 py-0.5 font-label text-[10px] uppercase tracking-widest text-on-primary-container">
+						<Icon name="auto_awesome" className="text-[12px]" />
+						{t("insight.viewInsight")}
+					</span>
 					<ImportanceBadge tier={insight.importanceTier}>
 						{tierLabel(insight.importanceTier)}
 					</ImportanceBadge>
@@ -179,13 +192,19 @@ export function InsightDetailPage() {
 						{insight.generatedLanguage.toUpperCase()}
 					</span>
 					{/* The insight was re-translated into the intelligence language —
-					    this pill reveals the text as first written (v1.8.0). */}
+					    this pill reveals the text as first written (v1.8.0). The same
+					    FILLED state chip as the brief card (v1.8.1). */}
 					{hasOriginalInsight ? (
 						<button
 							type="button"
 							onClick={() => setShowOriginal((v) => !v)}
-							className="rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+							className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:brightness-110 ${
+								showOriginal
+									? "bg-tertiary-container text-on-tertiary-container"
+									: "bg-secondary-container text-on-secondary-container"
+							}`}
 						>
+							<Icon name="compare" className="text-[12px]" />
 							{showOriginal ? t("article.translated") : t("article.original")}
 						</button>
 					) : null}
@@ -205,6 +224,68 @@ export function InsightDetailPage() {
 			</header>
 
 			<div className="grid grid-cols-1 gap-12">
+				{/* v1.8.1 — the "Read the full article" bridge LEADS the insight
+				    (right under the significance), so the user knows the full text
+				    is one click away before reading the analysis. */}
+				{insight.articleId ? (
+					<GhostCard accentLeft>
+						<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+							<div className="flex items-start gap-4">
+								<Icon name="menu_book" className="text-[32px] text-secondary" />
+								<div>
+									<h2 className="font-headline text-headline-md text-primary dark:text-primary-fixed">
+										{t("article.readFullArticle")}
+									</h2>
+									<p className="mt-1 font-body text-body-md text-on-surface-variant">
+										{t("article.insightExplainer")}
+									</p>
+								</div>
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								<Button
+									variant="primary"
+									size="md"
+									icon="menu_book"
+									iconRight="arrow_forward"
+									onClick={() => navigate(`/articles/${insight.articleId}`)}
+								>
+									{t("article.openArticleReader")}
+								</Button>
+								{articleUrl ? (
+									<a
+										href={articleUrl}
+										target="_blank"
+										rel="noreferrer"
+										className="inline-flex items-center gap-2 font-label text-label-md text-secondary transition-colors hover:text-primary hover:underline"
+									>
+										<Icon name="open_in_new" className="text-[16px]" />
+										{t("article.readOriginal")}
+									</a>
+								) : null}
+							</div>
+						</div>
+					</GhostCard>
+				) : null}
+
+				{/* v1.8.1 — the Takeaway leads the analysis (what to do), then the
+				    Technical Context fills in the why. */}
+				<section className="rounded-lg bg-primary-container p-10 text-on-primary dark:bg-primary-fixed dark:text-on-primary-fixed">
+					<h2 className="mb-8 flex items-center gap-3 font-headline text-headline-md">
+						<Icon
+							name="bolt"
+							className="text-primary-fixed dark:text-on-primary-fixed"
+							fill
+						/>
+						Takeaway
+					</h2>
+					<p
+						className="font-body text-body-lg italic leading-relaxed"
+						dir={textDir(displayInsight.recommendedAction)}
+					>
+						{displayInsight.recommendedAction}
+					</p>
+				</section>
+
 				<GhostCard>
 					<h2 className="mb-4 font-headline text-headline-lg text-primary dark:text-primary-fixed">
 						Technical Context
@@ -247,68 +328,6 @@ export function InsightDetailPage() {
 						</div>
 					</GhostCard>
 				</section>
-
-				<section className="rounded-lg bg-primary-container p-10 text-on-primary dark:bg-primary-fixed dark:text-on-primary-fixed">
-					<h2 className="mb-8 flex items-center gap-3 font-headline text-headline-md">
-						<Icon
-							name="bolt"
-							className="text-primary-fixed dark:text-on-primary-fixed"
-							fill
-						/>
-						Takeaway
-					</h2>
-					<p
-						className="font-body text-body-lg italic leading-relaxed"
-						dir={textDir(displayInsight.recommendedAction)}
-					>
-						{displayInsight.recommendedAction}
-					</p>
-				</section>
-
-				{/* The page is the ANALYSIS; the story itself lives in the article
-				    reader. This bridge makes that role explicit (v1.8.0) — it
-				    replaces the small "In-app reader" link in the header so a user
-				    sees at a glance that this is the insight and the full text is
-				    one click away. Cluster insights (no single article) omit it. */}
-				{insight.articleId ? (
-					<GhostCard accentLeft>
-						<div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-							<div className="flex items-start gap-4">
-								<Icon name="menu_book" className="text-[32px] text-secondary" />
-								<div>
-									<h2 className="font-headline text-headline-md text-primary dark:text-primary-fixed">
-										{t("article.readFullArticle")}
-									</h2>
-									<p className="mt-1 font-body text-body-md text-on-surface-variant">
-										{t("article.insightExplainer")}
-									</p>
-								</div>
-							</div>
-							<div className="flex flex-wrap items-center gap-3">
-								<Button
-									variant="primary"
-									size="md"
-									icon="menu_book"
-									iconRight="arrow_forward"
-									onClick={() => navigate(`/articles/${insight.articleId}`)}
-								>
-									{t("article.openArticleReader")}
-								</Button>
-								{articleUrl ? (
-									<a
-										href={articleUrl}
-										target="_blank"
-										rel="noreferrer"
-										className="inline-flex items-center gap-2 font-label text-label-md text-secondary transition-colors hover:text-primary hover:underline"
-									>
-										<Icon name="open_in_new" className="text-[16px]" />
-										{t("article.readOriginal")}
-									</a>
-								) : null}
-							</div>
-						</div>
-					</GhostCard>
-				) : null}
 			</div>
 
 			{/* Re-translate failure (v1.9.0): explain why the action couldn't run —
@@ -327,7 +346,7 @@ export function InsightDetailPage() {
 			{/* Floating action bar — pinned actions up front, the rest behind the
 			    More ⋮ menu (Profile → Reader actions chooses which are pinned). */}
 			<ReaderActionBar
-				pinnedIds={readerPinned}
+				layout={readerLayout}
 				moreLabel={t("article.more")}
 				moreAriaLabel={t("article.moreAria")}
 				actions={[
@@ -335,7 +354,22 @@ export function InsightDetailPage() {
 						id: "markRead",
 						icon: read ? "check" : "check_circle",
 						label: read ? t("article.read") : t("article.markRead"),
-						onClick: () => setRead(true),
+						// v1.8.1 — persisted to the story view row (the flag the
+						// Viewed-stories history shows); best-effort when the view id
+						// hasn't landed yet.
+						onClick: () => {
+							const next = !read;
+							setRead(next);
+							if (viewId != null) {
+								void setStoryViewRead(viewId, next)
+									.then(() =>
+										queryClient.invalidateQueries({
+											queryKey: ["story-views"],
+										}),
+									)
+									.catch(() => undefined);
+							}
+						},
 					},
 					{
 						id: "save",

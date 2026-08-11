@@ -26,6 +26,8 @@ export const ko: TranslationCatalog = {
 		docsTransparency: "투명성",
 		docsExpand: "문서 섹션 펼치기",
 		docsCollapse: "문서 섹션 접기",
+		archiveExpand: "아카이브 메뉴 펼치기",
+		archiveCollapse: "아카이브 메뉴 접기",
 		jobsActive_one: "작업 {{count}}개",
 		jobsActive_other: "작업 {{count}}개",
 		items: "항목",
@@ -39,6 +41,13 @@ export const ko: TranslationCatalog = {
 		title: "오늘의 인텔리전스 브리프",
 		timer: "10분 브리핑",
 		stories: "기사 {{count}}개",
+		searchPlaceholder: "아카이브 검색…",
+		viewSelectorAria: "기사 기본 보기",
+		viewSelectorHint:
+			"스토리 카드가 열리는 방식: 자동은 인사이트가 있으면 표시하고, 기사는 본문을 열고, 인사이트는 항상 분석을 엽니다.",
+		viewAuto: "자동",
+		viewArticle: "기사",
+		viewInsights: "인사이트",
 		sources: "소스 {{count}}개",
 		intelligenceOn: "인텔리전스 모드 — AI 보강 활성화",
 		newsMode: "뉴스 모드 — 최신성과 신뢰도순",
@@ -64,6 +73,18 @@ export const ko: TranslationCatalog = {
 		emptyRangeTitle: "이 범위에 기사가 없습니다",
 		emptyRangeBody:
 			"아직 수집된 기사가 없거나, 선택한 기간에 해당하는 기사가 없습니다. <em>Collect</em>를 눌러 새 기사를 가져오세요 — API 키가 필요 없습니다.",
+		searchPage: "검색 페이지",
+		searchStories: "이 스토리들 검색…",
+		searchCount: "총 {{total}}개 중 {{shown}}개 스토리",
+		searchNoResults: "검색어와 일치하는 스토리가 없습니다.",
+		updateBrief: "내 브리프 업데이트",
+		updateBriefHint:
+			"새 스토리를 수집하고 한 번의 탭으로 브리프를 다시 생성합니다.",
+		generateHint: "현재 기간의 AI 분석을 다시 생성합니다.",
+		generateAnalysis: "분석 생성",
+		generatingAnalysis: "생성 중…",
+		sectionFilters: "필터",
+		sectionStories: "스토리",
 	},
 	storyViews: {
 		title: "본 기사",
@@ -74,6 +95,8 @@ export const ko: TranslationCatalog = {
 		scopeInsight: "인사이트",
 		scopeArticle: "기사",
 		scopeBoth: "인사이트 + 기사",
+		markReadAria: "읽음으로 표시",
+		markUnreadAria: "읽지 않음으로 표시",
 	},
 	why: "중요한 이유",
 	impact: "영향",
@@ -201,9 +224,44 @@ export const ko: TranslationCatalog = {
 		backgroundTip:
 			"창이 닫히면 Vorynth는 백그라운드에서 계속 실행됩니다: Dock에서 완전히 사라지고(클릭할 죽은 것이 없음) 메뉴 막대에 머물며, 소스가 계속 수집되어 돌아왔을 때 브리프가 준비되어 있고, 트레이의 종료로 완전히 종료됩니다.",
 		advancedTitle: "고급",
+		showHeaderLabels: "헤더 아이콘 옆에 라벨 표시",
+		showHeaderLabelsHint:
+			"상단 바의 기록, 테마, 알림 아이콘 옆에 텍스트를 표시합니다. 간결한 헤더로 만들려면 끄세요.",
+		navigationTitle: "탐색",
+		navSidebar: "사이드바",
+		navInpage: "페이지 안",
+		navigationHint:
+			"아카이브 하위 페이지(항목, 컬렉션, 북마크, 검색, 휴지통)가 표시될 위치 — 사이드바 하위 메뉴 또는 아카이브 페이지 안의 탭 행.",
 		showAdvancedFeatures: "고급 기능 표시",
 		showAdvancedFeaturesHint:
 			"플러그인 페이지를 표시합니다 — Vorynth가 실행하는 소스 커넥터와 UI 플러그인. 대부분의 사람에게 필요하지 않습니다: 소스용 커넥터는 자동으로 해결됩니다. 직접 메커니즘을 보고 관리하려는 경우에만 켜세요.",
+		showPlugins: "플러그인 페이지 표시",
+		showPluginsHint:
+			"개발자 설정과 별개입니다. Developer 섹션을 위해서만 고급 기능을 켠 경우 끄세요.",
+		developerTitle: "개발자",
+		developerHint:
+			"로컬 엔진으로 개발 — API 엔드포인트와 제공되는 앱, 그리고 네트워크를 통해 호출할 수 있는 대상을 다룹니다.",
+		backendUrl: "백엔드 URL",
+		frontendUrl: "프런트엔드 URL",
+		sameOriginNote:
+			"엔진이 같은 주소에서 앱을 제공합니다 — 아무 브라우저에서나 열 수 있습니다.",
+		networkAccess: "네트워크 액세스",
+		accessLocal: "로컬 전용",
+		accessLocalHint: "127.0.0.1 — 이 기기에서만 응답합니다. 기본값.",
+		accessAll: "모두 허용",
+		accessAllHint:
+			"0.0.0.0 — 네트워크의 모든 기기(백엔드 및 프런트엔드)에서 접근 가능. CORS는 모든 출처에 열려 있음.",
+		accessCustom: "사용자 지정 IP",
+		accessCustomHint:
+			"목록에 넣은 IP(127.0.0.1 포함)만 브라우저에서 엔진을 호출할 수 있습니다.",
+		allowedIps: "허용된 IP",
+		allowedIpsHint:
+			"쉼표로 구분 — 예: 192.168.9.160,10.0.0.5. 127.0.0.1과 함께 허용됩니다.",
+		reachableAt: "다음에서 접근 가능",
+		networkSecurityNote:
+			"Vorynth에는 로그인이 없습니다. 네트워크에 열면 그 네트워크의 누구나 데이터를 읽고 제어할 수 있습니다. 신뢰할 수 있는 네트워크에서만 사용하세요.",
+		networkRestartNote:
+			"수신 주소는 다음 Vorynth 시작 시 적용됩니다. CORS 및 IP 규칙은 즉시 적용됩니다.",
 		searchPlaceholder: "설정 검색…",
 		searchHint: "입력하여 필터링 — 일치하지 않는 섹션은 흐리게 표시됩니다.",
 		searchButton: "검색",
@@ -340,6 +398,38 @@ export const ko: TranslationCatalog = {
 		fontImport: "사용자 지정 글꼴 가져오기",
 		fontReset: "초기화",
 		fontImportFailed: "글꼴 파일을 불러올 수 없습니다.",
+		briefActionsTitle: "스토리 카드 작업",
+		briefActionsHint:
+			"각 스토리 카드의 버튼 순서를 정하고, '더 보기' 메뉴에 넣을 버튼을 선택하세요. 드래그로 재정렬합니다.",
+		briefAction: {
+			readSource: "출처 읽기",
+			viewToggle: "보기",
+			save: "저장",
+			inMore: "'더 보기' 메뉴에 표시",
+		},
+		readerActionsTitle: "리더 작업",
+		readerActionsHint:
+			"드래그하여 리더 하단 막대의 버튼 순서를 바꾸고, '⋮ 더 보기' 메뉴에 넣을 항목을 선택하세요. 기사 및 인사이트 페이지에 적용됩니다 — 숨겨지는 것은 없습니다.",
+		readerInBar: "리더 막대에",
+		readerInMore: "'⋮ 더 보기' 뒤",
+		briefInBar: "카드 막대에",
+		briefInMore: "'⋮ 더 보기' 뒤",
+		readerSettings: "리더 설정",
+		supportReminder: "'작성자 지원' 알림 표시",
+		supportReminderHint: "앱 내 리더를 열기 전에 원본 사이트로 안내합니다.",
+		keepMediaLocal: "기본적으로 미디어를 로컬에 보관",
+		keepMediaLocalHint:
+			"켜면 열어 본 기사의 미디어가 오프라인 읽기를 위해 다운로드됩니다. 기본값은 꺼짐 — 미디어는 소스에서 스트리밍됩니다.",
+		cardClick: "카드 클릭",
+		cardClickHint: "기사 카드가 누르고 드래그할 때 어떻게 반응할지.",
+		dragSelectsText: "드래그 시 텍스트 선택",
+		dragSelectsTextHint:
+			"켜면(기본값) 기사 위에서 마우스를 드래그하면 열지 않고 텍스트가 선택됩니다 — 열려면 깨끗한 클릭이 필요합니다. 마우스로 텍스트를 선택하지 않고 누르고 놓으면 기사가 열리기를 원하면 끄세요.",
+		resetAll: "모두 초기화",
+		resetting: "초기화 중…",
+		confirmDialogs: "확인 대화상자",
+		confirmDialogsHint:
+			"'다시 묻지 않음' 선택을 재설정하여 파괴적인 작업 전에 다시 확인을 요청합니다.",
 	},
 	provider: {
 		label: "이름표",
@@ -360,8 +450,26 @@ export const ko: TranslationCatalog = {
 			"이 키를 해독할 수 없습니다 — 데이터를 복원하거나 정리할 때 로컬 암호화 키가 손실된 것 같습니다. 이 공급자를 제거하고 API 키로 다시 추가하세요.",
 		labelPlaceholder: "내 Gemini 키",
 		apiKeyPlaceholder: "키 붙여넣기…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"비워 두면 공식 OpenAI API(https://api.openai.com/v1)가 사용됩니다.",
+		ollamaMode: "모드",
+		ollamaLocal: "로컬",
+		ollamaCloud: "클라우드",
+		ollamaLocalHint:
+			"자체 Ollama 서버 — 이 기기에서 실행되며 API 키가 필요 없습니다.",
+		ollamaCloudHint:
+			"Ollama의 호스팅 서비스 — 로컬 GPU 없이 큰 모델을 사용합니다. ollama.com/settings/keys에서 API 키가 필요합니다.",
 		removeAria: "제거",
+		modelRequired: "모델 이름을 입력하세요.",
+		geminiDocs: "Gemini 모델: ",
+		geminiFreeTip:
+			"2026년 8월 10일 기준, gemini-3.1-flash-lite는 하루 500회 요청까지 무료입니다.",
+		openaiDocs: "OpenAI 모델: ",
+		anthropicDocs: "Claude 문서: ",
+		ollamaDocs: "Ollama 문서: ",
+		ollamaHostTip:
+			"Ollama는 HOST 제공자로 동작합니다 — 모델이 시기에 따라 다르게 제공될 수 있으므로 최신 목록은 문서를 확인하세요.",
 	},
 	onboarding: {
 		welcome: "Vorynth에 오신 것을 환영합니다",
@@ -373,7 +481,7 @@ export const ko: TranslationCatalog = {
 		begin: "시작하기",
 		config: "더 똑똑하게 만들기 (선택 사항)",
 		configBody:
-			"AI 서비스를 연결해 모든 기사에 '중요한 이유', '영향', 권장 다음 단계를 추가하세요. 건너뛰어도 됩니다 — Vorynth는 그 자체로 훌륭하게 작동합니다.",
+			"선택적 AI 서비스를 연결하면 Vorynth가 각 기사에 짧고 쉬운 메모를 추가합니다 — 왜 중요한지, 무엇이 바뀌었는지, 무엇을 해야 하는지. 건너뛰어도 일일 브리핑은 그대로 작동합니다.",
 		selectProvider: "AI 서비스 선택",
 		apiKey: "API 키",
 		apiKeyHint: "이 기기에 암호화되어 저장되며 선택한 서비스에만 전송됩니다.",
@@ -381,6 +489,7 @@ export const ko: TranslationCatalog = {
 		newsOnlyBody:
 			"뉴스 모드는 AI 없이 기사를 수집하고 순위를 매깁니다. 언제든 설정에서 AI 서비스를 추가할 수 있습니다.",
 		continue: "계속",
+		modelHint: "비워 두면 제공자의 기본 모델이 사용됩니다.",
 		back: "뒤로",
 		savingProvider: "저장 중…",
 		topics: "무엇이 중요하신가요?",
@@ -410,13 +519,14 @@ export const ko: TranslationCatalog = {
 		recapNews: "뉴스",
 		recapTopics: "주제",
 		recapNoTopics: "없음 — 공식 소스",
+		recapNoTopicsOff: "없음 — 공식 소스 꺼짐",
 		recapUiLanguage: "앱 언어",
 		recapAiLanguage: "AI 언어",
 		officialSources: "공식 소스를 계속 사용",
 		officialSourcesHint:
 			"Vorynth 공식 개발자 뉴스 목록이 기본적으로 브리핑을 채웁니다. 직접 고른 주제만 원하면 끄세요.",
-		emptyTopicsOffBody:
-			"선택한 주제가 없고 공식 소스도 꺼져 있습니다 — 브리핑이 비어 있을 것입니다. 공식 소스를 계속 사용할까요?",
+		previewOfficialSources: "공식 소스 보기",
+		officialSourcesListName: "Vorynth 공식 개발자 목록",
 		modesTitle: "뉴스 모드와 인텔리전스 모드",
 		newsModeBody:
 			"뉴스 모드는 AI 없이 기사를 수집하고 순위를 매깁니다 — 키가 필요 없고 완전히 비공개이며 어떤 기기에서도 작동합니다.",
@@ -434,6 +544,7 @@ export const ko: TranslationCatalog = {
 		futureProvidersTip:
 			"팁: 앞으로 더 많은 제공자가 이 목록에 추가될 예정입니다 — 변경 사항(체인지로그)을 확인하세요.",
 		recapNote: "모든 것은 설정과 프로필에서 언제든 변경할 수 있습니다.",
+		modelRequired: "계속하려면 모델 이름을 입력하세요.",
 	},
 	analyzing: {
 		title: "인텔리전스 추출 중",
@@ -456,6 +567,10 @@ export const ko: TranslationCatalog = {
 		trend: "트렌드",
 		"low-noise": "저노이즈",
 	},
+	docs: {
+		searchPlaceholder: "문서 검색…",
+		noResults: "「{{q}}」와 일치하는 문서가 없습니다.",
+	},
 	common: {
 		collect: "수집",
 		collecting: "수집 중…",
@@ -463,7 +578,9 @@ export const ko: TranslationCatalog = {
 		generating: "생성 중…",
 		back: "뒤로",
 		cancel: "취소",
+		close: "닫기",
 		noResults: "일치하는 항목 없음",
+		dontShowAgain: "다시 표시하지 않음",
 	},
 	search: {
 		title: "검색",
@@ -555,6 +672,7 @@ export const ko: TranslationCatalog = {
 		moveTo: "이동…",
 		archived: "보관됨",
 		item_one: "항목",
+		showMore: "{{count}}개 더 보기({{remaining}}개 남음)",
 		item_other: "항목",
 		showArchived: "보관 항목 표시",
 		showingArchived: "보관 항목 표시 중",
@@ -640,8 +758,8 @@ export const ko: TranslationCatalog = {
 		article: "기사",
 		openOriginal: "원본 열기",
 		readInVorynth: "Vorynth에서 읽기",
-		dontShowAgain: "다시 표시하지 않기 —",
 		changeInProfile: "나중에 프로필에서 변경하세요.",
+		dontShowAgain: "다시 표시하지 않기 —",
 	},
 	profile: {
 		title: "프로필",
@@ -716,40 +834,17 @@ export const ko: TranslationCatalog = {
 		recentSearches: "최근 검색",
 		noActivity:
 			"아직 활동이 없습니다. 검색을 실행하거나 브리핑을 읽어 채우세요.",
-		readerSettings: "리더 설정",
-		supportReminder: "'작성자 지원' 알림 표시",
-		supportReminderHint: "앱 내 리더를 열기 전에 원본 사이트로 안내합니다.",
-		keepMediaLocal: "기본적으로 미디어를 로컬에 보관",
-		keepMediaLocalHint:
-			"켜면 열어 본 기사의 미디어가 오프라인 읽기를 위해 다운로드됩니다. 기본값은 꺼짐 — 미디어는 소스에서 스트리밍됩니다.",
 		aiLanguage: "AI 출력 언어",
 		aiLanguageHint:
 			"Vorynth의 AI가 질문에 답하고 브리프를 생성하며 요약을 작성할 때 사용하는 언어. 인사이트를 받고 싶은 언어를 선택하세요.",
-		readerActions: "리더 작업",
-		readerActionsHint:
-			"어떤 기사 작업이 리더의 하단 막대에 남을지 선택하세요. 나머지는 '⋮ 더 보기' 메뉴 뒤로 이동합니다 — 숨겨지는 것은 없습니다.",
-		pinned: "리더 막대에",
-		moreMenu: "'⋮ 더 보기' 뒤에",
-		readerActionsOverflow:
-			"리더 막대는 다섯 가지 작업용으로 설계되었습니다 — 더 많이 고정하면 비좁아질 수 있습니다.",
-		cardClick: "카드 클릭",
-		cardClickHint: "기사 카드가 누르고 드래그할 때 어떻게 반응할지.",
-		dragSelectsText: "드래그 시 텍스트 선택",
-		dragSelectsTextHint:
-			"켜면(기본값) 기사 위에서 마우스를 드래그하면 열지 않고 텍스트가 선택됩니다 — 열려면 깨끗한 클릭이 필요합니다. 마우스로 텍스트를 선택하지 않고 누르고 놓으면 기사가 열리기를 원하면 끄세요.",
 		aiLanguageAria: "AI 출력 언어",
-		resetAll: "모두 초기화",
-		resetting: "초기화 중…",
 		categoryIdentity: "당신은 누구인가요",
 		categoryAi: "AI가 글을 쓰는 방식",
 		categoryLanguages: "언어",
-		categoryReading: "읽기",
 		searchIdentity: "정체성 이름 성 별칭 행동 요약 관심사 주제 identity",
 		searchAi: "사용자 지시 ai 출력 언어 작성 custom instruction",
 		searchLanguages:
 			"언어 ui 영어 페르시아어 아랍어 한국어 일본어 중국어 히브리어 스페인어 독일어 러시아어 language",
-		searchReading:
-			"읽기 설정 지원 작성자 알림 미디어 로컬 작업 클릭 드래그 텍스트 선택 reader",
 	},
 	media: {
 		title: "로컬 미디어",
@@ -917,6 +1012,8 @@ export const ko: TranslationCatalog = {
 		test: "테스트",
 		testing: "테스트 중…",
 		testOk: "작동함 — 항목 {{count}}개 발견",
+		testMissingFields: "테스트에는 다음 필드가 필요합니다: {{fields}}",
+		fieldName: "이름",
 		testFail: "가져올 수 없음 — {{message}}",
 		configLabel: "{{label}}",
 		testHint: "저장 없이 몇 개 항목을 가져와 구성을 확인할 수 있습니다.",
@@ -1068,9 +1165,31 @@ export const ko: TranslationCatalog = {
 		listEnableAria: "{{name}} 켜기",
 		expandAria: "{{name}}의 소스 표시",
 		collapseAria: "{{name}}의 소스 숨기기",
+		previewAria: "{{name}} 미리보기",
+		previewTitle: "{{name}} — 소스",
+		previewBody: "이 목록에는 {{count}}개 사이트가 있습니다.",
+		previewLoading: "불러오는 중…",
+		previewEmpty: "이 목록에는 아직 소스가 없습니다.",
+		previewOn: "켜짐",
+		previewOff: "꺼짐",
 		editDisabledNote:
 			"목록의 소스는 개별적으로 삭제할 수 없습니다 — 대신 전체 목록을 숨기세요.",
 		sourceCountLabel: "소스 {{count}}개",
+		deleteListAria: "목록 {{name}} 삭제",
+		deleteTitle: "이 목록을 삭제할까요?",
+		deleteMessage:
+			"{{name}}과 해당 {{count}}개 소스가 영구적으로 제거됩니다. 수집된 스토리도 삭제되며 되돌릴 수 없습니다.",
+		deleteConfirm: "목록 삭제",
+		deleteForceTitle: "저장된 스토리가 삭제됩니다",
+		deleteForceBody:
+			"이 목록에 속한 저장된 스토리 {{count}}개도 함께 삭제됩니다. 그래도 삭제할까요?",
+		deleteForceConfirm: "그래도 삭제",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "{{name}} 업데이트",
+		updateListHint: "커뮤니티 저장소에서 이 목록의 최신 버전을 확인합니다.",
+		updating: "업데이트 중…",
+		updated: "업데이트됨",
+		upToDate: "최신",
 	},
 	reference: {
 		greeting: "안녕하세요 — 이 플러그인은 살아 있으며 기여하고 있습니다.",
@@ -1394,6 +1513,10 @@ export const ko: TranslationCatalog = {
 		fromProfile: "프로필에서",
 		titleSearch: "검색 기록",
 		tabViews: "본 기사",
+		filterPlaceholder: "기록 필터링…",
+		recordKeywordTip:
+			"키워드 검색은 '키워드 검색 기록'이 켜져 있을 때만 여기에 표시됩니다. AI 검색과 브리핑은 항상 기록됩니다.",
+		openSettings: "설정 열기",
 		fromSearch: "검색에서",
 		entries: "항목 {{count}}건",
 		select: "선택",
@@ -1554,6 +1677,8 @@ export const ko: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "원본 언어",
+		viewInsight: "인사이트 보기",
+		viewArticle: "기사 보기",
 		outputLanguage: "출력 언어",
 		generated: "생성됨",
 		mixed: "혼합",

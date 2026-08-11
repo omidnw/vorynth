@@ -117,6 +117,11 @@ export const sourcesSection: DocsSection = {
 					label: "My sources",
 					text: "Sources you create yourself belong to 'My sources' and aren't part of any list. They're the only ones that can be deleted — a source inside a list is owned by the list (hide the list instead).",
 				},
+				{
+					icon: "visibility",
+					label: "Preview a list",
+					text: "Every list card (enabled and browse) has a preview button — it shows exactly which sites the list contains, with each site's URL, category, and adapter, before you enable or add it. The same preview is available during onboarding next to the official-sources choice.",
+				},
 			],
 		},
 		{
@@ -229,6 +234,31 @@ export const sourcesSection: DocsSection = {
 					icon: "map",
 					label: "Sitemap",
 					text: "Sites that publish a sitemap.xml — Vorynth reads the URL list from the sitemap, then fetches each listed page as a story. Example: https://example.com/sitemap.xml",
+				},
+			],
+		},
+		{
+			// v1.8.1 — the Add Source form deep-links to these anchors, so arXiv
+			// and GitHub need their own blocks even though their connectors live
+			// behind the (hidden by default) Plugins surface.
+			type: "features",
+			id: "sources-method-arxiv",
+			items: [
+				{
+					icon: "menu_book",
+					label: "arXiv",
+					text: "arXiv.org research papers — the arXiv adapter takes a search query (e.g. 'large language models') and collects the matching recent papers as stories. Example query: quantum computing",
+				},
+			],
+		},
+		{
+			type: "features",
+			id: "sources-method-github",
+			items: [
+				{
+					icon: "code",
+					label: "GitHub releases",
+					text: "A repository's release notes — give the owner and repository (e.g. 'openai' and 'gpt-oss'), and Vorynth collects each new release as a story. Core adapter, built in.",
 				},
 			],
 		},

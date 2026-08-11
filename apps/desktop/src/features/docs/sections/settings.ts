@@ -43,7 +43,7 @@ export const settingsSection: DocsSection = {
 				{
 					icon: "psychology",
 					label: "Intelligence Provider",
-					text: "Optional. Gemini, OpenAI, Anthropic, or a local Ollama server. Add a key (or base URL for Ollama), save, and Test Connection verifies it. Keys are encrypted at rest (AES-256-GCM, machine-bound) and never leave your machine except to the provider's own API.",
+					text: "Optional. Gemini, OpenAI, Anthropic, or Ollama. Add a key (or base URL for Ollama), save, and Test Connection verifies it. Keys are encrypted at rest (AES-256-GCM, machine-bound) and never leave your machine except to the provider's own API. OpenAI can point at any OpenAI-compatible endpoint — leave the Base URL empty to use the official API. Ollama has two modes: Local (your own server, no key) and Cloud (Ollama's hosted models, with an API key from ollama.com/settings/keys).",
 				},
 				{
 					icon: "data_usage",
@@ -133,7 +133,22 @@ export const settingsSection: DocsSection = {
 				{
 					icon: "developer_mode",
 					label: "Advanced",
-					text: "'Show advanced features' reveals the Plugins page — the source connectors and UI plugins Vorynth runs. Most people never need it: connectors for your sources resolve automatically behind the scenes. Turn it on only if you want to see and manage the machinery yourself.",
+					text: "'Show advanced features' reveals the Plugins page and the Developer section. Most people never need it: connectors for your sources resolve automatically behind the scenes. Turn it on only if you want to see and manage the machinery yourself — and if you only wanted the Developer section, a separate 'Show the Plugins page' toggle keeps plugin machinery hidden.",
+				},
+				{
+					icon: "dns",
+					label: "Developer",
+					text: "For technical users building against the local engine. Shows the Backend URL (the engine API) and the Frontend URL (this app's origin), and controls who may call the engine: Local only (127.0.0.1 — the default), Allow all (0.0.0.0 — reachable from every device on the network, CORS open to any origin), or Custom IPs (a comma-separated list, e.g. 192.168.9.160,10.0.0.5, allowed alongside 127.0.0.1). CORS and IP rules apply immediately; the listening address applies on the next start. Vorynth has no login — opening it to your network lets anyone on that network read and control your data; only enable this on a trusted network.",
+				},
+				{
+					icon: "label",
+					label: "Header icon labels",
+					text: "Show text next to the History, theme, and notification icons in the top bar (on by default). Turn it off in Appearance for a compact header — the icons alone remain.",
+				},
+				{
+					icon: "navigation",
+					label: "Navigation",
+					text: "Where the Archive sub-pages (Items, Collections, Bookmarks, Search, Trash) live: an expandable sidebar menu under Archive (the default), or the tab row inside the Archive page itself.",
 				},
 				{
 					icon: "system_update",

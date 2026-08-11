@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BriefEntry } from "@vorynth/types";
 import { Icon } from "./Icon";
 import { ImportanceBadge, DomainTag } from "./Badge";
+import { cn } from "./lib/cn";
 import { useClickNotDrag } from "./lib/useClickNotDrag";
 
 /** Text direction ("ltr" | "rtl" | "auto"), matching the desktop i18n type. */
@@ -110,6 +111,12 @@ export interface BriefItemLabels {
 	viewInsights: string;
 	viewArticleHint: string;
 	viewInsightsHint: string;
+	/** v1.9.0 — actions that can be pinned to the footer bar or moved behind
+	 *  "More". Read source / Save / Saved existed as literal English text
+	 *  before; they become labels so the More-menu entries localize too. */
+	readSource: string;
+	save: string;
+	saved: string;
 }
 
 const DEFAULT_LABELS: BriefItemLabels = {
@@ -147,10 +154,22 @@ const DEFAULT_LABELS: BriefItemLabels = {
 	viewArticleHint: "Show this story's article post instead of the AI insights.",
 	viewInsightsHint:
 		"Show this story's AI insights (Why It Matters / Impact / Takeaway) instead of the raw article.",
+	readSource: "Read source",
+	save: "Save",
+	saved: "Saved",
 };
 
 /** `dir` default: treat text as LTR when the host doesn't inject detection. */
 const defaultDir = (_text: string): TextDirection => "ltr";
+
+/** v1.9.0 — the canonical footer actions and their default pinned order. */
+export const BRIEF_FOOTER_ACTIONS = [
+	"readSource",
+	"viewToggle",
+	"save",
+] as const;
+
+const DEFAULT_PINNED_ORDER = [...BRIEF_FOOTER_ACTIONS];
 
 /**
  * One ranked row in the Brief list — **news-first**. Pure-presentational:
@@ -170,6 +189,14 @@ export interface BriefItemViewProps {
 	onOpen?: (entry: BriefEntry) => void;
 	/** Bookmark state; defaults to disabled+unsaved. */
 	bookmark?: BookmarkState;
+	/**
+	 * v1.9.0 — which footer actions sit in the card's primary bar, in order:
+	 * `readSource` (the "Read source" link), `viewToggle` (Article ⇄ Insights),
+	 * `save` (Save/Bookmark). Anything not listed lives inside the More ⋮ menu
+	 * (for viewToggle that's the "Change view" entry). The More button itself
+	 * always stays last. Default: all three.
+	 */
+	pinnedOrder?: string[];
 	/** Per-story translate pill; hidden when omitted (static preview). */
 	translate?: TranslateState;
 	/**
@@ -205,6 +232,15 @@ export interface BriefItemViewProps {
 	 * `ui.dragSelectsText` profile setting.
 	 */
 	dragSelectsText?: boolean;
+	/**
+	 * v1.8.1 — the brief-wide default view (the Brief page selector).
+	 * "auto" (default): insight stories open on the insights view, others on
+	 * the article view. "article": always the article view (no auto-switch).
+	 * "insights": insight stories open on the insights view and the card
+	 * auto-switches there the moment an insight is generated; stories without
+	 * an insight stay on the article view with the Generate affordance.
+	 */
+	defaultView?: "auto" | "article" | "insights";
 }
 
 export function BriefItemView({
@@ -212,6 +248,7 @@ export function BriefItemView({
 	dir = defaultDir,
 	onOpen,
 	bookmark,
+	pinnedOrder = DEFAULT_PINNED_ORDER,
 	translate,
 	intelligenceEnabled,
 	generateInsight,
@@ -220,6 +257,7 @@ export function BriefItemView({
 	hideTranslation = false,
 	labels = DEFAULT_LABELS,
 	dragSelectsText = true,
+	defaultView = "auto",
 }: BriefItemViewProps) {
 	const { article, insight, sourceNames, category, importanceTier } = entry;
 	const rankLabel = String(entry.rank).padStart(2, "0");
@@ -229,6 +267,9 @@ export function BriefItemView({
 		enabled: false,
 		toggle: () => {},
 	};
+	const pinned = new Set(pinnedOrder);
+	// v1.9.0 — actions not pinned to the footer bar move into the More menu.
+	const inMoreActions = BRIEF_FOOTER_ACTIONS.filter((id) => !pinned.has(id));
 
 	const headline = insight?.summary?.split("\n")[0] || article.title;
 	const hasOriginalTitle = Boolean(article.originalTitle);
@@ -247,10 +288,20 @@ export function BriefItemView({
 	// the AI insights (the triad) via the footer view toggle. Insight stories
 	// default to the insights view; a story without an insight is always the
 	// article view and offers no toggle.
+	// v1.8.1 — the brief-wide default view can pin article or insights, and an
+	// insight generated while the card is on screen auto-switches the card to
+	// the insights view (unless the user pinned the article view).
 	const [view, setView] = useState<"article" | "insights">(
-		hasIntelligence ? "insights" : "article",
+		defaultView === "article"
+			? "article"
+			: hasIntelligence
+				? "insights"
+				: "article",
 	);
 	const isInsightsView = view === "insights" && hasIntelligence;
+	useEffect(() => {
+		if (hasIntelligence && defaultView !== "article") setView("insights");
+	}, [hasIntelligence, defaultView]);
 	// Footer (v1.8.0): the source label leads, then Read source · Save · the
 	// Insights/Article view toggle, with the More menu pinned to the far end.
 	// The menu holds Translate/Re-translate and Re-collect; while a per-story
@@ -354,9 +405,24 @@ export function BriefItemView({
 							{tierLabel(importanceTier)}
 						</ImportanceBadge>
 						<DomainTag>{category}</DomainTag>
-						<span className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container">
-							{sourceNames.join(" · ")}
+						{/* v1.8.1 — always know which view this card is in. */}
+						<span
+							className={cn(
+								"inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-label text-[10px] uppercase tracking-widest",
+								isInsightsView
+									? "bg-primary-container text-on-primary-container"
+									: "bg-surface-variant text-on-surface-variant",
+							)}
+						>
+							<Icon
+								name={isInsightsView ? "auto_awesome" : "article"}
+								className="text-[12px]"
+							/>
+							{isInsightsView ? labels.viewInsights : labels.viewArticle}
 						</span>
+						{/* v1.8.1 — the source name was removed from the meta row: it is
+							    already shown at the story's bottom-right, so a second
+							    mention here was redundant. */}
 						{article.publishedAt ? (
 							<span className="ms-auto font-mono text-mono-technical text-on-tertiary-container">
 								{timeAgo(article.publishedAt)}
@@ -381,13 +447,20 @@ export function BriefItemView({
 									e.stopPropagation();
 									setShowOriginal((v) => !v);
 								}}
-								className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+								// v1.8.1 — a FILLED state chip, visually distinct from the
+								// category/importance badges (which are bordered tags).
+								className={`mt-1 shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:brightness-110 ${
+									showOriginal
+										? "bg-tertiary-container text-on-tertiary-container"
+										: "bg-secondary-container text-on-secondary-container"
+								}`}
 								title={
 									showOriginal
 										? labels.showTranslatedTitle
 										: labels.showOriginalTitle
 								}
 							>
+								<Icon name="compare" className="text-[12px]" />
 								{showOriginal ? labels.translated : labels.original}
 							</button>
 						) : null}
@@ -415,13 +488,19 @@ export function BriefItemView({
 									e.stopPropagation();
 									setShowOriginalBody((v) => !v);
 								}}
-								className="mt-1 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+								// v1.8.1 — the same filled state-chip as the title toggle.
+								className={`mt-1 shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:brightness-110 ${
+									showOriginalBody
+										? "bg-tertiary-container text-on-tertiary-container"
+										: "bg-secondary-container text-on-secondary-container"
+								}`}
 								title={
 									showOriginalBody
 										? labels.showTranslatedBody
 										: labels.showOriginalBody
 								}
 							>
+								<Icon name="compare" className="text-[12px]" />
 								{showOriginalBody ? labels.translated : labels.original}
 							</button>
 						) : null}
@@ -440,13 +519,19 @@ export function BriefItemView({
 											e.stopPropagation();
 											setShowOriginalInsight((v) => !v);
 										}}
-										className="shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+										// v1.8.1 — the same filled state-chip as the title toggle.
+										className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:brightness-110 ${
+											showOriginalInsight
+												? "bg-tertiary-container text-on-tertiary-container"
+												: "bg-secondary-container text-on-secondary-container"
+										}`}
 										title={
 											showOriginalInsight
 												? labels.showTranslatedBody
 												: labels.showOriginalBody
 										}
 									>
+										<Icon name="compare" className="text-[12px]" />
 										{showOriginalInsight ? labels.translated : labels.original}
 									</button>
 								</div>
@@ -484,10 +569,9 @@ export function BriefItemView({
 						</div>
 					) : (
 						<div className="space-y-2">
-							<div className="flex items-center gap-2 font-mono text-mono-technical text-on-tertiary-container">
-								<Icon name="open_in_new" className="text-[16px]" />
-								<span>Read on {sourceNames[0] ?? "source"}</span>
-							</div>
+							{/* v1.8.1 — the "Read on {site}" line was removed: the source
+							    is already shown on the right of every story and the footer
+							    carries the real outbound "Read source" link. */}
 							{/* Transparency (v1.8.0): explain why this story has no AI
 								    insight instead of silently omitting it. In Intelligence
 								    mode, a story with a body can generate its analysis on
@@ -516,7 +600,10 @@ export function BriefItemView({
 														generateInsight.generate();
 													}}
 													disabled={generateInsight.busy}
-													className="inline-flex items-center gap-1 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary disabled:opacity-60"
+													// v1.8.1 — the same filled chip family as the
+													// translate/state chips: an ACTION chip is
+													// primary-container, states are secondary/tertiary.
+													className="inline-flex items-center gap-1 rounded-full bg-primary-container px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-primary-container transition-colors hover:brightness-110 disabled:opacity-60"
 													title={labels.generateInsightHint}
 												>
 													<Icon name="auto_awesome" className="text-[12px]" />
@@ -557,64 +644,85 @@ export function BriefItemView({
 					)}
 
 					{/* Always-present footer (v1.8.0): Read source · Article view ·
-					    Save · More, with the source label at the far end. */}
+					    Save · More, with the source label at the far end. v1.9.0 —
+					    the pinned actions render in `pinnedOrder` (Settings → Story
+					    card actions); an action not pinned lives inside the More menu. */}
 					<div className="mt-6 flex items-center gap-4 border-t border-outline-variant pt-4">
-						<a
-							href={article.url}
-							target="_blank"
-							rel="noreferrer"
-							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-secondary transition-colors hover:text-primary hover:underline"
-						>
-							<Icon name="open_in_new" className="text-[14px]" />
-							Read source
-						</a>
-						{/* Card view toggle (v1.8.0) — pulled out of the More menu so
-						    Insights ⇄ Article is always one tap away. The label names
-						    the view you’ll switch TO. */}
-						{hasIntelligence ? (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									setView(isInsightsView ? "article" : "insights");
-								}}
-								title={
-									isInsightsView
-										? labels.viewArticleHint
-										: labels.viewInsightsHint
-								}
-								className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary"
-							>
-								<Icon
-									name={isInsightsView ? "article" : "insights"}
-									className="text-[16px]"
-								/>
-								{isInsightsView ? labels.viewArticle : labels.viewInsights}
-							</button>
-						) : null}
-						<button
-							type="button"
-							onClick={(e) => {
-								e.stopPropagation();
-								bm.toggle();
-							}}
-							disabled={!bm.enabled}
-							aria-label={bm.saved ? "Remove bookmark" : "Bookmark this story"}
-							aria-pressed={bm.saved}
-							className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary disabled:opacity-30"
-						>
-							<Icon
-								name={bm.saved ? "bookmark" : "bookmark_border"}
-								fill={bm.saved}
-								className="text-[16px]"
-							/>
-							{bm.saved ? "Saved" : "Save"}
-						</button>
+						{pinnedOrder.map((id) => {
+							if (id === "readSource") {
+								return (
+									<a
+										key={id}
+										href={article.url}
+										target="_blank"
+										rel="noreferrer"
+										onClick={(e) => e.stopPropagation()}
+										className="inline-flex items-center gap-1 font-label text-label-sm uppercase tracking-wide text-secondary transition-colors hover:text-primary hover:underline"
+									>
+										<Icon name="open_in_new" className="text-[14px]" />
+										{labels.readSource}
+									</a>
+								);
+							}
+							if (id === "viewToggle" && hasIntelligence) {
+								// Card view toggle (v1.8.0) — pulled out of the More menu
+								// so Insights ⇄ Article is always one tap away. The label
+								// names the view you’ll switch TO.
+								return (
+									<button
+										key={id}
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											setView(isInsightsView ? "article" : "insights");
+										}}
+										title={
+											isInsightsView
+												? labels.viewArticleHint
+												: labels.viewInsightsHint
+										}
+										className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary"
+									>
+										<Icon
+											name={isInsightsView ? "article" : "insights"}
+											className="text-[16px]"
+										/>
+										{isInsightsView ? labels.viewArticle : labels.viewInsights}
+									</button>
+								);
+							}
+							if (id === "save") {
+								return (
+									<button
+										key={id}
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											bm.toggle();
+										}}
+										disabled={!bm.enabled}
+										aria-label={
+											bm.saved ? "Remove bookmark" : "Bookmark this story"
+										}
+										aria-pressed={bm.saved}
+										className="inline-flex items-center gap-1 rounded p-1 font-label text-label-sm uppercase tracking-wide text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary disabled:opacity-30"
+									>
+										<Icon
+											name={bm.saved ? "bookmark" : "bookmark_border"}
+											fill={bm.saved}
+											className="text-[16px]"
+										/>
+										{bm.saved ? labels.saved : labels.save}
+									</button>
+								);
+							}
+							return null;
+						})}
 						{/* Overflow menu (v1.8.0): Translate/Re-translate and
 						    Re-collect live behind More — sits right before Save. While
 						    a per-story job runs, the menu shows a spinner instead of
-						    offering the action again. */}
+						    offering the action again. v1.9.0 — unpinned footer actions
+						    (Read source / Change view / Mark read / Save) lead the menu. */}
 						<div ref={moreRef} className="relative">
 							<button
 								type="button"
@@ -643,6 +751,68 @@ export function BriefItemView({
 									role="menu"
 									className="absolute bottom-full end-0 z-50 mb-1 min-w-[11rem] overflow-hidden rounded border border-outline-variant bg-surface-container-lowest py-1 shadow-lg"
 								>
+									{inMoreActions.includes("readSource") ? (
+										<a
+											role="menuitem"
+											href={article.url}
+											target="_blank"
+											rel="noreferrer"
+											onClick={(e) => {
+												e.stopPropagation();
+												setMoreOpen(false);
+											}}
+											className="flex w-full items-center gap-2 px-3 py-1.5 text-start font-label text-label-sm transition-colors hover:bg-primary-container hover:text-on-primary-container"
+										>
+											<Icon
+												name="open_in_new"
+												className="shrink-0 text-[16px]"
+											/>
+											{labels.readSource}
+										</a>
+									) : null}
+									{/* v1.9.0 — "Change view": the Article ⇄ Insights toggle
+									    moved behind More. The label names the view you'll
+									    switch TO. */}
+									{hasIntelligence && inMoreActions.includes("viewToggle") ? (
+										<button
+											type="button"
+											role="menuitem"
+											onClick={(e) => {
+												e.stopPropagation();
+												setMoreOpen(false);
+												setView(isInsightsView ? "article" : "insights");
+											}}
+											className="flex w-full items-center gap-2 px-3 py-1.5 text-start font-label text-label-sm transition-colors hover:bg-primary-container hover:text-on-primary-container"
+										>
+											<Icon
+												name={isInsightsView ? "article" : "insights"}
+												className="shrink-0 text-[16px]"
+											/>
+											{isInsightsView
+												? labels.viewArticle
+												: labels.viewInsights}
+										</button>
+									) : null}
+									{inMoreActions.includes("save") ? (
+										<button
+											type="button"
+											role="menuitem"
+											onClick={(e) => {
+												e.stopPropagation();
+												setMoreOpen(false);
+												bm.toggle();
+											}}
+											disabled={!bm.enabled}
+											className="flex w-full items-center gap-2 px-3 py-1.5 text-start font-label text-label-sm transition-colors hover:bg-primary-container hover:text-on-primary-container disabled:opacity-60"
+										>
+											<Icon
+												name={bm.saved ? "bookmark" : "bookmark_border"}
+												fill={bm.saved}
+												className="shrink-0 text-[16px]"
+											/>
+											{bm.saved ? labels.saved : labels.save}
+										</button>
+									) : null}
 									{translate && (translate.canTranslate || translate.busy) ? (
 										<button
 											type="button"

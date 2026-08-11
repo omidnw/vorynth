@@ -96,16 +96,9 @@ describe("ArticleDetailPage — per-story translate + export (v1.8.0)", () => {
 		// actions live behind the More ⋮ menu).
 		mocks.fetchSettings.mockResolvedValue({
 			"reader.supportAuthorReminder": false,
-			"ui.readerPinnedActions": [
-				"markRead",
-				"save",
-				"recollect",
-				"retranslate",
-				"share",
-				"export",
-				"openOriginal",
-				"back",
-			],
+			// v1.8.1 — empty in-More set pins every footer action so the Export
+			// button renders directly in the bar (unpinned → behind More ⋮).
+			"ui.readerActionsInMore": [],
 		} as never);
 	});
 

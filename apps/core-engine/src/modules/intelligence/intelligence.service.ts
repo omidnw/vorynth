@@ -18,11 +18,13 @@ import type {
 	TodaysBrief,
 } from "@vorynth/types";
 import { LlmService } from "../llm/llm.service.js";
+import { localizeOriginalDraft } from "../llm/llm-provider.js";
 import { NewsService } from "../news/news.service.js";
 import { HistoryService } from "../history/history.service.js";
 import { CrawlerService } from "../crawler/crawler.service.js";
 import { translationIsIncomplete } from "../crawler/content-quality.js";
 import { buildIntelligenceGraph } from "./workflows/intelligence.workflow.js";
+import { titleNeedsTranslation } from "./title-script.js";
 import {
 	buildSummaryPrompt,
 	parseSummaryDraft,
@@ -501,12 +503,17 @@ export class IntelligenceService {
 				// v1.8.0 — bilingual generation: the regenerated analysis also
 				// comes back in the story's source language (the `original*`),
 				// so the fresh insight keeps both versions.
-				const draft = await this.llm.analyze({
-					articleTitle: row.articleTitle,
-					articleContent: row.articleContent,
-					outputLanguage: lang,
-					sourceLanguage: row.source_language ?? undefined,
-				});
+				// v1.8.1 — `localizeOriginalDraft` drops same-language "originals"
+				// (auto-detected on untagged sources) and empty fields.
+				const draft = localizeOriginalDraft(
+					await this.llm.analyze({
+						articleTitle: row.articleTitle,
+						articleContent: row.articleContent,
+						outputLanguage: lang,
+						sourceLanguage: row.source_language ?? undefined,
+					}),
+					lang,
+				);
 
 				updateStmt.run(
 					draft.significance,
@@ -544,6 +551,15 @@ export class IntelligenceService {
 	 */
 	async canTranslate(): Promise<boolean> {
 		return this.llm.isAvailable();
+	}
+
+	/**
+	 * v1.8.1 — whether AUTO-analysis may run after a collect: Intelligence
+	 * mode ON plus a configured provider. News mode never spends tokens, even
+	 * when a key happens to be configured (R-A03).
+	 */
+	async canAutoAnalyze(): Promise<boolean> {
+		return this.llm.getMode() === "intelligence" && this.llm.isAvailable();
 	}
 
 	/**
@@ -625,23 +641,29 @@ export class IntelligenceService {
 				insight_impact: string | null;
 				insight_recommended_action: string | null;
 			}>
-		).map((r) => ({
-			id: r.id,
-			title: r.title,
-			content: r.content,
-			author: r.author,
-			original_title: r.original_title,
-			// The story's AI insight rides along into the target language
-			// (v1.8.0) — present only when the story actually has one.
-			insight: r.insight_summary
-				? {
-						summary: r.insight_summary,
-						significance: r.insight_significance ?? "",
-						impact: r.insight_impact ?? "",
-						recommendedAction: r.insight_recommended_action ?? "",
-					}
-				: null,
-		}));
+		)
+			.map((r) => ({
+				id: r.id,
+				title: r.title,
+				content: r.content,
+				author: r.author,
+				original_title: r.original_title,
+				// The story's AI insight rides along into the target language
+				// (v1.8.0) — present only when the story actually has one.
+				insight: r.insight_summary
+					? {
+							summary: r.insight_summary,
+							significance: r.insight_significance ?? "",
+							impact: r.insight_impact ?? "",
+							recommendedAction: r.insight_recommended_action ?? "",
+						}
+					: null,
+			}))
+			// v1.8.1 — script filter: untagged sources whose title is already
+			// written in the target language's script don't need a translation
+			// either (same-language "translations" garble meaning). Latin targets
+			// are unaffected.
+			.filter((r) => titleNeedsTranslation(r.original_title ?? r.title, lang));
 
 		const total = rows.length;
 		let done = 0;
@@ -810,6 +832,15 @@ export class IntelligenceService {
 		// title with a near-identical copy (the "broken" feel after a language
 		// change). Untagged sources (no language set) keep translating.
 		if (row.source_language && row.source_language.toLowerCase() === lang) {
+			return this.news.getArticleDetail(id);
+		}
+
+		// v1.8.1 — script guard: even when the source is untagged, a title
+		// already written in the target language's script (e.g. a Persian title
+		// with the intelligence language set to Persian) doesn't need a
+		// translation — same-language "translations" garble the meaning. Latin
+		// targets are unaffected (the heuristic only covers distinctive scripts).
+		if (!titleNeedsTranslation(row.original_title || row.title, lang)) {
 			return this.news.getArticleDetail(id);
 		}
 
@@ -1267,8 +1298,9 @@ export class IntelligenceService {
 
 		const rows = this.db.rawDb
 			.prepare(
-				`SELECT a.id AS articleId, a.title AS articleTitle, a.content AS articleContent
-				 FROM articles a
+				`SELECT a.id AS articleId, a.title AS articleTitle, a.content AS articleContent,
+				        s.language AS source_language
+				 FROM articles a JOIN sources s ON s.id = a.source_id
 				 WHERE a.content != ''
 				   AND NOT EXISTS (SELECT 1 FROM ai_insights i WHERE i.article_id = a.id)
 				 ORDER BY a.collected_at DESC
@@ -1278,6 +1310,7 @@ export class IntelligenceService {
 			articleId: string;
 			articleTitle: string;
 			articleContent: string;
+			source_language: string | null;
 		}>;
 
 		const total = rows.length;
@@ -1287,11 +1320,18 @@ export class IntelligenceService {
 		for (const row of rows) {
 			throwIfCanceled?.();
 			try {
-				const draft = await this.llm.analyze({
-					articleTitle: row.articleTitle,
-					articleContent: row.articleContent,
-					outputLanguage: lang,
-				});
+				// v1.8.1 — bilingual generation for the backfill too: pass the
+				// source language (auto-detected when untagged) and keep the
+				// `original*` versions, so every backfilled insight carries both.
+				const draft = localizeOriginalDraft(
+					await this.llm.analyze({
+						articleTitle: row.articleTitle,
+						articleContent: row.articleContent,
+						outputLanguage: lang,
+						sourceLanguage: row.source_language ?? undefined,
+					}),
+					lang,
+				);
 				const score = draft.importanceScore || 0;
 				await this.persist(
 					[
@@ -1305,6 +1345,10 @@ export class IntelligenceService {
 							importanceScore: score,
 							importanceTier: tierFor(score),
 							category: draft.category || "other",
+							originalSummary: draft.originalSummary,
+							originalSignificance: draft.originalSignificance,
+							originalImpact: draft.originalImpact,
+							originalRecommendedAction: draft.originalRecommendedAction,
 						},
 					],
 					lang,
@@ -1389,12 +1433,17 @@ export class IntelligenceService {
 		// v1.8.0 — bilingual generation: the same request also returns the
 		// analysis in the story's source language (stored as `original*`), so
 		// every new insight carries both versions for display and export.
-		const draft = await this.llm.analyze({
-			articleTitle: row.title,
-			articleContent: row.content,
-			outputLanguage: lang,
-			sourceLanguage: row.source_language ?? undefined,
-		});
+		// v1.8.1 — untagged sources auto-detect: `localizeOriginalDraft` drops
+		// the "original" when the article is already in the output language.
+		const draft = localizeOriginalDraft(
+			await this.llm.analyze({
+				articleTitle: row.title,
+				articleContent: row.content,
+				outputLanguage: lang,
+				sourceLanguage: row.source_language ?? undefined,
+			}),
+			lang,
+		);
 		const score = draft.importanceScore || 0;
 		const [created] = await this.persist(
 			[

@@ -14,7 +14,7 @@ import { Icon } from "@/components/ui/Icon";
  * keeps light/dark mode working under any theme. When a plugin theme has its
  * own identity icon, that icon shows instead of the sun/moon.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ showLabel = false }: { showLabel?: boolean }) {
 	const { t } = useTranslation();
 	const toggle = useThemeStore((s) => s.toggle);
 	// Subscribe to theme + registry so the icon tracks the active theme (and
@@ -34,9 +34,15 @@ export function ThemeToggle() {
 			onClick={toggle}
 			aria-label={t("settings.themeToggleAria")}
 			title={dark ? t("settings.switchToLight") : t("settings.switchToDark")}
-			className="text-on-surface-variant transition-colors hover:text-on-surface"
+			className="flex items-center gap-1.5 text-on-surface-variant transition-colors hover:text-on-surface"
 		>
-			<Icon name={icon} />
+			{/* v1.8.1 — bigger icon + optional text label (header labels). */}
+			<Icon name={icon} className="text-[24px]" />
+			{showLabel ? (
+				<span className="hidden font-label text-label-sm md:inline">
+					{dark ? t("settings.switchToLight") : t("settings.switchToDark")}
+				</span>
+			) : null}
 		</button>
 	);
 }

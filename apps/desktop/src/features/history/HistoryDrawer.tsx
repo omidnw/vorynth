@@ -11,8 +11,10 @@ import type {
 } from "@vorynth/types";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { Input } from "@/components/ui/Input";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Reveal } from "@/components/ui/Reveal";
+import { DismissibleTip } from "@/components/ui/DismissibleTip";
 import { useTextDirection } from "@/i18n";
 import { ConfirmDialog, PromptDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/cn";
@@ -66,16 +68,32 @@ export function HistoryDrawer() {
 		if (next !== scope) setScope(next);
 	}, [open, location.pathname, scope, setScope]);
 
-	// v1.8.0 — a tab selector inside the drawer switches between the page's own
-	// history (brief/search/generated) and the viewed-stories history (every
-	// story opened, anywhere).
-	const [drawerTab, setDrawerTab] = useState<"history" | "views">("history");
-	const scopeTitle =
+	// v1.8.1 — the drawer now offers ALL history surfaces explicitly (Search /
+	// Briefings / Generated / Viewed), defaulting to the current page's scope,
+	// plus a filter box over the active list and a dismissible recording tip.
+	const [drawerTab, setDrawerTab] = useState<
+		"search" | "brief" | "generated" | "views"
+	>(
 		scope === "brief"
-			? t("history.titleBrief")
+			? "brief"
 			: scope === "generated"
-				? t("history.titleGenerated")
-				: t("history.titleSearch");
+				? "generated"
+				: "search",
+	);
+	const [drawerFilter, setDrawerFilter] = useState("");
+	// Follow the page when the drawer opens (a fresh open shows that page's own
+	// history by default).
+	useEffect(() => {
+		if (!open) return;
+		setDrawerTab(
+			scope === "brief"
+				? "brief"
+				: scope === "generated"
+					? "generated"
+					: "search",
+		);
+		setDrawerFilter("");
+	}, [open, scope]);
 
 	// The drawer stays mounted while closing so Reveal can play the exit
 	// animations — the backdrop fades out while the panel slides back out to
@@ -116,36 +134,62 @@ export function HistoryDrawer() {
 					onClick={(e) => e.stopPropagation()}
 				>
 					<DrawerHeader />
-					{/* v1.8.0 — switch between this page's history and the
-					    viewed-stories history (every story opened, anywhere). */}
-					<div className="flex items-center gap-1 border-b border-outline-variant px-4 py-2">
-						<button
-							type="button"
-							onClick={() => setDrawerTab("history")}
-							aria-pressed={drawerTab === "history"}
-							className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-label text-label-sm transition-colors ${
-								drawerTab === "history"
-									? "bg-primary-container text-on-primary-container"
-									: "text-on-surface-variant hover:bg-surface-container-high"
-							}`}
-						>
-							<Icon name="history" className="text-[15px]" />
-							{scopeTitle}
-						</button>
-						<button
-							type="button"
-							onClick={() => setDrawerTab("views")}
-							aria-pressed={drawerTab === "views"}
-							className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-label text-label-sm transition-colors ${
-								drawerTab === "views"
-									? "bg-primary-container text-on-primary-container"
-									: "text-on-surface-variant hover:bg-surface-container-high"
-							}`}
-						>
-							<Icon name="visibility" className="text-[15px]" />
-							{t("history.tabViews")}
-						</button>
+					{/* v1.8.1 — every history surface is one tap away: this page's
+					    history (search/briefings/generated) + viewed stories. */}
+					<div className="flex items-center gap-1 overflow-x-auto border-b border-outline-variant px-4 py-2">
+						{(
+							[
+								{
+									value: "search",
+									icon: "search",
+									label: t("history.titleSearch"),
+								},
+								{
+									value: "brief",
+									icon: "today",
+									label: t("history.titleBrief"),
+								},
+								{
+									value: "generated",
+									icon: "auto_awesome",
+									label: t("history.titleGenerated"),
+								},
+								{
+									value: "views",
+									icon: "visibility",
+									label: t("history.tabViews"),
+								},
+							] as const
+						).map((tab) => (
+							<button
+								key={tab.value}
+								type="button"
+								onClick={() => setDrawerTab(tab.value)}
+								aria-pressed={drawerTab === tab.value}
+								className={`flex shrink-0 items-center gap-1.5 rounded px-2.5 py-1 font-label text-label-sm transition-colors ${
+									drawerTab === tab.value
+										? "bg-primary-container text-on-primary-container"
+										: "text-on-surface-variant hover:bg-surface-container-high"
+								}`}
+							>
+								<Icon name={tab.icon} className="text-[15px]" />
+								{tab.label}
+							</button>
+						))}
 					</div>
+					{/* v1.8.1 — filter the active history list by its title/text. */}
+					{drawerTab !== "views" ? (
+						<div className="border-b border-outline-variant px-4 py-2">
+							<Input
+								value={drawerFilter}
+								onChange={(e) => setDrawerFilter(e.target.value)}
+								placeholder={t("history.filterPlaceholder")}
+								icon="search"
+								aria-label={t("history.filterPlaceholder")}
+								className="w-full"
+							/>
+						</div>
+					) : null}
 					{drawerTab === "views" ? (
 						<div className="flex-1 overflow-y-auto px-4 py-3">
 							<StoryViewHistory
@@ -156,7 +200,7 @@ export function HistoryDrawer() {
 							/>
 						</div>
 					) : (
-						<DrawerBody />
+						<DrawerBody tab={drawerTab} filter={drawerFilter} />
 					)}
 				</aside>
 			</Reveal>
@@ -234,16 +278,23 @@ function DrawerHeader() {
 
 // ── Body ───────────────────────────────────────────────────────────────────
 
-function DrawerBody() {
+function DrawerBody({
+	tab,
+	filter,
+}: {
+	tab: "search" | "brief" | "generated";
+	/** v1.8.1 — client-side title filter for the active list. */
+	filter: string;
+}) {
 	const { scope, selectMode } = useHistoryStore();
 	return (
 		<>
-			{scope === "search" ? (
-				<SearchList />
-			) : scope === "generated" ? (
-				<GeneratedList />
+			{tab === "search" ? (
+				<SearchList filter={filter} />
+			) : tab === "generated" ? (
+				<GeneratedList filter={filter} />
 			) : (
-				<BriefList />
+				<BriefList filter={filter} />
 			)}
 			{selectMode ? <BulkActionBar scope={scope} /> : null}
 		</>
@@ -252,7 +303,7 @@ function DrawerBody() {
 
 // ── Search list ────────────────────────────────────────────────────────────
 
-function SearchList() {
+function SearchList({ filter }: { filter: string }) {
 	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const {
@@ -273,7 +324,13 @@ function SearchList() {
 	if (isLoading) return <DrawerLoading />;
 	if (error) return <DrawerError message={(error as Error).message} />;
 
-	const items = data?.items ?? [];
+	// v1.8.1 — client-side filter over the recorded searches.
+	const items = (data?.items ?? []).filter(
+		(e) =>
+			!filter ||
+			e.title.toLowerCase().includes(filter.toLowerCase()) ||
+			e.query.toLowerCase().includes(filter.toLowerCase()),
+	);
 	if (items.length === 0) {
 		return (
 			<EmptyState
@@ -286,6 +343,27 @@ function SearchList() {
 
 	return (
 		<div className="flex-1 overflow-y-auto px-3 py-3">
+			{/* v1.8.1 — why keyword searches may be missing (recordKeyword is
+			    opt-in); dismissible. */}
+			{!filter ? (
+				<DismissibleTip
+					id="history-keyword-recording"
+					icon="info"
+					className="mb-3"
+				>
+					{t("history.recordKeywordTip")}{" "}
+					<button
+						type="button"
+						onClick={() => {
+							closeDrawer();
+							navigate("/settings");
+						}}
+						className="font-label text-label-sm text-secondary underline-offset-2 hover:underline"
+					>
+						{t("history.openSettings")}
+					</button>
+				</DismissibleTip>
+			) : null}
 			<div className="mb-2 flex items-center justify-between px-2">
 				<span className="font-mono text-[11px] uppercase tracking-widest text-on-tertiary-container">
 					{t("history.entries", { count: items.length })}
@@ -477,7 +555,7 @@ function SearchRow({
 
 // ── Brief list ─────────────────────────────────────────────────────────────
 
-function BriefList() {
+function BriefList({ filter }: { filter: string }) {
 	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const {
@@ -498,7 +576,10 @@ function BriefList() {
 	if (isLoading) return <DrawerLoading />;
 	if (error) return <DrawerError message={(error as Error).message} />;
 
-	const items = data?.items ?? [];
+	// v1.8.1 — client-side filter over the recorded briefings.
+	const items = (data?.items ?? []).filter(
+		(e) => !filter || e.title.toLowerCase().includes(filter.toLowerCase()),
+	);
 	if (items.length === 0) {
 		return (
 			<EmptyState
@@ -694,7 +775,7 @@ function BriefRow({
 
 // ── Generated list ──────────────────────────────────────────────────────────
 
-function GeneratedList() {
+function GeneratedList({ filter }: { filter: string }) {
 	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const {
@@ -715,7 +796,10 @@ function GeneratedList() {
 	if (isLoading) return <DrawerLoading />;
 	if (error) return <DrawerError message={(error as Error).message} />;
 
-	const items = data?.items ?? [];
+	// v1.8.1 — client-side filter over the generated summaries.
+	const items = (data?.items ?? []).filter(
+		(e) => !filter || e.title.toLowerCase().includes(filter.toLowerCase()),
+	);
 	if (items.length === 0) {
 		return (
 			<EmptyState

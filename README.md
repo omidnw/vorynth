@@ -156,7 +156,7 @@ localization, and report generation.
 
 ## Project status
 
-Version **1.8.0** — active development. See the in-app **Settings → Changelog**
+Version **1.8.1** — active development. See the in-app **Settings → Changelog**
 or the [changelog data](apps/desktop/src/features/changelog/changelog-data.ts).
 
 Policies that govern product decisions live in **[POLICY.md](POLICY.md)** —

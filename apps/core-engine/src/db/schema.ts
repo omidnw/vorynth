@@ -103,6 +103,18 @@ export const sourceLists = sqliteTable("source_lists", {
 	nsfw: integer("nsfw", { mode: "boolean" }).notNull().default(false),
 	/** Master switch — off hides the list's sources from page + crawler. */
 	enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+	/**
+	 * v1.8.1 — soft-delete flag. Deleting a list marks it deleted (the seed
+	 * skips deleted lists, so an official list stays gone across restarts);
+	 * deleted lists are excluded from list()/get() and the crawler gate.
+	 */
+	deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+	/**
+	 * v1.8.1 — the repo file this community list was downloaded from, e.g.
+	 * "sources/security.json". Powers the per-list "Update" button (a newer
+	 * file in the repo updates this list). NULL for official/imported lists.
+	 */
+	repoPath: text("repo_path"),
 	/** List definition version (community lists carry one from the catalog). */
 	version: text("version"),
 	/**
@@ -479,6 +491,12 @@ export const storyViews = sqliteTable("story_views", {
 		.references(() => articles.id, { onDelete: "cascade" }),
 	/** 'insight' | 'article' | 'both' — what the user saw in this sitting. */
 	scope: text("scope", { enum: ["insight", "article", "both"] }).notNull(),
+	/**
+	 * v1.8.1 — explicit read state. Opening a story marks its view read; the
+	 * reader's "Mark read" button toggles it. Surfaced as a check icon in the
+	 * Viewed-stories history (no separate read-tracking table — R-A09).
+	 */
+	read: integer("read", { mode: "boolean" }).notNull().default(false),
 	viewedAt: integer("viewed_at", { mode: "timestamp_ms" })
 		.notNull()
 		.default(sql`(unixepoch() * 1000)`),

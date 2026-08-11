@@ -94,6 +94,45 @@ describe("story-views service", () => {
 			close();
 		}
 	});
+
+	it("opening a story marks the view READ (v1.8.1)", () => {
+		const { views, close } = makeHarness();
+		try {
+			views.record("art-1", "article");
+			const list = views.list();
+			expect(list).toHaveLength(1);
+			expect(list[0].read).toBe(true);
+		} finally {
+			close();
+		}
+	});
+
+	it("setRead toggles the persisted read flag on the view row (v1.8.1)", () => {
+		const { views, close } = makeHarness();
+		try {
+			const { id } = views.record("art-1", "insight");
+			views.setRead(id, false);
+			expect(views.list()[0].read).toBe(false);
+			views.setRead(id, true);
+			expect(views.list()[0].read).toBe(true);
+		} finally {
+			close();
+		}
+	});
+
+	it("a merged same-sitting open keeps the row marked read (v1.8.1)", () => {
+		const { views, close } = makeHarness();
+		try {
+			views.record("art-1", "insight");
+			// Manually un-read, then reopen the other surface within the window.
+			views.setRead(views.list()[0].id, false);
+			const merged = views.record("art-1", "article");
+			expect(merged.scope).toBe("both");
+			expect(views.list()[0].read).toBe(true);
+		} finally {
+			close();
+		}
+	});
 });
 
 function seedArticle(raw: Database.Database) {

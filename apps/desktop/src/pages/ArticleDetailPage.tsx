@@ -3,7 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { locationHasHistory } from "@/lib/router/has-history.js";
 import type { ArticleMedia } from "@vorynth/types";
-import { recordStoryView } from "@/features/story-views/story-views-api.js";
+import {
+	recordStoryView,
+	setStoryViewRead,
+} from "@/features/story-views/story-views-api.js";
 import {
 	fetchArticleDetail,
 	fetchArticleMedia,
@@ -14,6 +17,7 @@ import {
 } from "@/features/reader/reader-api";
 import { SupportAuthorModal } from "@/features/reader/SupportAuthorModal";
 import { ReaderActionBar } from "@/features/reader/ReaderActionBar";
+import { readerActionLayout } from "@/features/reader/reader-actions.js";
 import { usePluginStoryExports } from "@/plugins/plugin-hooks";
 import { fetchSettings } from "@/features/history/history-api.js";
 import { Icon } from "@/components/ui/Icon";
@@ -58,15 +62,21 @@ export function ArticleDetailPage() {
 	// v1.8.0 — story-view history: opening the article records scope='article'
 	// so the Brief History tab can show which story was read, when, and on
 	// which surface. Best-effort; a failed record never breaks the read.
+	// v1.8.1 — opening counts as READING (read=true), and the returned view id
+	// lets the "Mark read" button toggle the persisted flag.
+	const [viewId, setViewId] = useState<number | null>(null);
+	const [read, setRead] = useState(false);
 	useEffect(() => {
 		if (!id) return;
-		void recordStoryView({ articleId: id, scope: "article" }).catch(
-			() => undefined,
-		);
+		void recordStoryView({ articleId: id, scope: "article" })
+			.then((res) => {
+				setViewId(res.id);
+				setRead(true);
+			})
+			.catch(() => undefined);
 	}, [id]);
 
 	const [reminderDismissed, setReminderDismissed] = useState(false);
-	const [read, setRead] = useState(false);
 	// Original/Translated toggles — one for the title, one for the body. Both
 	// default to the translated version when one exists (R-A07: the original is
 	// always one toggle away, never lost).
@@ -94,7 +104,7 @@ export function ArticleDetailPage() {
 		queryKey: ["app-settings"],
 		queryFn: fetchSettings,
 	});
-	const readerPinned = settings?.["ui.readerPinnedActions"];
+	const readerLayout = readerActionLayout(settings);
 
 	const keepMutation = useMutation({
 		mutationFn: ({ url, keep }: { url: string; keep: boolean }) =>
@@ -229,18 +239,17 @@ export function ArticleDetailPage() {
 			) : null}
 
 			<header className="mb-12">
-				<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-					<button
-						type="button"
-						onClick={goBack}
-						className="inline-flex items-center gap-2 font-label text-label-md uppercase text-on-surface-variant hover:text-primary"
-					>
-						<Icon name="arrow_back" className="text-[18px]" />
-						{t("article.back")}
-					</button>
+				{/* v1.8.1 — the top-left back button is gone: the floating action
+				    bar below carries Back, so a duplicate here was redundant. */}
+				<div className="mb-6 flex flex-wrap items-center justify-end gap-4">
 					<DocsHelpButton sectionId="media" />
 				</div>
 				<div className="mb-6 flex flex-wrap items-center gap-3">
+					{/* v1.8.1 — always know which view you're in. */}
+					<span className="inline-flex items-center gap-1 rounded bg-surface-variant px-2 py-0.5 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+						<Icon name="article" className="text-[12px]" />
+						{t("insight.viewArticle")}
+					</span>
 					{sourceCategory ? <DomainTag>{sourceCategory}</DomainTag> : null}
 					<span
 						className="font-label text-label-sm uppercase tracking-widest text-on-tertiary-container"
@@ -281,7 +290,10 @@ export function ArticleDetailPage() {
 							type="button"
 							onClick={() => translateMutation.mutate()}
 							disabled={translateMutation.isPending}
-							className="mt-2 inline-flex shrink-0 items-center gap-1.5 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary disabled:opacity-60"
+							// v1.8.1 — action chip, same family as the Original/Translated
+							// state chips (primary-container = "do something"; states are
+							// secondary/tertiary-container).
+							className="mt-2 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary-container px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-primary-container transition-colors hover:brightness-110 disabled:opacity-60"
 							title={t("article.translateHint")}
 						>
 							<Icon name="translate" className="text-[14px]" />
@@ -294,7 +306,7 @@ export function ArticleDetailPage() {
 							type="button"
 							onClick={() => retranslateMutation.mutate()}
 							disabled={retranslateMutation.isPending}
-							className="mt-2 inline-flex shrink-0 items-center gap-1.5 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary disabled:opacity-60"
+							className="mt-2 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary-container px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-primary-container transition-colors hover:brightness-110 disabled:opacity-60"
 							title={t("article.retranslateHint")}
 						>
 							<Icon name="translate" className="text-[14px]" />
@@ -310,13 +322,21 @@ export function ArticleDetailPage() {
 								e.stopPropagation();
 								setShowOriginal((v) => !v);
 							}}
-							className="mt-2 shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+							// v1.8.1 — the same FILLED state chip as the brief card:
+							// translated (default) = secondary-container, original =
+							// tertiary-container.
+							className={`mt-2 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:brightness-110 ${
+								showOriginal
+									? "bg-tertiary-container text-on-tertiary-container"
+									: "bg-secondary-container text-on-secondary-container"
+							}`}
 							title={
 								showOriginal
 									? t("article.showTranslatedTitle")
 									: t("article.showOriginalTitle")
 							}
 						>
+							<Icon name="compare" className="text-[12px]" />
 							{showOriginal ? t("article.translated") : t("article.original")}
 						</button>
 					) : null}
@@ -359,13 +379,19 @@ export function ArticleDetailPage() {
 						<button
 							type="button"
 							onClick={() => setShowOriginalBody((v) => !v)}
-							className="rounded border border-outline-variant px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-on-tertiary-container transition-colors hover:border-secondary hover:text-secondary"
+							// v1.8.1 — the same FILLED state chip as the brief card.
+							className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors hover:brightness-110 ${
+								showOriginalBody
+									? "bg-tertiary-container text-on-tertiary-container"
+									: "bg-secondary-container text-on-secondary-container"
+							}`}
 							title={
 								showOriginalBody
 									? t("article.showTranslatedBody")
 									: t("article.showOriginalBody")
 							}
 						>
+							<Icon name="compare" className="text-[12px]" />
 							{showOriginalBody
 								? t("article.translated")
 								: t("article.original")}
@@ -433,7 +459,7 @@ export function ArticleDetailPage() {
 			{/* Floating action bar — pinned actions up front, the rest behind the
 			    More ⋮ menu (Profile → Reader actions chooses which are pinned). */}
 			<ReaderActionBar
-				pinnedIds={readerPinned}
+				layout={readerLayout}
 				moreLabel={t("article.more")}
 				moreAriaLabel={t("article.moreAria")}
 				actions={[
@@ -441,7 +467,22 @@ export function ArticleDetailPage() {
 						id: "markRead",
 						icon: read ? "check" : "check_circle",
 						label: read ? t("article.read") : t("article.markRead"),
-						onClick: () => setRead(true),
+						// v1.8.1 — persisted to the story view row (the flag the
+						// Viewed-stories history shows); best-effort when the view id
+						// hasn't landed yet.
+						onClick: () => {
+							const next = !read;
+							setRead(next);
+							if (viewId != null) {
+								void setStoryViewRead(viewId, next)
+									.then(() =>
+										queryClient.invalidateQueries({
+											queryKey: ["story-views"],
+										}),
+									)
+									.catch(() => undefined);
+							}
+						},
 					},
 					{
 						id: "save",

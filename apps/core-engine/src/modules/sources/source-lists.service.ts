@@ -1,5 +1,6 @@
 import {
 	BadRequestException,
+	ConflictException,
 	Inject,
 	Injectable,
 	Logger,
@@ -7,15 +8,18 @@ import {
 	Optional,
 	ServiceUnavailableException,
 } from "@nestjs/common";
-import { asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import { DatabaseService } from "../../db/database.service.js";
 import { sourceLists, sources, type SourceListRow } from "../../db/schema.js";
+import { ftsRebuildIndex } from "../../db/fts-sync.js";
+import { sweepOrphanSpines } from "../../db/spine.js";
 import { PluginsService } from "../plugins/plugins.service.js";
 import type {
 	RefreshCatalogResult,
 	SourceListInfo,
 	SourceListOrigin,
 	SourceListSourceDefinition,
+	SourceListSourcePreview,
 } from "@vorynth/types";
 import { SOURCE_AUTHORITIES, SOURCE_SCOPES } from "@vorynth/types";
 
@@ -69,7 +73,8 @@ export class SourceListsService {
 		this.fetchText = fetcher ? (url) => fetcher.getText(url) : defaultFetch;
 	}
 
-	/** Every curated list, with its live source/enabled counts. */
+	/** Every curated list, with its live source/enabled counts. Deleted lists
+	 * are gone for good — they never come back here (v1.8.1). */
 	async list(): Promise<SourceListInfo[]> {
 		const rows = await this.db.db
 			.select({
@@ -79,9 +84,20 @@ export class SourceListsService {
 			})
 			.from(sourceLists)
 			.leftJoin(sources, eq(sources.listId, sourceLists.id))
+			.where(eq(sourceLists.deleted, false))
 			.groupBy(sourceLists.id)
 			.orderBy(asc(sourceLists.createdAt));
-		return rows.map((r) => toListInfo(r.list, r.sourceCount, r.enabledCount));
+		// v1.8.1 — the SQL join only counts MATERIALIZED rows; a community list
+		// that hasn't been enabled yet has none (its definitions live in
+		// sources_json), so it used to show "0 sources". The definition count
+		// is the real size.
+		return rows.map((r) =>
+			toListInfo(
+				r.list,
+				effectiveSourceCount(r.list.sourcesJson, r.sourceCount),
+				r.enabledCount,
+			),
+		);
 	}
 
 	async get(id: string): Promise<SourceListInfo> {
@@ -93,12 +109,45 @@ export class SourceListsService {
 			})
 			.from(sourceLists)
 			.leftJoin(sources, eq(sources.listId, sourceLists.id))
-			.where(eq(sourceLists.id, id))
+			.where(and(eq(sourceLists.id, id), eq(sourceLists.deleted, false)))
 			.groupBy(sourceLists.id)
 			.limit(1);
 		const row = rows[0];
 		if (!row) throw new NotFoundException(`source list ${id} not found`);
-		return toListInfo(row.list, row.sourceCount, row.enabledCount);
+		return toListInfo(
+			row.list,
+			effectiveSourceCount(row.list.sourcesJson, row.sourceCount),
+			row.enabledCount,
+		);
+	}
+
+	/**
+	 * The list's sites for the preview modal (v1.8.1) — from its cached
+	 * definitions, so it works whether or not the list has been enabled
+	 * (materialized). Each entry is merged with the materialized row's
+	 * `enabled` state when one exists.
+	 */
+	async sources(id: string): Promise<SourceListSourcePreview[]> {
+		const row = await this.db.db
+			.select()
+			.from(sourceLists)
+			.where(and(eq(sourceLists.id, id), eq(sourceLists.deleted, false)))
+			.get();
+		if (!row) throw new NotFoundException(`source list ${id} not found`);
+		const defs = (row.sourcesJson ?? []) as SourceListSourceDefinition[];
+		const rows = await this.db.db
+			.select({ id: sources.id, enabled: sources.enabled })
+			.from(sources)
+			.where(eq(sources.listId, id));
+		const enabledById = new Map(rows.map((r) => [r.id, r.enabled]));
+		return defs.map((d) => ({
+			id: d.id,
+			name: d.name,
+			url: d.url,
+			category: d.category,
+			adapter: d.adapter,
+			enabled: enabledById.get(d.id) ?? false,
+		}));
 	}
 
 	/**
@@ -110,10 +159,11 @@ export class SourceListsService {
 	async enable(id: string): Promise<SourceListInfo> {
 		// Fetch the raw row — the materialization needs the cached definitions
 		// (sources_json), which the public SourceListInfo deliberately omits.
+		// Deleted lists can't be re-enabled (v1.8.1).
 		const [row] = await this.db.db
 			.select()
 			.from(sourceLists)
-			.where(eq(sourceLists.id, id))
+			.where(and(eq(sourceLists.id, id), eq(sourceLists.deleted, false)))
 			.limit(1);
 		if (!row) throw new NotFoundException(`source list ${id} not found`);
 		const defs = (row.sourcesJson ?? []) as unknown[];
@@ -221,6 +271,60 @@ export class SourceListsService {
 	}
 
 	/**
+	 * Permanently delete a list (v1.8.1) — official or community, enabled or
+	 * not. Unlike `disable`, this is a tombstone: the row is marked `deleted`
+	 * (so seeds and catalog refreshes never restore it) and the list's
+	 * materialized sources are removed. The engine REFUSES
+	 * (409 BOOKMARKED_ARTICLES_EXIST) when the list's sources own saved
+	 * stories — `force` confirms the explicit "Delete anyway" flow.
+	 *
+	 * Articles cascade with their sources (FK); orphan spines and bookmarks
+	 * referencing them are swept in the same atomic step (SourcesService
+	 * pattern). FTS entries are rebuilt so search space is reclaimed.
+	 */
+	async remove(id: string, force = false): Promise<void> {
+		const raw = this.db.rawDb;
+		const { c: bookmarkedCount } = raw
+			.prepare(
+				`SELECT COUNT(*) AS c FROM articles a
+				 JOIN bookmarks b ON b.content_item_id = a.content_item_id
+				 JOIN sources s ON s.id = a.source_id
+				 WHERE s.list_id = ?`,
+			)
+			.get(id) as { c: number };
+
+		if (bookmarkedCount > 0 && !force) {
+			throw new ConflictException({
+				code: "BOOKMARKED_ARTICLES_EXIST",
+				bookmarkedCount,
+				message: `${bookmarkedCount} saved storie(s) belong to this list. Delete anyway?`,
+			});
+		}
+
+		// Existence check — also makes a repeat delete a clean 404.
+		await this.get(id);
+
+		raw.transaction(() => {
+			// NOTE: the transaction function must be invoked (`})()`) or nothing runs.
+			raw
+				.prepare(
+					"UPDATE source_lists SET deleted = 1, enabled = 0 WHERE id = ?",
+				)
+				.run(id);
+			raw.prepare("DELETE FROM sources WHERE list_id = ?").run(id);
+			// Drop the spines the cascaded articles leave behind (bookmarks
+			// referencing them cascade too). Only touches spines with no
+			// origin — invariant-preserving and idempotent.
+			sweepOrphanSpines(raw);
+		})();
+
+		// Stale FTS5 entries (from cascade-deleted articles) are invisible
+		// in search results because the query INNER JOINs articles. Rebuild
+		// the index to reclaim space from stale entries.
+		ftsRebuildIndex(this.db.rawDb);
+	}
+
+	/**
 	 * The ids of lists whose master switch is on — the crawler's gate. A
 	 * source with `listId` is only collected when its list is enabled.
 	 */
@@ -228,7 +332,9 @@ export class SourceListsService {
 		const rows = await this.db.db
 			.select({ id: sourceLists.id })
 			.from(sourceLists)
-			.where(eq(sourceLists.enabled, true));
+			.where(
+				and(eq(sourceLists.enabled, true), eq(sourceLists.deleted, false)),
+			);
 		return new Set(rows.map((r) => r.id));
 	}
 
@@ -319,6 +425,12 @@ export class SourceListsService {
 				);
 				continue;
 			}
+			// A list the user deleted stays deleted (v1.8.1) — a refresh never
+			// resurrects it; the row just stops receiving updates.
+			if (existing && existing.deleted) {
+				seen.add(def.id);
+				continue;
+			}
 
 			seen.add(def.id);
 			if (existing) {
@@ -341,6 +453,9 @@ export class SourceListsService {
 							version: def.version,
 							curator: def.curator,
 							sourcesJson: def.sources,
+							// v1.8.1 — remember where the file lives so the
+							// per-list "Update" button can fetch it directly.
+							repoPath: path,
 							updatedAt: new Date(),
 						})
 						.where(eq(sourceLists.id, existing.id));
@@ -359,6 +474,7 @@ export class SourceListsService {
 					version: def.version,
 					curator: def.curator,
 					sourcesJson: def.sources,
+					repoPath: path,
 					createdAt: new Date(),
 				});
 				result.added.push(def.id);
@@ -377,6 +493,81 @@ export class SourceListsService {
 			`community catalog refresh: +${result.added.length} ~${result.updated.length} -${result.removed.length} =${result.unchanged.length} (${result.skipped.length} skipped)`,
 		);
 		return result;
+	}
+
+	/**
+	 * Update ONE downloaded community list from its repo file (v1.8.1) — the
+	 * per-list "Update" button. Fetches the file the list was downloaded from,
+	 * validates it with the same gate as a refresh, and applies the new
+	 * definitions when they differ — PRESERVING the user's `enabled` choice
+	 * and never duplicating sources (R-A10). When the list is enabled, new
+	 * sources materialize via the same idempotent insert as `enable`.
+	 *
+	 * Returns `{ updated, info }` so the UI can say "Updated" vs "Up to date".
+	 */
+	async updateFromRepo(
+		id: string,
+	): Promise<{ updated: boolean; info: SourceListInfo }> {
+		const row = await this.db.db
+			.select()
+			.from(sourceLists)
+			.where(and(eq(sourceLists.id, id), eq(sourceLists.deleted, false)))
+			.get();
+		if (!row) throw new NotFoundException(`source list ${id} not found`);
+		if (!row.repoPath) {
+			throw new BadRequestException("sourceList.noRepoPath");
+		}
+
+		const rawUrl = `${this.rawBase}/${this.repo}/${this.repoRef}/${row.repoPath}`;
+		const body = await this.fetchText(rawUrl);
+		if (!body) {
+			throw new ServiceUnavailableException({
+				code: "CATALOG_UNREACHABLE",
+				message: `Could not reach the community catalog to update "${row.name}". Your saved list is unchanged.`,
+			});
+		}
+		let parsed: Record<string, unknown>;
+		try {
+			parsed = JSON.parse(body) as Record<string, unknown>;
+		} catch {
+			throw new BadRequestException("sourceList.importInvalidJson");
+		}
+		const def = this.parseListFile(parsed, row.repoPath);
+		if (!def) {
+			throw new BadRequestException("sourceList.importInvalid");
+		}
+
+		const same =
+			row.name === def.name &&
+			row.description === def.description &&
+			row.nsfw === def.nsfw &&
+			row.version === def.version &&
+			JSON.stringify(row.sourcesJson) === JSON.stringify(def.sources);
+		if (same) {
+			return { updated: false, info: await this.get(id) };
+		}
+
+		await this.db.db
+			.update(sourceLists)
+			.set({
+				name: def.name,
+				description: def.description,
+				nsfw: def.nsfw,
+				version: def.version,
+				curator: def.curator,
+				sourcesJson: def.sources,
+				updatedAt: new Date(),
+			})
+			.where(eq(sourceLists.id, id));
+		this.logger.log(
+			`updated community list "${def.name}" from ${row.repoPath} (${def.sources.length} sources)`,
+		);
+
+		// An enabled list materializes its (possibly new) sources the same
+		// idempotent way `enable` does — INSERT OR IGNORE, never duplicates.
+		if (row.enabled) await this.enable(id);
+
+		return { updated: true, info: await this.get(id) };
 	}
 
 	// ── catalog parsing + validation ────────────────────────────────────────
@@ -526,6 +717,22 @@ function curatorFor(path: string): string | null {
 	return curator;
 }
 
+/**
+ * A list's real size (v1.8.1). The SQL join counts MATERIALIZED `sources`
+ * rows, but community lists keep their definitions in `sources_json` and only
+ * materialize rows when enabled — so a freshly-fetched (not-yet-enabled) list
+ * used to report "0 sources" despite having definitions. The definition count
+ * is the upper bound and the source of truth for "how many sites this list
+ * offers"; once materialized the row count matches it.
+ */
+function effectiveSourceCount(
+	defs: unknown[] | null | undefined,
+	rowCount: number,
+): number {
+	const defsCount = Array.isArray(defs) ? defs.length : 0;
+	return Math.max(rowCount, defsCount);
+}
+
 function toListInfo(
 	row: SourceListRow,
 	sourceCount: number,
@@ -542,6 +749,8 @@ function toListInfo(
 		curator: row.curator,
 		sourceCount,
 		enabledCount,
+		// v1.8.1 — a community list with a known repo file can be updated.
+		canUpdate: row.origin === "community" && Boolean(row.repoPath),
 		updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
 		createdAt: row.createdAt.toISOString(),
 	};

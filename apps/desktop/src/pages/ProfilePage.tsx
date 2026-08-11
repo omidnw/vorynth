@@ -7,11 +7,7 @@ import {
 	generateSummary,
 	improveInstruction,
 } from "@/features/profile/profile-api";
-import { ReaderActionsSection } from "@/features/profile/ReaderActionsSection";
-import { CardClickSection } from "@/features/profile/CardClickSection";
 import {
-	fetchSettings,
-	patchSettings,
 	fetchSearchHistory,
 	fetchBriefHistory,
 } from "@/features/history/history-api";
@@ -77,12 +73,6 @@ export function ProfilePage() {
 				icon: "translate",
 				search: t("profile.searchLanguages"),
 			},
-			{
-				id: "profile-reading",
-				label: t("profile.categoryReading"),
-				icon: "menu_book",
-				search: t("profile.searchReading"),
-			},
 		],
 		[t],
 	);
@@ -140,8 +130,9 @@ export function ProfilePage() {
 		<section className="mx-auto w-full max-w-max-content-width px-gutter py-12">
 			<header className="mb-2">
 				<div className="flex flex-wrap items-start justify-between gap-4">
-					<h1 className="mb-2 flex items-center gap-3 font-headline text-display-md text-primary dark:text-primary-fixed">
-						<Icon name="account_circle" className="text-[32px]" />
+					{/* v1.8.1 — same title size as the Settings page header. */}
+					<h1 className="mb-2 flex items-center gap-3 font-headline text-headline-lg text-primary dark:text-primary-fixed">
+						<Icon name="account_circle" className="text-[28px]" />
 						{t("profile.title")}
 					</h1>
 					<DocsHelpButton sectionId="profile" />
@@ -244,23 +235,9 @@ export function ProfilePage() {
 						/>
 					</SettingsCategory>
 
-					{/* ── Reading ─────────────────────────────────────────────── */}
-					<SettingsCategory
-						id="profile-reading"
-						title={cat("profile-reading")?.label ?? ""}
-						icon={cat("profile-reading")?.icon}
-						search={cat("profile-reading")?.search}
-						highlighted={isHighlighted("profile-reading")}
-						className={matches("profile-reading") ? undefined : "hidden"}
-					>
-						<ReaderSettingsSection />
-						<ReaderActionsSection />
-						<CardClickSection />
-					</SettingsCategory>
-
-					{/* Reset confirmation dialogs */}
-					<ConfirmResetSection />
-
+					{/* v1.8.1 — Reading preferences (reader settings, card click,
+					    confirmation dialogs) moved to Settings → General so Profile
+					    stays purely about the person. */}
 					{/* Tip: app settings live on the Settings page */}
 					<GhostCard className="flex items-center justify-between gap-4">
 						<div className="flex items-center gap-3">
@@ -853,88 +830,6 @@ function AiLanguageSection() {
 	);
 }
 
-// ── Reader settings ─────────────────────────────────────────────────────────
-
-function ReaderSettingsSection() {
-	const { t } = useTranslation();
-	const queryClient = useQueryClient();
-	const { data: settings } = useQuery({
-		queryKey: ["app-settings"],
-		queryFn: fetchSettings,
-	});
-	const reminderOn = settings?.["reader.supportAuthorReminder"] ?? true;
-	const keepLocal = settings?.["reader.defaultKeepMediaLocal"] ?? false;
-
-	const patch = useMutation({
-		mutationFn: (p: Record<string, unknown>) => patchSettings(p),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
-	});
-
-	return (
-		<GhostCard>
-			<h2 className="mb-4 flex items-center gap-2 font-headline text-headline-md text-primary dark:text-primary-fixed">
-				<Icon name="menu_book" className="text-[24px]" />
-				{t("profile.readerSettings")}
-			</h2>
-
-			<Toggle
-				label={t("profile.supportReminder")}
-				description={t("profile.supportReminderHint")}
-				checked={reminderOn}
-				onChange={(v) => patch.mutate({ "reader.supportAuthorReminder": v })}
-			/>
-			<div className="my-4 h-px bg-outline-variant" />
-			<Toggle
-				label={t("profile.keepMediaLocal")}
-				description={t("profile.keepMediaLocalHint")}
-				checked={keepLocal}
-				onChange={(v) => patch.mutate({ "reader.defaultKeepMediaLocal": v })}
-			/>
-		</GhostCard>
-	);
-}
-
-function ConfirmResetSection() {
-	const { t } = useTranslation();
-	const queryClient = useQueryClient();
-	const patch = useMutation({
-		mutationFn: (values: Parameters<typeof patchSettings>[0]) =>
-			patchSettings(values),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
-	});
-
-	return (
-		<GhostCard className="flex items-center justify-between gap-4">
-			<div className="flex items-center gap-3">
-				<Icon
-					name="touch_app"
-					className="text-[24px] text-on-surface-variant"
-				/>
-				<div>
-					<h3 className="font-label text-label-md uppercase tracking-widest text-on-surface-variant">
-						Confirmation dialogs
-					</h3>
-					<p className="font-body text-body-sm text-on-tertiary-container">
-						Reset "don't ask again" choices and show confirmation dialogs.
-					</p>
-				</div>
-			</div>
-			<Button
-				variant="secondary"
-				size="sm"
-				onClick={() => {
-					patch.mutate({ "ui.confirmDeleteProvider": true });
-				}}
-				disabled={patch.isPending}
-			>
-				{patch.isPending ? t("profile.resetting") : t("profile.resetAll")}
-			</Button>
-		</GhostCard>
-	);
-}
-
 // ── Shared bits ─────────────────────────────────────────────────────────────
 
 function Field({
@@ -951,44 +846,6 @@ function Field({
 			</label>
 			{children}
 		</div>
-	);
-}
-
-function Toggle({
-	label,
-	description,
-	checked,
-	onChange,
-}: {
-	label: string;
-	description: string;
-	checked: boolean;
-	onChange: (v: boolean) => void;
-}) {
-	return (
-		<label className="flex cursor-pointer items-start justify-between gap-4">
-			<div>
-				<p className="font-label text-label-md text-on-surface">{label}</p>
-				<p className="font-body text-body-sm text-on-surface-variant">
-					{description}
-				</p>
-			</div>
-			<button
-				type="button"
-				role="switch"
-				aria-checked={checked}
-				onClick={() => onChange(!checked)}
-				className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors ${
-					checked ? "bg-primary" : "bg-outline-variant"
-				}`}
-			>
-				<span
-					className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface transition-transform ${
-						checked ? "start-[22px]" : "start-0.5"
-					}`}
-				/>
-			</button>
-		</label>
 	);
 }
 

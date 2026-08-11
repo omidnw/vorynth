@@ -38,6 +38,105 @@ export interface Release {
 
 export const RELEASES: Release[] = [
 	{
+		version: "1.8.1",
+		codename: "Open The Engine",
+		date: "2026-08-10",
+		summary:
+			"Vorynth opens to developers. The local engine's network access is now yours to control: a Developer section in Settings shows the backend and frontend URLs and decides who may call the engine — local-only by default, open to every device on the network (0.0.0.0), or a custom list of IPs allowed alongside 127.0.0.1. Providers get more room too: OpenAI can point at any OpenAI-compatible endpoint, and Ollama now runs in two modes — local and Ollama Cloud with an API key. Onboarding stops second-guessing your sources choice, curated lists report their real size (no more '0 sources' right after fetching them from GitHub), and you can preview exactly which sites a list contains before enabling it.",
+		changes: [
+			{
+				type: "new",
+				text: "Developer settings (Settings → Advanced → Developer) — see the backend and frontend URLs and control who can reach the local engine: local-only by default, open to the whole network (0.0.0.0), or a custom list of IPs allowed alongside 127.0.0.1. CORS and IP rules apply immediately; the listening address applies on the next start.",
+			},
+			{
+				type: "new",
+				text: "Ollama Cloud — Ollama now runs in two modes: local (your own server, no key) and cloud (Ollama's hosted models, with an API key from ollama.com/settings/keys).",
+			},
+			{
+				type: "new",
+				text: "OpenAI base URL — point the OpenAI provider at any OpenAI-compatible endpoint (self-hosted gateways, compatible APIs). Leave it empty to use the official OpenAI API.",
+			},
+			{
+				type: "new",
+				text: "Sources preview — see exactly which sites a curated list contains before enabling it, from the Sources page and from onboarding (View official sources).",
+			},
+			{
+				type: "fixed",
+				text: "Onboarding no longer second-guesses your sources choice — turning off the official sources never re-asks, and pressing Continue with no topics keeps them by default instead of getting stuck on the step.",
+			},
+			{
+				type: "fixed",
+				text: "Curated lists no longer show '0 sources' right after being fetched from GitHub — a downloaded-but-not-yet-enabled list now reports the sites it actually contains.",
+			},
+			{
+				type: "new",
+				text: "Every story knows its view — an Insight/Article chip on each brief card and in the reader, so you're never lost between the analysis and the article.",
+			},
+			{
+				type: "new",
+				text: "A default view for your stories (Auto / Article / Insights) on the Brief page — in Insights mode, new stories get their AI analysis automatically (Intelligence mode only).",
+			},
+			{
+				type: "new",
+				text: "The Archive sub-pages now live in an expandable sidebar menu (Items · Collections · Bookmarks · Search · Trash · Media). Prefer the old in-page tabs? Switch back in Settings → General → Navigation.",
+			},
+			{
+				type: "new",
+				text: "Docs are searchable — type in the Documentation page to find sections by title or text.",
+			},
+			{
+				type: "new",
+				text: "Header buttons gained text labels (History, theme, Notifications) and bigger icons — turn the labels off in Settings → Appearance for a compact header.",
+			},
+			{
+				type: "new",
+				text: "The history drawer now offers every surface at once (Searches · Briefings · Generated · Viewed), with a filter box — and the search page carries its own history button. Searches that aren't in history are explained with a dismissible tip.",
+			},
+			{
+				type: "fixed",
+				text: "Mark as read actually persists now: opening a story marks it read, the button toggles it, and Viewed stories shows a read check. Titles are only translated when needed — a title already in your language's script is never re-translated.",
+			},
+			{
+				type: "fixed",
+				text: "Navigating between pages now starts at the top; duplicate back buttons are gone; the Add Source form marks required fields and tells you which ones Test needs.",
+			},
+			{
+				type: "new",
+				text: "Search lives where you expect it: a search box right on the Brief filters the stories in front of you (respecting your sort), and a Search Page button leads to the full researcher search.",
+			},
+			{
+				type: "new",
+				text: "'Update my brief' does it all in one tap — collect new stories, then regenerate the brief. Collect and Generate Brief stay for fine control.",
+			},
+			{
+				type: "new",
+				text: "Story cards are yours: mark a story read right from the card, switch view from the More menu, and reorder or re-pin the card buttons (drag & drop) in Settings → General → Story card actions.",
+			},
+			{
+				type: "new",
+				text: "Provider help where you configure it: each LLM provider shows a link to its model docs, Gemini calls out the free gemini-3.1-flash-lite tier (500 req/day, as of Aug 2026), and Ollama explains it's a host provider whose models change.",
+			},
+			{
+				type: "fixed",
+				text: "The Settings search now rings the exact card that matches — including sub-cards — and the insight page leads with the Takeaway, then the technical context.",
+			},
+		],
+		technical: [
+			{
+				type: "new",
+				text: "Engine network access: CORS origin allowlist evaluated per request (immediate), listening host resolved at startup; GET /network reports the resolved view.",
+			},
+			{
+				type: "fixed",
+				text: "Source-list counts now include the cached definitions (sources_json) alongside materialized rows, fixing the count the SQL join alone missed.",
+			},
+			{
+				type: "new",
+				text: "Ollama connects over the native /api/chat protocol with an optional bearer key — local and cloud from one provider, no new dependency.",
+			},
+		],
+	},
+	{
 		version: "1.8.0",
 		codename: "Extend The Signal",
 		date: "2026-08-09",

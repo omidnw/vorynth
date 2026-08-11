@@ -26,6 +26,8 @@ export const ar: TranslationCatalog = {
 		docsTransparency: "الشفافية",
 		docsExpand: "توسيع أقسام المستندات",
 		docsCollapse: "طي أقسام المستندات",
+		archiveExpand: "توسيع قائمة الأرشيف",
+		archiveCollapse: "طي قائمة الأرشيف",
 		jobsActive_one: "{{count}} مهمة",
 		jobsActive_other: "{{count}} مهمة",
 		items: "العناصر",
@@ -39,6 +41,13 @@ export const ar: TranslationCatalog = {
 		title: "الموجز الذكي اليوم",
 		timer: "موجز 10 دقائق",
 		stories: "{{count}} خبر",
+		searchPlaceholder: "ابحث في الأرشيف…",
+		viewSelectorAria: "العرض الافتراضي للقصص",
+		viewSelectorHint:
+			"كيف تُفتح بطاقات القصص: تلقائي يُظهر الرؤى عند توفرها، مقالة تفتح نص المقالة، رؤى تفتح التحليل دائمًا.",
+		viewAuto: "تلقائي",
+		viewArticle: "مقالة",
+		viewInsights: "التحليلات",
 		sources: "{{count}} مصدر",
 		intelligenceOn: "وضع الذكاء — الإثراء بالذكاء الاصطناعي مفعّل",
 		newsMode: "الوضع الإخباري — مرتب حسب الجدة والموثوقية",
@@ -64,6 +73,17 @@ export const ar: TranslationCatalog = {
 		emptyRangeTitle: "لا أخبار في هذا النطاق",
 		emptyRangeBody:
 			"إما لم تُجمع مقالات بعد، أو لا يقع أي منها في الفترة المحددة. اضغط <em>جمع</em> لسحب أخبار جديدة — دون الحاجة إلى مفتاح API.",
+		searchPage: "صفحة البحث",
+		searchStories: "ابحث في هذه الأخبار…",
+		searchCount: "{{shown}} من {{total}} أخبار",
+		searchNoResults: "لا توجد أخبار تطابق بحثك.",
+		updateBrief: "تحديث موجزي",
+		updateBriefHint: "يجمع الأخبار الجديدة ويعيد توليد الموجز بلمسة واحدة.",
+		generateHint: "يعيد توليد التحليل بالذكاء الاصطناعي للفترة الحالية.",
+		generateAnalysis: "توليد التحليل",
+		generatingAnalysis: "جارٍ التوليد…",
+		sectionFilters: "الفلاتر",
+		sectionStories: "الأخبار",
 	},
 	storyViews: {
 		title: "القصص التي شوهدت",
@@ -74,6 +94,8 @@ export const ar: TranslationCatalog = {
 		scopeInsight: "تحليل",
 		scopeArticle: "مقال",
 		scopeBoth: "تحليل + مقال",
+		markReadAria: "تحديد كمقروء",
+		markUnreadAria: "تحديد كغير مقروء",
 	},
 	why: "لماذا يهم",
 	impact: "الأثر",
@@ -200,9 +222,43 @@ export const ar: TranslationCatalog = {
 		backgroundTip:
 			"عند إغلاق النافذة، يبقى Vorynth يعمل في الخلفية: يغادر Dock تمامًا (لا شيء ميت للنقر) ويعيش في شريط القوائم، وتستمر مصادرك في الجمع فيكون الموجز جاهزًا عند عودتك، و«إنهاء» من الدرج يخرج تمامًا.",
 		advancedTitle: "متقدم",
+		showHeaderLabels: "إظهار تسميات بجانب أيقونات الرأس",
+		showHeaderLabelsHint:
+			"نص بجانب أيقونات السجل والسمة والإشعارات في الشريط العلوي. أوقفه لرأس مدمج.",
+		navigationTitle: "التنقل",
+		navSidebar: "الشريط الجانبي",
+		navInpage: "داخل الصفحة",
+		navigationHint:
+			"أين تظهر صفحات الأرشيف الفرعية (العناصر، المجموعات، المحفوظات، البحث، المهملات) — قائمة فرعية في الشريط الجانبي أو صف التبويبات داخل صفحة الأرشيف.",
 		showAdvancedFeatures: "إظهار الميزات المتقدمة",
 		showAdvancedFeaturesHint:
 			"يكشف صفحة الإضافات — موصّلات المصادر وإضافات الواجهة التي يشغّلها Vorynth. معظم الناس لا يحتاجونها أبدًا: موصّلات مصادرك تُحل تلقائيًا. فعّلها فقط إذا أردت رؤية وإدارة الآلية بنفسك.",
+		showPlugins: "إظهار صفحة الإضافات",
+		showPluginsHint:
+			"منفصل عن إعدادات المطور — أوقفه إذا فعّلت الميزات المتقدمة فقط من أجل قسم المطور.",
+		developerTitle: "المطور",
+		developerHint:
+			"البناء على المحرك المحلي — نقطة نهاية API والتطبيق الذي يقدّمه، ومن يمكنه الاتصال به عبر الشبكة.",
+		backendUrl: "عنوان Backend",
+		frontendUrl: "عنوان Frontend",
+		sameOriginNote: "يقدّم المحرك التطبيق على نفس العنوان — افتحه في أي متصفح.",
+		networkAccess: "الوصول إلى الشبكة",
+		accessLocal: "محلي فقط",
+		accessLocalHint: "127.0.0.1 — المحرك يستجيب على هذا الجهاز فقط. الافتراضي.",
+		accessAll: "السماح للجميع",
+		accessAllHint:
+			"0.0.0.0 — يمكن الوصول إليه من كل جهاز على الشبكة (backend وfrontend)؛ CORS مفتوح لأي أصل.",
+		accessCustom: "عناوين IP مخصصة",
+		accessCustomHint:
+			"فقط عناوين IP التي تدرجها (إضافةً إلى 127.0.0.1) يمكنها استدعاء المحرك من متصفح.",
+		allowedIps: "عناوين IP المسموحة",
+		allowedIpsHint:
+			"مفصولة بفواصل — مثل 192.168.9.160,10.0.0.5. مسموحة إلى جانب 127.0.0.1.",
+		reachableAt: "يمكن الوصول إليه على",
+		networkSecurityNote:
+			"Vorynth لا يحتوي على تسجيل دخول. فتحه على شبكتك يتيح لأي شخص في تلك الشبكة قراءة بياناتك والتحكم بها. فعّله فقط على شبكة موثوقة.",
+		networkRestartNote:
+			"يُطبَّق عنوان الاستماع في بدء التشغيل التالي لـ Vorynth؛ قواعد CORS وIP تُطبَّق فورًا.",
 		searchPlaceholder: "ابحث في الإعدادات…",
 		searchHint: "اكتب للتصفية — الأقسام التي لا يوجد تطابق فيها تبهت.",
 		searchButton: "بحث",
@@ -337,6 +393,38 @@ export const ar: TranslationCatalog = {
 		fontImport: "استيراد خط مخصص",
 		fontReset: "إعادة تعيين",
 		fontImportFailed: "تعذّر تحميل ملف الخط.",
+		briefActionsTitle: "إجراءات بطاقة القصة",
+		briefActionsHint:
+			"رتّب أزرار كل بطاقة قصة واختر أيّها يظهر خلف قائمة «المزيد». اسحب لإعادة الترتيب.",
+		briefAction: {
+			readSource: "قراءة المصدر",
+			viewToggle: "عرض",
+			save: "حفظ",
+			inMore: "إظهار في قائمة «المزيد»",
+		},
+		readerActionsTitle: "إجراءات القارئ",
+		readerActionsHint:
+			"رتّب أزرار الشريط السفلي للقارئ بالسحب، واختر ما يظهر خلف قائمة «⋮ المزيد». يُطبَّق على صفحتَي المقالة والرؤى — لا شيء مخفي.",
+		readerInBar: "في شريط القارئ",
+		readerInMore: "خلف «⋮ المزيد»",
+		briefInBar: "في شريط البطاقة",
+		briefInMore: "خلف «⋮ المزيد»",
+		readerSettings: "إعدادات القارئ",
+		supportReminder: "إظهار تذكير «ادعم المؤلف»",
+		supportReminderHint: "يدفعك نحو الموقع الأصلي قبل فتح القارئ المدمج.",
+		keepMediaLocal: "إبقاء الوسائط محليًا افتراضيًا",
+		keepMediaLocalHint:
+			"عند التفعيل، تُنزَّل وسائط المقالات التي تفتحها للقراءة دون اتصال. معطلة افتراضيًا — الوسائط تُبث من المصدر.",
+		cardClick: "النقر على البطاقة",
+		cardClickHint: "كيف تتفاعل بطاقة الخبر عند الضغط والسحب عبرها.",
+		dragSelectsText: "السحب يحدد النص",
+		dragSelectsTextHint:
+			"عند التفعيل (الافتراضي)، سحب الماوس فوق خبر يحدد النص دون فتحه — النقرة النظيفة مطلوبة للفتح. أوقفه إذا كنت لا تحدد النص أبدًا بالماوس وتريد أي ضغط-إفلات يفتح الخبر.",
+		resetAll: "إعادة تعيين الكل",
+		resetting: "جارٍ إعادة التعيين…",
+		confirmDialogs: "مربعات الحوار",
+		confirmDialogsHint:
+			"أعد تعيين اختيارات «لا تسأل مجددًا» ليعود Vorynth يطلب التأكيد قبل الإجراءات المدمرة.",
 	},
 	provider: {
 		label: "التسمية",
@@ -357,8 +445,26 @@ export const ar: TranslationCatalog = {
 			"لا يمكن فك تشفير هذا المفتاح — ربما فُقد مفتاح التشفير المحلي عند استعادة بياناتك أو تنظيفها. أزل هذا المزوّد وأضفه مرة أخرى بمفتاح API الخاص بك.",
 		labelPlaceholder: "مفتاح Gemini الخاص بي",
 		apiKeyPlaceholder: "الصق المفتاح…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"اتركه فارغًا لاستخدام API الرسمي من OpenAI (https://api.openai.com/v1).",
+		ollamaMode: "الوضع",
+		ollamaLocal: "محلي",
+		ollamaCloud: "سحابي",
+		ollamaLocalHint:
+			"خادم Ollama خاص بك — يعمل على هذا الجهاز، بدون الحاجة إلى مفتاح API.",
+		ollamaCloudHint:
+			"خدمة Ollama المُستضافة — نماذج كبيرة دون GPU محلي. يتطلب مفتاح API من ollama.com/settings/keys.",
 		removeAria: "إزالة",
+		modelRequired: "أدخل اسم النموذج.",
+		geminiDocs: "نماذج Gemini: ",
+		geminiFreeTip:
+			"اعتبارًا من 10 أغسطس 2026، gemini-3.1-flash-lite مجاني مع 500 طلب يوميًا.",
+		openaiDocs: "نماذج OpenAI: ",
+		anthropicDocs: "مستندات Claude: ",
+		ollamaDocs: "مستندات Ollama: ",
+		ollamaHostTip:
+			"يعمل Ollama كمزوّد HOST — قد تُقدَّم نماذجه بشكل مختلف في أوقات مختلفة، لذا راجع مستنداته لمعرفة القائمة الحالية.",
 	},
 	onboarding: {
 		welcome: "مرحبًا بك في Vorynth",
@@ -370,7 +476,7 @@ export const ar: TranslationCatalog = {
 		begin: "ابدأ",
 		config: "اجعله أذكى (اختياري)",
 		configBody:
-			"اربط خدمة ذكاء اصطناعي لإضافة «لماذا يهم» و«الأثر» وخطوة تالية موصى بها لكل خبر. تخطَّ هذا — يعمل Vorynth رائعًا بمفرده.",
+			"قم بتوصيل خدمة ذكاء اصطناعي (اختياري) ليضيف Vorynth ملاحظة قصيرة بلغة بسيطة بجانب كل خبر — لماذا يهمّ، وما الذي تغيّر، وما الذي يمكنك فعله. يمكنك التخطي: الموجز اليومي يعمل بدونه.",
 		selectProvider: "اختر خدمة ذكاء اصطناعي",
 		apiKey: "مفتاح API",
 		apiKeyHint:
@@ -379,6 +485,7 @@ export const ar: TranslationCatalog = {
 		newsOnlyBody:
 			"الوضع الإخباري يجمع الأخبار ويرتبها دون ذكاء اصطناعي. يمكنك إضافة خدمة ذكاء اصطناعي في أي وقت من الإعدادات.",
 		continue: "متابعة",
+		modelHint: "اتركه فارغًا لاستخدام النموذج الافتراضي للمزوّد.",
 		back: "رجوع",
 		savingProvider: "جارٍ الحفظ…",
 		topics: "ما الذي يهمك؟",
@@ -406,13 +513,14 @@ export const ar: TranslationCatalog = {
 		recapNews: "أخبار",
 		recapTopics: "المواضيع",
 		recapNoTopics: "لا شيء — المصادر الرسمية",
+		recapNoTopicsOff: "لا شيء — المصادر الرسمية معطّلة",
 		recapUiLanguage: "لغة التطبيق",
 		recapAiLanguage: "لغة الذكاء الاصطناعي",
 		officialSources: "إبقاء المصادر الرسمية مفعّلة",
 		officialSourcesHint:
 			"قائمة Vorynth الرسمية لأخبار المطورين تملأ موجزك افتراضيًا. أوقفها إذا أردت موضوعاتك الخاصة فقط.",
-		emptyTopicsOffBody:
-			"لم يتم اختيار أي فئات والمصادر الرسمية معطّلة — سيكون موجزك فارغًا. هل نبقي المصادر الرسمية مفعّلة؟",
+		previewOfficialSources: "عرض المصادر الرسمية",
+		officialSourcesListName: "قائمة المطورين الرسمية من Vorynth",
 		modesTitle: "وضع الأخبار مقابل وضع الذكاء",
 		newsModeBody:
 			"يجمع وضع الأخبار القصص ويرتّبها بدون ذكاء اصطناعي — بلا مفتاح، خصوصي بالكامل، ويعمل على أي جهاز.",
@@ -430,6 +538,7 @@ export const ar: TranslationCatalog = {
 		futureProvidersTip:
 			"نصيحة: ستُضاف مزوّدون آخرون إلى هذه القائمة مستقبلًا — اطّلع دائمًا على سجلّ التغييرات.",
 		recapNote: "يمكن تغيير كل شيء في أي وقت من الإعدادات والملف الشخصي.",
+		modelRequired: "أدخل اسم النموذج للمتابعة.",
 	},
 	analyzing: {
 		title: "تقطير الذكاء",
@@ -452,6 +561,10 @@ export const ar: TranslationCatalog = {
 		trend: "اتجاه",
 		"low-noise": "منخفض الضوضاء",
 	},
+	docs: {
+		searchPlaceholder: "ابحث في التوثيق…",
+		noResults: "لا يوجد توثيق يطابق «{{q}}».",
+	},
 	common: {
 		collect: "جمع",
 		collecting: "جارٍ الجمع…",
@@ -459,7 +572,9 @@ export const ar: TranslationCatalog = {
 		generating: "جارٍ الإنشاء…",
 		back: "رجوع",
 		cancel: "إلغاء",
+		close: "إغلاق",
 		noResults: "لا توجد نتائج",
+		dontShowAgain: "لا تظهر مجددًا",
 	},
 	search: {
 		title: "البحث",
@@ -552,6 +667,7 @@ export const ar: TranslationCatalog = {
 		moveTo: "نقل إلى…",
 		archived: "مؤرشف",
 		item_one: "عنصر",
+		showMore: "عرض {{count}} إضافية ({{remaining}} متبقية)",
 		item_other: "عناصر",
 		showArchived: "عرض المؤرشفة",
 		showingArchived: "جارٍ عرض المؤرشفة",
@@ -638,8 +754,8 @@ export const ar: TranslationCatalog = {
 		article: "مقال",
 		openOriginal: "فتح الأصل",
 		readInVorynth: "القراءة في Vorynth",
-		dontShowAgain: "لا تُظهر هذا مجددًا —",
 		changeInProfile: "غيّره لاحقًا في الملف الشخصي.",
+		dontShowAgain: "لا تُظهر هذا مجددًا —",
 	},
 	profile: {
 		title: "الملف الشخصي",
@@ -714,41 +830,18 @@ export const ar: TranslationCatalog = {
 		topCategories: "أعلى الفئات",
 		recentSearches: "البحوث الأخيرة",
 		noActivity: "لا نشاط بعد. نفّذ بحثًا أو اقرأ موجزًا لملء هذا.",
-		readerSettings: "إعدادات القارئ",
-		supportReminder: "إظهار تذكير «ادعم المؤلف»",
-		supportReminderHint: "يدفعك نحو الموقع الأصلي قبل فتح القارئ المدمج.",
-		keepMediaLocal: "إبقاء الوسائط محليًا افتراضيًا",
-		keepMediaLocalHint:
-			"عند التفعيل، تُنزَّل وسائط المقالات التي تفتحها للقراءة دون اتصال. معطلة افتراضيًا — الوسائط تُبث من المصدر.",
 		aiLanguage: "لغة مخرجات الذكاء الاصطناعي",
 		aiLanguageHint:
 			"اللغة التي يستخدمها ذكاء Vorynth الاصطناعي عند الإجابة عن أسئلتك وتوليد الموجزات وكتابة الملخصات. اختر اللغة التي تريد رؤى بها.",
-		readerActions: "إجراءات القارئ",
-		readerActionsHint:
-			"اختر إجراءات الخبر التي تبقى في الشريط السفلي للقارئ. كل شيء آخر ينتقل خلف قائمة «⋮ المزيد» — لا شيء مخفي.",
-		pinned: "في شريط القارئ",
-		moreMenu: "خلف «⋮ المزيد»",
-		readerActionsOverflow:
-			"شريط القارئ مصمم لخمسة إجراءات — تثبيت أكثر قد يزدحم.",
-		cardClick: "النقر على البطاقة",
-		cardClickHint: "كيف تتفاعل بطاقة الخبر عند الضغط والسحب عبرها.",
-		dragSelectsText: "السحب يحدد النص",
-		dragSelectsTextHint:
-			"عند التفعيل (الافتراضي)، سحب الماوس فوق خبر يحدد النص دون فتحه — النقرة النظيفة مطلوبة للفتح. أوقفه إذا كنت لا تحدد النص أبدًا بالماوس وتريد أي ضغط-إفلات يفتح الخبر.",
 		aiLanguageAria: "لغة مخرجات الذكاء الاصطناعي",
-		resetAll: "إعادة تعيين الكل",
-		resetting: "جارٍ إعادة التعيين…",
 		categoryIdentity: "من أنت",
 		categoryAi: "كيف يكتب الذكاء الاصطناعي",
 		categoryLanguages: "اللغات",
-		categoryReading: "القراءة",
 		searchIdentity:
 			"هوية اسم اسم العائلة نمط ملخص سلوك اهتمامات مواضيع identity",
 		searchAi: "تعليمات مخصصة مخرجات ذكاء اصطناعي لغة كتابة custom instruction",
 		searchLanguages:
 			"لغة واجهة إنجليزية فارسية عربية كورية يابانية صينية عبرية إسبانية ألمانية روسية language ui",
-		searchReading:
-			"قراءة إعدادات دعم مؤلف تذكير وسائط محلية إجراءات نقرة سحب تحديد نص reader",
 	},
 	media: {
 		title: "الوسائط المحلية",
@@ -909,6 +1002,8 @@ export const ar: TranslationCatalog = {
 		test: "اختبار",
 		testing: "جارٍ الاختبار…",
 		testOk: "يعمل — تم العثور على {{count}} عنصر",
+		testMissingFields: "يتطلب الاختبار هذه الحقول: {{fields}}",
+		fieldName: "الاسم",
 		testFail: "تعذّر الجلب — {{message}}",
 		configLabel: "{{label}}",
 		testHint: "يجلب بضعة عناصر دون حفظ، لتتمكن من التحقق من إعداداتك.",
@@ -1058,9 +1153,31 @@ export const ar: TranslationCatalog = {
 		listEnableAria: "تشغيل {{name}}",
 		expandAria: "إظهار مصادر {{name}}",
 		collapseAria: "إخفاء مصادر {{name}}",
+		previewAria: "معاينة {{name}}",
+		previewTitle: "{{name}} — المصادر",
+		previewBody: "{{count}} مواقع في هذه القائمة.",
+		previewLoading: "جارٍ التحميل…",
+		previewEmpty: "لا تحتوي هذه القائمة على مصادر بعد.",
+		previewOn: "مفعّل",
+		previewOff: "معطّل",
 		editDisabledNote:
 			"لا يمكن حذف مصادر القائمة فرديًا — أخفِ القائمة كاملة بدلًا من ذلك.",
 		sourceCountLabel: "{{count}} مصدر",
+		deleteListAria: "حذف القائمة {{name}}",
+		deleteTitle: "حذف هذه القائمة؟",
+		deleteMessage:
+			"ستُحذف {{name}} وجميع مصادرها البالغ عددها {{count}} نهائيًا. كما ستُحذف القصص المجمّعة — لا يمكن التراجع عن هذا.",
+		deleteConfirm: "حذف القائمة",
+		deleteForceTitle: "ستُحذف القصص المحفوظة",
+		deleteForceBody:
+			"{{count}} قصة محفوظة تخصّ هذه القائمة وستُحذف أيضًا. الحذف على أي حال؟",
+		deleteForceConfirm: "نعم، احذف",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "تحديث {{name}}",
+		updateListHint: "تحقق من وجود نسخة أحدث من هذه القائمة في مستودع المجتمع.",
+		updating: "جارٍ التحديث…",
+		updated: "تم التحديث",
+		upToDate: "محدَّث",
 	},
 	reference: {
 		greeting: "مرحبًا — هذه الإضافة حية وتساهم.",
@@ -1381,6 +1498,10 @@ export const ar: TranslationCatalog = {
 		fromProfile: "من الملف الشخصي",
 		titleSearch: "سجل البحث",
 		tabViews: "القصص التي شوهدت",
+		filterPlaceholder: "تصفية هذا السجل…",
+		recordKeywordTip:
+			"تظهر عمليات البحث بالكلمات المفتاحية هنا فقط عند تفعيل «تسجيل عمليات البحث بالكلمات المفتاحية» — عمليات البحث بالذكاء الاصطناعي والموجزات تُسجَّل دائمًا.",
+		openSettings: "فتح الإعدادات",
 		fromSearch: "من البحث",
 		entries: "{{count}} مدخل",
 		select: "تحديد",
@@ -1538,6 +1659,8 @@ export const ar: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "لغة المصدر",
+		viewInsight: "عرض التحليل",
+		viewArticle: "عرض المقالة",
 		outputLanguage: "لغة المخرجات",
 		generated: "مولّد",
 		mixed: "مختلط",

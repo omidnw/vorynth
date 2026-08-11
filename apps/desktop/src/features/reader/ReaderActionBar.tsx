@@ -5,23 +5,25 @@ import { splitReaderActions, type ReaderAction } from "./reader-actions.js";
 /**
  * The story-reader floating action bar (v1.8.0).
  *
- * Renders the user's pinned actions up front (canonical order) and the rest
- * behind a "More ⋮" menu — nothing is hidden, the bar just stays uncluttered.
- * Which actions are pinned is a Profile preference (`ui.readerPinnedActions`);
+ * Renders the user's bar actions up front (in the Profile-chosen order) and
+ * the rest behind a "More ⋮" menu — nothing is hidden, the bar just stays
+ * uncluttered. Which actions sit where is a Profile preference resolved by
+ * `readerActionLayout` (`ui.readerActions` order + `ui.readerActionsInMore`);
  * see `reader-actions.ts`.
  */
 export function ReaderActionBar({
 	actions,
-	pinnedIds,
+	layout,
 	moreLabel,
 	moreAriaLabel,
 }: {
 	actions: ReaderAction[];
-	pinnedIds: string[] | undefined;
+	/** v1.8.1 — `readerActionLayout(settings)`: full order + the in-More set. */
+	layout: { order: string[]; inMore: Set<string> };
 	moreLabel: string;
 	moreAriaLabel: string;
 }) {
-	const { pinned, more } = splitReaderActions(actions, pinnedIds);
+	const { pinned, more } = splitReaderActions(actions, layout);
 
 	return (
 		<footer className="fixed bottom-12 start-1/2 z-50 flex -translate-x-1/2 rtl:translate-x-1/2 items-center gap-1 rounded-full border border-outline-variant bg-surface-container px-4 py-2.5 shadow-2xl">

@@ -1,6 +1,7 @@
 import { Logger } from "@nestjs/common";
 import type { SourceCategory } from "@vorynth/types";
 import type { LlmService } from "../../llm/llm.service.js";
+import { localizeOriginalDraft } from "../../llm/llm-provider.js";
 import type {
 	IntelligenceStateType,
 	PipelineInsight,
@@ -39,13 +40,18 @@ export function createAnalyzerNode(llm: LlmService, cap = 10) {
 				// v1.8.0 — bilingual generation: when the story's source language
 				// differs from the target, the same call returns the source-language
 				// version too (stored as the insight's `original*` fields).
-				const draft = await llm.analyze({
-					articleTitle: a.title,
-					articleContent: a.content,
-					outputLanguage: targetLanguage,
-					sourceLanguage: a.language ?? undefined,
-					topics,
-				});
+				// v1.8.1 — untagged sources auto-detect; `localizeOriginalDraft`
+				// drops same-language "originals" so the toggle never lies.
+				const draft = localizeOriginalDraft(
+					await llm.analyze({
+						articleTitle: a.title,
+						articleContent: a.content,
+						outputLanguage: targetLanguage,
+						sourceLanguage: a.language ?? undefined,
+						topics,
+					}),
+					targetLanguage,
+				);
 				insights.push({
 					articleId: a.id,
 					clusterId: item.clusterId,

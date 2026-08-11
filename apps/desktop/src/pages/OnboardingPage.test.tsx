@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 	fetchSettings: vi.fn(),
 	fetchProfile: vi.fn(),
 	disableSourceList: vi.fn(),
+	fetchSourceListSources: vi.fn(),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -40,10 +41,14 @@ vi.mock("@/features/profile/profile-api.js", () => ({
 }));
 vi.mock("@/features/sources/sources-api.js", () => ({
 	disableSourceList: mocks.disableSourceList,
+	fetchSourceListSources: mocks.fetchSourceListSources,
 }));
 
 beforeEach(() => {
+	// v1.8.1 — the flow drafts its step + choices to sessionStorage; clear it
+	// so one test's place never leaks into the next render.
 	localStorage.clear();
+	sessionStorage.clear();
 	mocks.navigate.mockClear();
 	mocks.startCollect.mockReset();
 	mocks.startCollect.mockResolvedValue(undefined);
@@ -61,6 +66,17 @@ beforeEach(() => {
 	});
 	mocks.disableSourceList.mockReset();
 	mocks.disableSourceList.mockResolvedValue({ id: "developer" });
+	mocks.fetchSourceListSources.mockReset();
+	mocks.fetchSourceListSources.mockResolvedValue([
+		{
+			id: "src-openai",
+			name: "OpenAI Blog",
+			url: "https://openai.com/blog",
+			category: "ai",
+			adapter: "rss",
+			enabled: true,
+		},
+	]);
 });
 
 function renderPage() {
@@ -134,8 +150,11 @@ describe("OnboardingPage", () => {
 			screen.getByText("News mode vs. Intelligence mode"),
 		).toBeInTheDocument();
 
-		// OpenAI is selected by default — type a key and continue.
+		// OpenAI is selected by default — type a key and model, then continue.
 		await user.type(screen.getByPlaceholderText("sk-..."), "sk-test-123");
+		// v1.9.0 — the model name is required for a real provider. Its
+		// placeholder is an example ("e.g. gpt-4o-mini"), never a preselected value.
+		await user.type(screen.getByPlaceholderText(/gpt-4o-mini/), "gpt-4o-mini");
 		await user.click(screen.getByRole("button", { name: "Continue" }));
 
 		expect(mocks.saveProvider).toHaveBeenCalledTimes(1);
@@ -143,6 +162,7 @@ describe("OnboardingPage", () => {
 			expect.objectContaining({
 				kind: "openai",
 				apiKey: "sk-test-123",
+				defaultModel: "gpt-4o-mini",
 				enabled: true,
 			}),
 		);
@@ -151,7 +171,29 @@ describe("OnboardingPage", () => {
 		});
 	});
 
-	it("lets the user skip AI and never saves a provider", async () => {
+	it("blocks Continue when a real provider has no model name (v1.9.0)", async () => {
+		const user = userEvent.setup();
+		renderPage();
+		await toProvider(user);
+
+		// OpenAI is selected by default — Continue with NO model is blocked.
+		await user.click(screen.getByRole("button", { name: "Continue" }));
+		expect(
+			screen.getByText("Enter the model name to continue."),
+		).toBeInTheDocument();
+		expect(mocks.saveProvider).not.toHaveBeenCalled();
+		expect(mocks.navigate).not.toHaveBeenCalled();
+
+		// The provider step stays put; typing a model unblocks it.
+		await user.type(screen.getByPlaceholderText(/gpt-4o-mini/), "gpt-4o-mini");
+		expect(
+			screen.queryByText("Enter the model name to continue."),
+		).not.toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Continue" }));
+		expect(mocks.saveProvider).toHaveBeenCalledTimes(1);
+	});
+
+	it("skip stays model-free and never saves a provider", async () => {
 		const user = userEvent.setup();
 		renderPage();
 		await toProvider(user);
@@ -177,6 +219,57 @@ describe("OnboardingPage", () => {
 		await user.click(screen.getByRole("button", { name: "Continue" }));
 
 		expect(mocks.disableSourceList).toHaveBeenCalledWith("developer");
+	});
+
+	it("turning off official sources with NO topics proceeds without asking (v1.8.1)", async () => {
+		const user = userEvent.setup();
+		renderPage();
+		await toTopics(user);
+
+		await user.click(
+			screen.getByRole("switch", { name: "Keep official sources enabled" }),
+		);
+		await user.click(screen.getByRole("button", { name: "Continue" }));
+
+		// The user already chose — no "are you sure" tip, never re-asked.
+		expect(screen.queryByText(/No topics selected/)).not.toBeInTheDocument();
+		expect(mocks.disableSourceList).toHaveBeenCalledWith("developer");
+		expect(mocks.patchProfile).toHaveBeenCalledWith({ topics: [] });
+		// Advances straight to the provider step.
+		expect(
+			screen.getByRole("button", { name: /skip for now/i }),
+		).toBeInTheDocument();
+	});
+
+	it("a second Continue past the empty-topics tip keeps official sources (v1.8.1)", async () => {
+		const user = userEvent.setup();
+		renderPage();
+		await toTopics(user);
+
+		// First Continue with nothing selected: the tip appears (once).
+		await user.click(screen.getByRole("button", { name: "Continue" }));
+		expect(screen.getByText(/No topics selected/)).toBeInTheDocument();
+
+		// Second Continue: the default stands — keep official sources, proceed.
+		// (This used to do nothing, leaving the user stuck on the step.)
+		await user.click(screen.getByRole("button", { name: "Continue" }));
+		expect(mocks.disableSourceList).not.toHaveBeenCalled();
+		expect(mocks.patchProfile).toHaveBeenCalledWith({ topics: [] });
+		expect(
+			screen.getByRole("button", { name: /skip for now/i }),
+		).toBeInTheDocument();
+	});
+
+	it("view official sources opens the sources preview modal (v1.8.1)", async () => {
+		const user = userEvent.setup();
+		renderPage();
+		await toTopics(user);
+
+		await user.click(
+			screen.getByRole("button", { name: "View official sources" }),
+		);
+		expect(mocks.fetchSourceListSources).toHaveBeenCalledWith("developer");
+		expect(await screen.findByText("OpenAI Blog")).toBeInTheDocument();
 	});
 
 	it("completing the flow marks it done and enters the app", async () => {

@@ -18,6 +18,13 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/archive/archive-api.js", () => mocks);
 
+// v1.8.1 — the in-page tab row is only shown in "inpage" navigation mode; the
+// sidebar submenu is the default. These tests exercise the in-page row, so
+// pin that mode.
+vi.mock("@/features/history/history-api.js", () => ({
+	fetchSettings: vi.fn(async () => ({ "ui.archiveNavMode": "inpage" })),
+}));
+
 const item: ArchiveItem = {
 	contentItemId: "item-1",
 	contentType: "article",

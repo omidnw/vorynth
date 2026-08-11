@@ -9,6 +9,7 @@ import {
 import { useTranslation, useTextDirection } from "@/i18n";
 import { useBookmarkToggle } from "@/features/archive/use-bookmark.js";
 import { fetchProfile } from "@/features/profile/profile-api.js";
+import { fetchSettings } from "@/features/history/history-api.js";
 import { generateArticleInsight } from "@/features/reader/reader-api.js";
 import { useJobsStore } from "@/features/jobs/jobs-store.js";
 import { aiErrorMessage } from "@/features/llm/ai-error.js";
@@ -170,6 +171,29 @@ export function BriefItemView({
 		sourceLang && targetLang && sourceLang === targetLang,
 	);
 
+	// v1.8.1 — the brief-wide default view (Auto / Article / Insights) from
+	// the Brief page selector, passed down so the card respects it.
+	const { data: appSettings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+	});
+	const defaultView =
+		(appSettings?.["brief.defaultView"] as
+			"auto" | "article" | "insights" | undefined) ?? "auto";
+
+	// v1.9.0 — customizable footer order (Settings → General → Story card
+	// actions): `ui.briefActions` is the full order, `ui.briefActionsInMore`
+	// the actions moved behind the More menu. Pinned = briefActions minus inMore.
+	const briefActions = Array.isArray(appSettings?.["ui.briefActions"])
+		? (appSettings?.["ui.briefActions"] as string[])
+		: ["readSource", "viewToggle", "save"];
+	const inMoreSet = new Set(
+		Array.isArray(appSettings?.["ui.briefActionsInMore"])
+			? (appSettings?.["ui.briefActionsInMore"] as string[])
+			: [],
+	);
+	const pinnedOrder = briefActions.filter((id) => !inMoreSet.has(id));
+
 	// Re-translate (v1.8.0): every story that HAS a translation — complete or
 	// incomplete — offers Re-translate, so the user can force a fresh AI pass
 	// any time (after a language change, or when a translation looks off).
@@ -204,6 +228,10 @@ export function BriefItemView({
 		viewInsights: t("article.viewInsights"),
 		viewArticleHint: t("article.viewArticleHint"),
 		viewInsightsHint: t("article.viewInsightsHint"),
+		// v1.9.0 — footer actions that can move behind the More menu.
+		readSource: t("search.readSource"),
+		save: t("article.save"),
+		saved: t("article.saved"),
 	};
 
 	return (
@@ -213,7 +241,9 @@ export function BriefItemView({
 			labels={labels}
 			hideTranslation={sameLanguage}
 			dragSelectsText={dragSelectsText}
+			defaultView={defaultView}
 			bookmark={bookmark}
+			pinnedOrder={pinnedOrder}
 			intelligenceEnabled={intelligenceEnabled}
 			translate={{
 				busy: translate.busy,

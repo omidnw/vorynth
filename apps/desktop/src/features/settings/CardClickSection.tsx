@@ -9,7 +9,7 @@ import {
 } from "@/features/history/history-api.js";
 
 /**
- * Profile → Card click (v1.8.0).
+ * Settings → General → Card click (v1.8.0, moved v1.8.1).
  *
  * Whether dragging the mouse across a brief card selects the text (and does
  * NOT open the story) or opens the story right away. Default on — most users
@@ -34,15 +34,15 @@ export function CardClickSection() {
 		<GhostCard>
 			<h2 className="mb-2 flex items-center gap-2 font-headline text-headline-md text-primary dark:text-primary-fixed">
 				<Icon name="gesture" className="text-[24px]" />
-				{t("profile.cardClick")}
+				{t("settings.cardClick")}
 			</h2>
 			<p className="mb-2 font-body text-body-sm text-on-surface-variant">
-				{t("profile.cardClickHint")}
+				{t("settings.cardClickHint")}
 			</p>
 			<Toggle
 				icon="select_all"
-				label={t("profile.dragSelectsText")}
-				hint={t("profile.dragSelectsTextHint")}
+				label={t("settings.dragSelectsText")}
+				hint={t("settings.dragSelectsTextHint")}
 				checked={dragSelectsText}
 				onChange={(v) => patch.mutate({ "ui.dragSelectsText": v })}
 			/>

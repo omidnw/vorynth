@@ -26,6 +26,8 @@ export const fa: TranslationCatalog = {
 		docsTransparency: "شفافیت",
 		docsExpand: "باز کردن بخش‌های مستندات",
 		docsCollapse: "جمع کردن بخش‌های مستندات",
+		archiveExpand: "باز کردن منوی آرشیو",
+		archiveCollapse: "جمع کردن منوی آرشیو",
 		jobsActive_one: "{{count}} کار",
 		jobsActive_other: "{{count}} کار",
 		items: "آیتم‌ها",
@@ -39,6 +41,13 @@ export const fa: TranslationCatalog = {
 		title: "خلاصهٔ هوشمند امروز",
 		timer: "خلاصهٔ ۱۰ دقیقه‌ای",
 		stories: "{{count}} خبر",
+		searchPlaceholder: "جستجو در آرشیو…",
+		viewSelectorAria: "نمای پیش‌فرض داستان‌ها",
+		viewSelectorHint:
+			"نحوهٔ باز شدن کارت‌های خبر: خودکار وقتی خبر تحلیل دارد تحلیل را نشان می‌دهد، مقاله متن مقاله را باز می‌کند، بینش همیشه تحلیل را باز می‌کند.",
+		viewAuto: "خودکار",
+		viewArticle: "مقاله",
+		viewInsights: "تحلیل‌ها",
 		sources: "{{count}} منبع",
 		intelligenceOn: "حالت هوشمند — غنی‌سازی با هوش مصنوعی فعال است",
 		newsMode: "حالت خبری — مرتب‌شده بر اساس تازگی و اعتبار",
@@ -64,6 +73,18 @@ export const fa: TranslationCatalog = {
 		emptyRangeTitle: "در این بازه خبری نیست",
 		emptyRangeBody:
 			"یا هنوز خبری جمع‌آوری نشده یا هیچ‌کدام در بازهٔ انتخابی نیست. برای دریافت خبرهای تازه روی <em>Collect</em> بزنید — بدون نیاز به کلید API.",
+		searchPage: "صفحهٔ جستجو",
+		searchStories: "جستجو در این خبرها…",
+		searchCount: "{{shown}} از {{total}} خبر",
+		searchNoResults: "هیچ خبری با جستجوی شما مطابقت ندارد.",
+		updateBrief: "به‌روزرسانی خلاصهٔ من",
+		updateBriefHint:
+			"خبرهای جدید را جمع‌آوری و خلاصه را در یک لمس بازتولید می‌کند.",
+		generateHint: "تحلیل هوش مصنوعی دورهٔ فعلی را بازتولید می‌کند.",
+		generateAnalysis: "تولید تحلیل",
+		generatingAnalysis: "در حال تولید…",
+		sectionFilters: "فیلترها",
+		sectionStories: "خبرها",
 	},
 	storyViews: {
 		title: "خبرهای بازشده",
@@ -74,6 +95,8 @@ export const fa: TranslationCatalog = {
 		scopeInsight: "بینش",
 		scopeArticle: "مقاله",
 		scopeBoth: "بینش + مقاله",
+		markReadAria: "علامت‌گذاری به‌عنوان خوانده‌شده",
+		markUnreadAria: "علامت‌گذاری به‌عنوان خوانده‌نشده",
 	},
 	why: "چرا اهمیت دارد",
 	impact: "تأثیر",
@@ -201,9 +224,45 @@ export const fa: TranslationCatalog = {
 		backgroundTip:
 			"وقتی پنجره بسته است، Vorynth در پس‌زمینه به کار ادامه می‌دهد: کاملاً از Dock خارج می‌شود (چیزی برای کلیک مرده نیست) و در نوار منو زندگی می‌کند، منابع شما همچنان جمع‌آوری می‌شوند تا خلاصه هنگام بازگشت آماده باشد، و «خروج» از سینی کاملاً خارج می‌کند.",
 		advancedTitle: "پیشرفته",
+		showHeaderLabels: "نمایش برچسب کنار آیکون‌های سربرگ",
+		showHeaderLabelsHint:
+			"متن کنار آیکون‌های تاریخچه، تم و اعلان‌ها در نوار بالا. برای سربرگ فشرده خاموش کنید.",
+		navigationTitle: "ناوبری",
+		navSidebar: "نوار کناری",
+		navInpage: "داخل صفحه",
+		navigationHint:
+			"زیرصفحه‌های آرشیو (موارد، مجموعه‌ها، نشان‌شده‌ها، جستجو، زباله) کجا قرار گیرند — زیرمنوی نوار کناری یا ردیف تب داخل صفحه آرشیو.",
 		showAdvancedFeatures: "نمایش قابلیت‌های پیشرفته",
 		showAdvancedFeaturesHint:
 			"صفحهٔ پلاگین‌ها را نمایان می‌کند — اتصال‌دهنده‌های منبع و پلاگین‌های رابط کاربری که Vorynth اجرا می‌کند. بیشتر مردم هرگز به آن نیاز ندارند: اتصال‌دهنده‌های منابع شما به‌صورت خودکار حل می‌شوند. فقط اگر می‌خواهید ماشین‌آلات را خودتان ببینید و مدیریت کنید روشن کنید.",
+		showPlugins: "نمایش صفحهٔ پلاگین‌ها",
+		showPluginsHint:
+			"مستقل از تنظیمات توسعه‌دهنده — اگر فقط برای بخش Developer ویژگی‌های پیشرفته را روشن کرده‌اید، این را خاموش کنید.",
+		developerTitle: "توسعه‌دهنده",
+		developerHint:
+			"ساخت برنامه علیه موتور محلی — نقطهٔ پایانی API و برنامهای که ارائه میدهد، به‌علاوهٔ اینکه چه کسی می‌تواند از طریق شبکه آن را فراخوانی کند.",
+		backendUrl: "آدرس Backend",
+		frontendUrl: "آدرس Frontend",
+		sameOriginNote:
+			"موتور برنامه را در همان آدرس ارائه می‌کند — آن را در هر مرورگری باز کنید.",
+		networkAccess: "دسترسی شبکه",
+		accessLocal: "فقط محلی",
+		accessLocalHint:
+			"127.0.0.1 — موتور فقط روی همین دستگاه پاسخ می‌دهد. پیش‌فرض.",
+		accessAll: "اجازه به همه",
+		accessAllHint:
+			"0.0.0.0 — از هر دستگاهی در شبکه قابل دسترس است (هم backend و هم frontend)؛ CORS برای هر مبدأ باز است.",
+		accessCustom: "آی‌پی‌های سفارشی",
+		accessCustomHint:
+			"فقط آی‌پی‌هایی که لیست می‌کنید (به‌علاوهٔ 127.0.0.1) می‌توانند از مرورگر به موتور دسترسی داشته باشند.",
+		allowedIps: "آی‌پی‌های مجاز",
+		allowedIpsHint:
+			"با کاما جدا کنید — مثلاً 192.168.9.160,10.0.0.5. در کنار 127.0.0.1 مجاز هستند.",
+		reachableAt: "قابل دسترس در",
+		networkSecurityNote:
+			"Vorynth ورود (لاگین) ندارد. باز کردن آن روی شبکه به هر کسی در آن شبکه اجازه می‌دهد داده‌های شما را بخواند و کنترل کند. فقط در یک شبکهٔ مطمئن این کار را کنید.",
+		networkRestartNote:
+			"آدرس شنود در شروع بعدی Vorynth اعمال می‌شود؛ قوانین CORS و آی‌پی بلافاصله اعمال می‌شوند.",
 		searchPlaceholder: "جستجوی تنظیمات…",
 		searchHint:
 			"تایپ کنید تا فیلتر شود — بخش‌هایی که مطابقت ندارند کمرنگ می‌شوند.",
@@ -343,6 +402,39 @@ export const fa: TranslationCatalog = {
 		fontImport: "وارد کردن فونت سفارشی",
 		fontReset: "بازنشانی",
 		fontImportFailed: "امکان بارگذاری فایل فونت نبود.",
+		briefActionsTitle: "اقدامات کارت خبر",
+		briefActionsHint:
+			"ترتیب دکمه‌های هر کارت خبر را تعیین کنید و انتخاب کنید کدام‌ها پشت منوی «بیشتر» قرار بگیرند. برای مرتب‌کردن بکشید.",
+		briefAction: {
+			readSource: "خواندن منبع",
+			viewToggle: "نما",
+			save: "ذخیره",
+			inMore: "نمایش در منوی «بیشتر»",
+		},
+		readerActionsTitle: "اقدامات مطالعه‌گر",
+		readerActionsHint:
+			"با کشیدن، ترتیب دکمه‌های نوار پایین مطالعه‌گر را تغییر دهید و انتخاب کنید کدام‌ها پشت منوی «⋮ بیشتر» بروند. روی صفحه‌های مقاله و بینش اعمال می‌شود — هیچ‌چیز پنهان نمی‌شود.",
+		readerInBar: "در نوار مطالعه‌گر",
+		readerInMore: "پشت «⋮ بیشتر»",
+		briefInBar: "در نوار کارت",
+		briefInMore: "پشت «⋮ بیشتر»",
+		readerSettings: "تنظیمات مطالعه‌گر",
+		supportReminder: "نمایش یادآوری «حمایت از نویسنده»",
+		supportReminderHint:
+			"قبل از باز کردن مطالعه‌گر داخلی، شما را به سمت سایت اصلی هدایت می‌کند.",
+		keepMediaLocal: "ذخیرهٔ محلی رسانه به‌صورت پیش‌فرض",
+		keepMediaLocalHint:
+			"وقتی روشن است، رسانهٔ مقاله‌هایی که باز می‌کنید برای مطالعهٔ آفلاین دانلود می‌شود. پیش‌فرض خاموش است — رسانه از منبع پخش می‌شود.",
+		cardClick: "کلیک روی کارت",
+		cardClickHint: "کارت خبر هنگام فشردن و کشیدن چگونه واکنش نشان دهد.",
+		dragSelectsText: "کشیدن متن را انتخاب می‌کند",
+		dragSelectsTextHint:
+			"وقتی روشن است (پیش‌فرض)، کشیدن ماوس روی خبر متن را بدون باز کردن انتخاب می‌کند — برای باز کردن، کلیک تمیز لازم است. اگر هرگز متن را با ماوس انتخاب نمی‌کنید و می‌خواهید هر فشردن-رها کردن خبر را باز کند، خاموش کنید.",
+		resetAll: "بازنشانی همه",
+		resetting: "در حال بازنشانی…",
+		confirmDialogs: "گفتگوهای تأیید",
+		confirmDialogsHint:
+			"انتخاب‌های «دیگر نپرس» را بازنشانی کنید تا Vorynth دوباره پیش از اقدام‌های مخرب تأیید بخواهد.",
 	},
 	provider: {
 		label: "برچسب",
@@ -363,8 +455,26 @@ export const fa: TranslationCatalog = {
 			"این کلید قابل رمزگشایی نیست — احتمالاً کلید رمزنگاری محلی هنگام بازیابی یا پاک‌سازی داده‌هایتان از دست رفته است. این ارائه‌دهنده را حذف و با کلید API خود دوباره اضافه کنید.",
 		labelPlaceholder: "کلید Gemini من",
 		apiKeyPlaceholder: "پیست کلید…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"خالی بگذارید تا به‌صورت پیش‌فرض از API رسمی OpenAI استفاده شود (https://api.openai.com/v1).",
+		ollamaMode: "حالت",
+		ollamaLocal: "محلی",
+		ollamaCloud: "ابری",
+		ollamaLocalHint:
+			"سرور Ollama خودتان — روی همین دستگاه اجرا می‌شود، بدون نیاز به کلید API.",
+		ollamaCloudHint:
+			"سرویس میزبانی‌شدهٔ Ollama — مدل‌های بزرگ بدون GPU محلی. به کلید API از ollama.com/settings/keys نیاز دارد.",
 		removeAria: "حذف",
+		modelRequired: "نام مدل را وارد کنید.",
+		geminiDocs: "مدل‌های Gemini: ",
+		geminiFreeTip:
+			"از ۱۰ اوت ۲۰۲۶، gemini-3.1-flash-lite رایگان و با ۵۰۰ درخواست در روز است.",
+		openaiDocs: "مدل‌های OpenAI: ",
+		anthropicDocs: "مستندات Claude: ",
+		ollamaDocs: "مستندات Ollama: ",
+		ollamaHostTip:
+			"Ollama یک ارائه‌دهندهٔ HOST است — مدل‌هایش ممکن است در زمان‌های مختلف متفاوت ارائه شوند؛ فهرست فعلی را در مستنداتش ببینید.",
 	},
 	onboarding: {
 		welcome: "به Vorynth خوش آمدید",
@@ -376,7 +486,7 @@ export const fa: TranslationCatalog = {
 		begin: "شروع کنید",
 		config: "هوشمندترش کنید (اختیاری)",
 		configBody:
-			"یک سرویس هوش مصنوعی وصل کنید تا «چرا اهمیت دارد»، «تأثیر» و «اقدام پیشنهادی» به هر خبر اضافه شود. از این مرحله بگذرید — Vorynth به‌تنهایی عالی کار می‌کند.",
+			"یک سرویس هوش مصنوعی (اختیاری) وصل کنید تا Vorynth کنار هر خبر یک یادداشت کوتاه و ساده بنویسد — چرا مهم است، چه چیزی تغییر کرده و چه کاری انجام دهید. می‌توانید رد شوید: بریف روزانه بدون آن هم کار می‌کند.",
 		selectProvider: "یک سرویس هوش مصنوعی انتخاب کنید",
 		apiKey: "کلید API",
 		apiKeyHint:
@@ -385,6 +495,7 @@ export const fa: TranslationCatalog = {
 		newsOnlyBody:
 			"حالت خبری بدون هوش مصنوعی خبرها را جمع‌آوری و رتبه‌بندی می‌کند. هر زمان می‌توانید در تنظیمات یک سرویس هوش مصنوعی اضافه کنید.",
 		continue: "ادامه",
+		modelHint: "خالی بگذارید تا از مدل پیش‌فرض سرویس استفاده شود.",
 		back: "بازگشت",
 		savingProvider: "در حال ذخیره…",
 		topics: "چه چیزی برایتان مهم است؟",
@@ -415,13 +526,14 @@ export const fa: TranslationCatalog = {
 		recapNews: "خبری",
 		recapTopics: "موضوع‌ها",
 		recapNoTopics: "هیچ‌کدام — منابع رسمی",
+		recapNoTopicsOff: "هیچ‌کدام — منابع رسمی خاموش‌اند",
 		recapUiLanguage: "زبان برنامه",
 		recapAiLanguage: "زبان هوش مصنوعی",
 		officialSources: "منابع رسمی فعال بمانند",
 		officialSourcesHint:
 			"فهرست خبری رسمی توسعه‌دهندگان Vorynth به‌صورت پیش‌فرض بریف شما را پر می‌کند. اگر فقط موضوعات خودتان را می‌خواهید، خاموشش کنید.",
-		emptyTopicsOffBody:
-			"هیچ دسته‌بندی انتخاب نشده و منابع رسمی هم خاموش‌اند — بریف شما خالی خواهد بود. منابع رسمی را روشن نگه داریم؟",
+		previewOfficialSources: "مشاهدهٔ منابع رسمی",
+		officialSourcesListName: "فهرست رسمی توسعه‌دهندگان Vorynth",
 		modesTitle: "حالت خبری در برابر حالت هوشمند",
 		newsModeBody:
 			"حالت خبری داستان‌ها را بدون هوش مصنوعی جمع‌آوری و رتبه‌بندی می‌کند — بدون نیاز به کلید، کاملاً خصوصی و روی هر سیستمی کار می‌کند.",
@@ -439,6 +551,7 @@ export const fa: TranslationCatalog = {
 		futureProvidersTip:
 			"نکته: در آینده سرویس‌های بیشتری به این فهرست اضافه خواهند شد — همیشه چنج‌لاگ را چک کنید.",
 		recapNote: "همه‌چیز هر وقت خواستید از تنظیمات و پروفایل قابل تغییر است.",
+		modelRequired: "برای ادامه نام مدل را وارد کنید.",
 	},
 	analyzing: {
 		title: "تقطیر هوش",
@@ -461,6 +574,10 @@ export const fa: TranslationCatalog = {
 		trend: "روند",
 		"low-noise": "کم‌صدا",
 	},
+	docs: {
+		searchPlaceholder: "جستجو در مستندات…",
+		noResults: "هیچ مستندی با «{{q}}» مطابقت ندارد.",
+	},
 	common: {
 		collect: "جمع‌آوری",
 		collecting: "در حال جمع‌آوری…",
@@ -468,7 +585,9 @@ export const fa: TranslationCatalog = {
 		generating: "در حال تولید…",
 		back: "بازگشت",
 		cancel: "لغو",
+		close: "بستن",
 		noResults: "موردی یافت نشد",
+		dontShowAgain: "دیگر نشان نده",
 	},
 	search: {
 		title: "جستجو",
@@ -561,6 +680,7 @@ export const fa: TranslationCatalog = {
 		moveTo: "انتقال به…",
 		archived: "بایگانی‌شده",
 		item_one: "مورد",
+		showMore: "نمایش {{count}} بیشتر ({{remaining}} باقی‌مانده)",
 		item_other: "مورد",
 		showArchived: "نمایش بایگانی‌شده",
 		showingArchived: "در حال نمایش بایگانی‌شده‌ها",
@@ -649,8 +769,8 @@ export const fa: TranslationCatalog = {
 		article: "مقاله",
 		openOriginal: "باز کردن اصلی",
 		readInVorynth: "خواندن در Vorynth",
-		dontShowAgain: "دیگر این را نشان نده —",
 		changeInProfile: "بعداً در پروفایل تغییرش دهید.",
+		dontShowAgain: "دیگر این را نشان نده —",
 	},
 	profile: {
 		title: "پروفایل",
@@ -727,42 +847,18 @@ export const fa: TranslationCatalog = {
 		recentSearches: "جستجوهای اخیر",
 		noActivity:
 			"هنوز فعالیتی نیست. یک جستجو اجرا کنید یا خلاصه بخوانید تا این بخش پر شود.",
-		readerSettings: "تنظیمات مطالعه‌گر",
-		supportReminder: "نمایش یادآوری «حمایت از نویسنده»",
-		supportReminderHint:
-			"قبل از باز کردن مطالعه‌گر داخلی، شما را به سمت سایت اصلی هدایت می‌کند.",
-		keepMediaLocal: "ذخیرهٔ محلی رسانه به‌صورت پیش‌فرض",
-		keepMediaLocalHint:
-			"وقتی روشن است، رسانهٔ مقاله‌هایی که باز می‌کنید برای مطالعهٔ آفلاین دانلود می‌شود. پیش‌فرض خاموش است — رسانه از منبع پخش می‌شود.",
 		aiLanguage: "زبان خروجی هوش مصنوعی",
 		aiLanguageHint:
 			"زبانی که هوش مصنوعی Vorynth هنگام پاسخ به سؤالات، تولید و نوشتن خلاصه‌ها استفاده می‌کند. زبانی را انتخاب کنید که بینش‌ها را می‌خواهید.",
-		readerActions: "اقدامات مطالعه‌گر",
-		readerActionsHint:
-			"انتخاب کنید کدام اقدامات خبر در نوار پایین مطالعه‌گر بمانند. بقیه به پشت منوی «⋮ بیشتر» می‌روند — هیچ‌چیز پنهان نمی‌شود.",
-		pinned: "در نوار مطالعه‌گر",
-		moreMenu: "پشت «⋮ بیشتر»",
-		readerActionsOverflow:
-			"نوار مطالعه‌گر برای پنج اقدام طراحی شده — سنجاق کردن بیشتر می‌تواند آن را شلوغ کند.",
-		cardClick: "کلیک روی کارت",
-		cardClickHint: "کارت خبر هنگام فشردن و کشیدن چگونه واکنش نشان دهد.",
-		dragSelectsText: "کشیدن متن را انتخاب می‌کند",
-		dragSelectsTextHint:
-			"وقتی روشن است (پیش‌فرض)، کشیدن ماوس روی خبر متن را بدون باز کردن انتخاب می‌کند — برای باز کردن، کلیک تمیز لازم است. اگر هرگز متن را با ماوس انتخاب نمی‌کنید و می‌خواهید هر فشردن-رها کردن خبر را باز کند، خاموش کنید.",
 		aiLanguageAria: "زبان خروجی هوش مصنوعی",
-		resetAll: "بازنشانی همه",
-		resetting: "در حال بازنشانی…",
 		categoryIdentity: "شما که هستید",
 		categoryAi: "نحوهٔ نوشتن هوش مصنوعی",
 		categoryLanguages: "زبان‌ها",
-		categoryReading: "مطالعه",
 		searchIdentity:
 			"هویت نام نام خانوادگی الگو خلاصه رفتار علاقه‌مندی موضوعات identity",
 		searchAi: "دستور سفارشی خروجی هوش مصنوعی زبان نوشتن custom instruction",
 		searchLanguages:
 			"زبان رابط انگلیسی فارسی عربی کره‌ای ژاپنی چینی عبری اسپانیایی آلمانی روسی language ui",
-		searchReading:
-			"خواندن تنظیمات پشتیبانی نویسنده یادآوری رسانه محلی اقدامات کلیک کشیدن انتخاب متن reader",
 	},
 	media: {
 		title: "رسانهٔ محلی",
@@ -933,6 +1029,8 @@ export const fa: TranslationCatalog = {
 		test: "تست",
 		testing: "در حال تست…",
 		testOk: "کار می‌کند — {{count}} آیتم پیدا شد",
+		testMissingFields: "برای تست، این فیلدها لازم هستند: {{fields}}",
+		fieldName: "نام",
 		testFail: "دریافت ناموفق بود — {{message}}",
 		configLabel: "{{label}}",
 		testHint:
@@ -1087,9 +1185,31 @@ export const fa: TranslationCatalog = {
 		listEnableAria: "روشن‌کردن {{name}}",
 		expandAria: "نمایش منابع در {{name}}",
 		collapseAria: "پنهان‌کردن منابع در {{name}}",
+		previewAria: "پیش‌نمایش {{name}}",
+		previewTitle: "{{name}} — منابع",
+		previewBody: "{{count}} سایت در این فهرست.",
+		previewLoading: "در حال بارگذاری…",
+		previewEmpty: "این فهرست هنوز منبعی ندارد.",
+		previewOn: "روشن",
+		previewOff: "خاموش",
 		editDisabledNote:
 			"منابع یک فهرست را نمی‌توان جداگانه حذف کرد — به‌جای آن کل فهرست را پنهان کنید.",
 		sourceCountLabel: "{{count}} منبع",
+		deleteListAria: "حذف فهرست {{name}}",
+		deleteTitle: "این فهرست حذف شود؟",
+		deleteMessage:
+			"{{name}} و همهٔ {{count}} منبع آن برای همیشه حذف می‌شوند. خبرهای جمع‌آوری‌شده هم حذف می‌شوند — این کار قابل بازگشت نیست.",
+		deleteConfirm: "حذف فهرست",
+		deleteForceTitle: "خبرهای ذخیره‌شده حذف می‌شوند",
+		deleteForceBody:
+			"{{count}} خبر ذخیره‌شده به این فهرست تعلق دارد و حذف خواهد شد. به هر حال حذف شود؟",
+		deleteForceConfirm: "بله، حذف شود",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "به‌روزرسانی {{name}}",
+		updateListHint: "نسخهٔ جدیدتر این فهرست را در مخزن اجتماع بررسی کنید.",
+		updating: "در حال به‌روزرسانی…",
+		updated: "به‌روزرسانی شد",
+		upToDate: "به‌روز است",
 	},
 	reference: {
 		greeting: "سلام — این پلاگین زنده است و مشارکت می‌کند.",
@@ -1416,6 +1536,10 @@ export const fa: TranslationCatalog = {
 		fromProfile: "از پروفایل",
 		titleSearch: "تاریخچهٔ جستجو",
 		tabViews: "خبرهای بازشده",
+		filterPlaceholder: "فیلتر این تاریخچه…",
+		recordKeywordTip:
+			"جستجوهای کلیدواژه‌ای فقط وقتی اینجا می‌آیند که «ثبت جستجوهای کلیدواژه‌ای» روشن باشد — جستجوهای AI و خلاصه‌ها همیشه ثبت می‌شوند.",
+		openSettings: "باز کردن تنظیمات",
 		fromSearch: "از جستجو",
 		entries: "{{count}} ورودی",
 		select: "انتخاب",
@@ -1577,6 +1701,8 @@ export const fa: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "زبان منبع",
+		viewInsight: "نمای تحلیل",
+		viewArticle: "نمای مقاله",
 		outputLanguage: "زبان خروجی",
 		generated: "تولیدشده",
 		mixed: "مختلط",

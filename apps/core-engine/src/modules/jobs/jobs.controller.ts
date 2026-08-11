@@ -71,12 +71,14 @@ export class JobsController {
 						itemsDone: results.length,
 						itemsTotal: enabled,
 					});
-					// Auto-translate (v1.9.0): a collect that pulled in new
-					// stories chains a translation job — only when an LLM is
-					// configured (News mode has no key; R-A03). The translate
-					// runner skips already-translated stories and rides each
-					// story's AI insight along.
-					if (total > 0 && (await this.intelligence.canTranslate())) {
+					// v1.8.1 — auto-analyze: in Intelligence mode, stories pulled in
+					// by this collect get an insight from their ORIGINAL text first
+					// (rate-limited, cancellable); the analyze-missing runner then
+					// chains the translation job when it finishes. News mode never
+					// spends tokens (R-A03) — the old translate-only chain stays.
+					if (total > 0 && (await this.intelligence.canAutoAnalyze())) {
+						this.jobs.start({ kind: "analyze-missing" });
+					} else if (total > 0 && (await this.intelligence.canTranslate())) {
 						this.jobs.start({ kind: "translate" });
 					}
 					return { sources: results.length, totalCollected: total, results };
@@ -226,6 +228,42 @@ export class JobsController {
 						itemsDone: translated,
 					});
 					return { translated };
+				},
+			};
+		});
+
+		// v1.8.1 — auto-analyze after collect: generate missing insights for
+		// content-bearing stories that don't have one yet, from their ORIGINAL
+		// text. Intelligence-mode gated (News mode never spends tokens — R-A03),
+		// rate-limited and cancelable; when it finishes, it chains the
+		// translation job so the fresh insights ride along into the target
+		// language.
+		registerJobRunner("analyze-missing", () => {
+			return {
+				label: "Generating missing insights",
+				run: async ({ update, throwIfCanceled }) => {
+					const missing = this.intelligence.missingInsightCount();
+					update({ itemsTotal: missing });
+					const generated = await this.intelligence.backfillMissingInsights(
+						(done, totalItems) => {
+							update({
+								message: `Generating insights ${done}/${totalItems}…`,
+								fraction: totalItems > 0 ? done / totalItems : 1,
+								itemsDone: done,
+								itemsTotal: totalItems,
+							});
+						},
+						throwIfCanceled,
+					);
+					update({
+						message: `Generated ${generated} missing insights`,
+						fraction: 1,
+						itemsDone: generated,
+					});
+					if (await this.intelligence.canTranslate()) {
+						this.jobs.start({ kind: "translate" });
+					}
+					return { generated };
 				},
 			};
 		});

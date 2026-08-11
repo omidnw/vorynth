@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ReaderActionBar } from "./ReaderActionBar.js";
-import type { ReaderAction } from "./reader-actions.js";
+import { readerActionLayout, type ReaderAction } from "./reader-actions.js";
 
 /**
- * ReaderActionBar (v1.8.0) — pinned actions render in the bar; the rest sit
- * behind the "More ⋮" menu. Nothing is hidden, the bar just stays uncluttered.
+ * ReaderActionBar (v1.8.0, layout v1.8.1) — bar actions render up front; the
+ * rest sit behind the "More ⋮" menu. The layout comes from
+ * `readerActionLayout(settings)` (Profile drag-reorder + in-More choices).
  */
 function makeActions(): ReaderAction[] {
 	return (
@@ -37,7 +38,7 @@ describe("ReaderActionBar", () => {
 		render(
 			<ReaderActionBar
 				actions={makeActions()}
-				pinnedIds={undefined}
+				layout={readerActionLayout(undefined)}
 				moreLabel="More"
 				moreAriaLabel="More story actions"
 			/>,
@@ -66,7 +67,7 @@ describe("ReaderActionBar", () => {
 		render(
 			<ReaderActionBar
 				actions={actions}
-				pinnedIds={undefined}
+				layout={readerActionLayout(undefined)}
 				moreLabel="More"
 				moreAriaLabel="More story actions"
 			/>,
@@ -87,16 +88,19 @@ describe("ReaderActionBar", () => {
 		render(
 			<ReaderActionBar
 				actions={makeActions()}
-				pinnedIds={[
-					"markRead",
-					"save",
-					"recollect",
-					"retranslate",
-					"share",
-					"export",
-					"openOriginal",
-					"back",
-				]}
+				layout={{
+					order: [
+						"markRead",
+						"save",
+						"recollect",
+						"retranslate",
+						"share",
+						"export",
+						"openOriginal",
+						"back",
+					],
+					inMore: new Set(),
+				}}
 				moreLabel="More"
 				moreAriaLabel="More story actions"
 			/>,
@@ -114,7 +118,7 @@ describe("ReaderActionBar", () => {
 		render(
 			<ReaderActionBar
 				actions={makeActions()}
-				pinnedIds={undefined}
+				layout={readerActionLayout(undefined)}
 				moreLabel="More"
 				moreAriaLabel="More story actions"
 			/>,

@@ -45,6 +45,16 @@ export const briefSection: DocsSection = {
 					label: "Advanced search",
 					text: "Opens the full researcher search with structured filters.",
 				},
+				{
+					icon: "search",
+					label: "Quick search",
+					text: "The search box on the Brief jumps straight to the search page with your query — no filters, one Enter.",
+				},
+				{
+					icon: "article",
+					label: "Default view",
+					text: "Auto / Article / Insights — how each story card opens. In Insights mode, new stories get their AI analysis generated automatically (Intelligence mode only).",
+				},
 			],
 		},
 		{

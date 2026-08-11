@@ -1,11 +1,12 @@
 /**
  * Story-reader footer actions (v1.8.0).
  *
- * The floating footer shows the actions the user pinned to the primary bar;
- * everything else sits behind the "More ⋮" menu. Pinning is a Profile
- * preference stored in `ui.readerPinnedActions` (app_settings, JSON array of
- * action ids). Missing/absent → the default pinned set; an explicit empty
- * array means "everything in More".
+ * The floating footer shows the actions in the reader bar; everything else
+ * sits behind the "More ⋮" menu. v1.8.1 — the bar layout is fully
+ * customizable on the Profile page (drag to reorder): `ui.readerActions` is
+ * the full order, `ui.readerActionsInMore` the ids behind the More menu.
+ * Older databases keep `ui.readerPinnedActions` (pinned ids only), which
+ * `readerActionLayout` still honors as a fallback.
  */
 
 export type ReaderActionId =
@@ -38,6 +39,10 @@ export const DEFAULT_PINNED_ACTIONS: ReaderActionId[] = [
 	"back",
 ];
 
+/** v1.8.1 — the actions behind "More ⋮" by default (everything unpinned). */
+export const DEFAULT_IN_MORE_ACTIONS: ReaderActionId[] =
+	READER_ACTION_ORDER.filter((id) => !DEFAULT_PINNED_ACTIONS.includes(id));
+
 export interface ReaderAction {
 	id: ReaderActionId;
 	icon: string;
@@ -46,6 +51,37 @@ export interface ReaderAction {
 	/** When true the label is shown dimmed as an in-progress state (e.g.
 	 *  "Re-collecting…") and the click handler is expected to guard re-entry. */
 	busy?: boolean;
+}
+
+/**
+ * v1.8.1 — resolve the reader footer layout from app settings. `order` is the
+ * full action order (Profile drag-reorder); `inMore` the ids behind More.
+ * Falls back to the legacy `ui.readerPinnedActions` when the new keys are
+ * absent, then to the built-in defaults.
+ */
+export function readerActionLayout(
+	settings:
+		| {
+				"ui.readerActions"?: string[];
+				"ui.readerActionsInMore"?: string[];
+				"ui.readerPinnedActions"?: string[];
+		  }
+		| undefined,
+): { order: string[]; inMore: Set<string> } {
+	const order = Array.isArray(settings?.["ui.readerActions"])
+		? settings["ui.readerActions"]
+		: READER_ACTION_ORDER;
+	let inMore: Set<string>;
+	if (Array.isArray(settings?.["ui.readerActionsInMore"])) {
+		inMore = new Set(settings["ui.readerActionsInMore"]);
+	} else if (Array.isArray(settings?.["ui.readerPinnedActions"])) {
+		// Legacy: pinned ids → everything else was behind More.
+		const pinned = new Set(settings["ui.readerPinnedActions"]);
+		inMore = new Set(READER_ACTION_ORDER.filter((id) => !pinned.has(id)));
+	} else {
+		inMore = new Set(DEFAULT_IN_MORE_ACTIONS);
+	}
+	return { order, inMore };
 }
 
 /** Stable icon per action id — used by the Profile customization list too. */
@@ -97,22 +133,22 @@ export function readerActionLabel(
 
 /**
  * Split the available actions into the primary bar and the More menu,
- * preserving canonical order. `pinnedSetting` is `ui.readerPinnedActions`
- * (undefined → default; [] → everything in More).
+ * preserving the layout's order. See `readerActionLayout`.
  */
 export function splitReaderActions(
 	actions: ReaderAction[],
-	pinnedSetting: string[] | undefined,
+	layout: { order: string[]; inMore: Set<string> },
 ): { pinned: ReaderAction[]; more: ReaderAction[] } {
-	const pinned = Array.isArray(pinnedSetting)
-		? new Set(pinnedSetting)
-		: new Set(DEFAULT_PINNED_ACTIONS);
-	const ordered = [...actions].sort(
-		(a, b) =>
-			READER_ACTION_ORDER.indexOf(a.id) - READER_ACTION_ORDER.indexOf(b.id),
-	);
+	const ordered = [...actions].sort((a, b) => {
+		const ia = layout.order.indexOf(a.id);
+		const ib = layout.order.indexOf(b.id);
+		return (
+			(ia === -1 ? layout.order.length : ia) -
+			(ib === -1 ? layout.order.length : ib)
+		);
+	});
 	return {
-		pinned: ordered.filter((a) => pinned.has(a.id)),
-		more: ordered.filter((a) => !pinned.has(a.id)),
+		pinned: ordered.filter((a) => !layout.inMore.has(a.id)),
+		more: ordered.filter((a) => layout.inMore.has(a.id)),
 	};
 }

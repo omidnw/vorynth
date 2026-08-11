@@ -136,6 +136,8 @@ export function SearchPage() {
 		useHistoryStore.getState().closeDrawer();
 		navigate(`/history/search/${entryId}`);
 	};
+	// v1.8.1 — the search-page history button opens the drawer on the search tab.
+	const openDrawer = useHistoryStore((s) => s.openDrawer);
 
 	return (
 		<ArchiveLayout
@@ -153,6 +155,20 @@ export function SearchPage() {
 				busy={keyword.isPending || askActive}
 				intelligenceEnabled={intelligenceEnabled}
 			/>
+
+			{/* v1.8.1 — the search-history icon lives ON the search page, where
+			    users instinctively look for it (it opens the drawer on the search
+			    tab). */}
+			<div className="mt-3 flex items-center justify-end">
+				<Button
+					variant="ghost"
+					size="sm"
+					icon="history"
+					onClick={() => openDrawer("search")}
+				>
+					{t("history.titleSearch")}
+				</Button>
+			</div>
 
 			{/* Advanced search toggle */}
 			<div className="mt-4">

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -24,12 +24,18 @@ import { SummaryLanguageSection } from "@/features/settings/SummaryLanguageSecti
 import { MediaSettingsSection } from "@/features/settings/MediaSettingsSection.js";
 import { LaunchSection } from "@/features/settings/LaunchSection.js";
 import { AdvancedSection } from "@/features/settings/AdvancedSection.js";
+import { DeveloperSection } from "@/features/settings/DeveloperSection.js";
 import { DataHealthSection } from "@/features/settings/DataHealthSection.js";
 import { StorageSection } from "@/features/settings/StorageSection.js";
 import { UpdatesSection } from "@/features/updater/UpdatesSection.js";
 import { ThemeManager } from "@/features/themes/ThemeManager.js";
 import { NotificationsSection } from "@/features/settings/NotificationsSection.js";
 import { FontSection } from "@/features/settings/FontSection.js";
+import { BriefActionsSection } from "@/features/settings/BriefActionsSection.js";
+import { ReaderActionsSection } from "@/features/settings/ReaderActionsSection.js";
+import { ReaderSettingsSection } from "@/features/settings/ReaderSettingsSection.js";
+import { CardClickSection } from "@/features/settings/CardClickSection.js";
+import { ConfirmResetSection } from "@/features/settings/ConfirmResetSection.js";
 import { CrossPageHint } from "@/features/settings/CrossPageHint.js";
 import { findCrossPageTopic } from "@/features/settings/cross-page-search.js";
 import { useSectionHighlight } from "@/features/settings/use-section-highlight.js";
@@ -85,24 +91,130 @@ export function SettingsPage() {
 				// v1.8.0 — the keyword blob is localized: it follows the selected
 				// UI language, so typing in Persian/French/… matches too.
 				search: t("settings.searchGeneral"),
+				// v1.8.1 — per-card blobs: a query that matches an ITEM rings the
+				// card, not the whole category (so "appearance" only rings the
+				// Appearance card, and "translate" also suggests the Language
+				// card). Appearance/theme were removed from the category blob.
+				// v1.9.0 — every other General card gets its own blob (engine,
+				// mode, welcome, launch, updates, notifications, advanced,
+				// developer, navigation).
+				items: [
+					{
+						id: "appearance",
+						search:
+							"appearance theme light dark colors font fonts text size custom theme",
+					},
+					{
+						id: "language",
+						search:
+							"language translate translation languages app language ui language",
+					},
+					{
+						id: "engine",
+						search: "engine status version articles mode",
+					},
+					{
+						id: "mode",
+						search: "mode news intelligence",
+					},
+					{
+						id: "welcome",
+						search: "welcome setup onboarding",
+					},
+					{
+						id: "launch",
+						search: "launch startup login background hidden tray",
+					},
+					{
+						id: "updates",
+						search: "updates update upgrade auto-update",
+					},
+					{
+						id: "notifications",
+						search: "notifications bell",
+					},
+					{
+						id: "advanced2",
+						search: "advanced features developer plugins",
+					},
+					{
+						id: "developer2",
+						search: "developer network cors backend frontend",
+					},
+					{
+						id: "navigation2",
+						search: "navigation archive sidebar",
+					},
+					{
+						id: "briefActions",
+						search: "story card actions footer save bookmark order",
+					},
+					{
+						id: "readerActions",
+						search:
+							"reader actions bar footer article insight more menu pinned",
+					},
+					{
+						id: "readerSettings",
+						search: "reader settings support author reminder media local keep",
+					},
+					{
+						id: "cardClick",
+						search: "card click drag selects text open story",
+					},
+					{
+						id: "confirmDialogs",
+						search: "confirmation dialogs reset don't ask again",
+					},
+				],
 			},
 			{
 				id: "settings-intelligence",
 				label: t("settings.categoryIntelligence"),
 				icon: "psychology",
 				search: t("settings.searchIntelligence"),
+				items: [
+					{
+						id: "summaryLanguage",
+						search: "summary original language",
+					},
+				],
 			},
 			{
 				id: "settings-data",
 				label: t("settings.categoryData"),
 				icon: "data_usage",
 				search: t("settings.searchData"),
+				items: [
+					{
+						id: "dataHealth",
+						search: "data health check repair",
+					},
+					{
+						id: "retention",
+						search: "retention delete auto-delete",
+					},
+					{
+						id: "trash",
+						search: "trash soft delete",
+					},
+					{
+						id: "mediaWarn",
+						search: "media download warning",
+					},
+				],
 			},
 			{
 				id: "settings-sources",
 				label: t("settings.categorySources"),
 				icon: "view_list",
 				search: t("settings.searchSources"),
+				items: [
+					{
+						id: "sourceListsSettings",
+						search: "source lists adult 18+",
+					},
+				],
 			},
 			{
 				id: "settings-plugins",
@@ -123,6 +235,7 @@ export function SettingsPage() {
 		noResults,
 		matches,
 		highlightedIds,
+		highlightedItemIds,
 		focusFirstMatch,
 	} = useCategorySearch(categories);
 	/** v1.8.0 — deep-linked `?section=` from the cross-page search hint. */
@@ -130,6 +243,15 @@ export function SettingsPage() {
 	const crossTopic = findCrossPageTopic(query, "/settings", t);
 	const isHighlighted = (id: string) =>
 		highlightedIds.includes(id) || highlightFromLink === id;
+	// v1.8.1 — per-card search ring (a matched card, not the whole category).
+	// v1.9.0 — matches items in ANY category (General cards + the Data /
+	// Intelligence / Sources cards), so "auto-delete" rings the Retention card
+	// wherever it lives.
+	const itemHit = (itemId: string) =>
+		highlightedItemIds.some((h) => h.itemId === itemId);
+	/** Ring class for a card that matches the current search (v1.9.0). */
+	const hit = (itemId: string) =>
+		itemHit(itemId) ? "ring-2 ring-primary/40" : undefined;
 
 	// v1.8.0 — the jump-to-result happens on Enter / the search button, never
 	// mid-keystroke. When the query matches a topic that lives on the OTHER
@@ -224,7 +346,12 @@ export function SettingsPage() {
 						className={matches("settings-general") ? undefined : "hidden"}
 					>
 						{/* Engine status */}
-						<GhostCard>
+						<GhostCard
+							data-search-id="engine"
+							className={
+								itemHit("engine") ? "ring-2 ring-primary/40" : undefined
+							}
+						>
 							<h3 className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 								<Icon name="memory" className="text-base" />
 								{t("settings.engine")}
@@ -263,10 +390,17 @@ export function SettingsPage() {
 						</GhostCard>
 
 						{/* Mode toggle — separate from provider config */}
-						<ModeSection />
+						<div data-search-id="mode" className={hit("mode")}>
+							<ModeSection />
+						</div>
 
-						{/* Appearance */}
-						<GhostCard>
+						{/* Appearance — v1.8.1: per-card search ring (itemHit) so
+						    "appearance"/"theme" ring THIS card, not the category. */}
+						<GhostCard
+							className={
+								itemHit("appearance") ? "ring-2 ring-primary/40" : undefined
+							}
+						>
 							<h3 className="mb-4 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
 								<Icon name="palette" className="text-base" />
 								{t("settings.appearance")}
@@ -287,23 +421,43 @@ export function SettingsPage() {
 								{/* v1.8.0 — custom themes: import / export / edit / delete + AI flow */}
 								<ThemeManager />
 								<FontSection />
+								{/* v1.8.1 — header icon labels (History / theme / bell). */}
+								<HeaderLabelsToggle />
 							</div>
 						</GhostCard>
 
 						{/* Welcome & Setup — re-open or skip the onboarding flow */}
-						<WelcomeSection />
+						<div data-search-id="welcome" className={hit("welcome")}>
+							<WelcomeSection />
+						</div>
 
 						{/* Launch behavior — start at login + hide to tray (v1.8.0) */}
-						<LaunchSection />
+						<div data-search-id="launch" className={hit("launch")}>
+							<LaunchSection />
+						</div>
 
 						{/* v1.8.0 — auto-update: check GitHub releases, download & install */}
-						<UpdatesSection />
+						<div data-search-id="updates" className={hit("updates")}>
+							<UpdatesSection />
+						</div>
 
 						{/* v1.8.0 — notification center + OS notifications */}
-						<NotificationsSection />
+						<div
+							data-search-id="notifications"
+							className={hit("notifications")}
+						>
+							<NotificationsSection />
+						</div>
 
-						{/* Language now lives on the Profile page. */}
-						<GhostCard className="flex items-center justify-between gap-4">
+						{/* Language now lives on the Profile page. v1.8.1 — itemHit so
+						    "translate"/"language" ring THIS card too. */}
+						<GhostCard
+							className={
+								itemHit("language")
+									? "flex items-center justify-between gap-4 ring-2 ring-primary/40"
+									: "flex items-center justify-between gap-4"
+							}
+						>
 							<div className="flex items-center gap-3">
 								<Icon
 									name="translate"
@@ -328,8 +482,53 @@ export function SettingsPage() {
 							</Button>
 						</GhostCard>
 
-						{/* Advanced — reveal the Plugins page (power-user gate, v1.8.0) */}
-						<AdvancedSection />
+						{/* v1.8.1 — navigation: where the Archive sub-pages live. */}
+						<div data-search-id="navigation2" className={hit("navigation2")}>
+							<NavigationSection />
+						</div>
+
+						{/* v1.9.0 — story-card footer action order (drag to reorder).
+						    v1.8.1 — Reader actions sits right below: the same
+						    drag-reorder + in-More pattern for the Article/Insight
+						    reader bar, so the related "actions" settings live together. */}
+						<div data-search-id="briefActions" className={hit("briefActions")}>
+							<BriefActionsSection />
+						</div>
+						<div
+							data-search-id="readerActions"
+							className={hit("readerActions")}
+						>
+							<ReaderActionsSection />
+						</div>
+						{/* v1.8.1 — the reading-experience settings moved here from the
+						    Profile page so everything behavior-related lives in one
+						    place: reader preferences, card click, and the confirmation
+						    dialogs reset. */}
+						<div
+							data-search-id="readerSettings"
+							className={hit("readerSettings")}
+						>
+							<ReaderSettingsSection />
+						</div>
+						<div data-search-id="cardClick" className={hit("cardClick")}>
+							<CardClickSection />
+						</div>
+						<div
+							data-search-id="confirmDialogs"
+							className={hit("confirmDialogs")}
+						>
+							<ConfirmResetSection />
+						</div>
+
+						{/* Advanced — reveal the Plugins page (power-user gate, v1.8.0).
+						    v1.8.1 — also the Developer section (network access), with a
+						    separate "show the Plugins page" toggle next to it. */}
+						<div data-search-id="advanced2" className={hit("advanced2")}>
+							<AdvancedSection />
+						</div>
+						<div data-search-id="developer2" className={hit("developer2")}>
+							<DeveloperSection />
+						</div>
 					</SettingsCategory>
 
 					{/* ── Intelligence ─────────────────────────────────────────── */}
@@ -351,7 +550,12 @@ export function SettingsPage() {
 						<UsageSection />
 
 						{/* v1.8.0 — the brief summary's ORIGINAL version language */}
-						<SummaryLanguageSection />
+						<div
+							data-search-id="summaryLanguage"
+							className={hit("summaryLanguage")}
+						>
+							<SummaryLanguageSection />
+						</div>
 
 						{/* Regenerate all insights */}
 						<GhostCard>
@@ -388,13 +592,19 @@ export function SettingsPage() {
 						className={matches("settings-data") ? undefined : "hidden"}
 					>
 						{/* v1.6.0 — auto-delete retention */}
-						<RetentionSection />
+						<div data-search-id="retention" className={hit("retention")}>
+							<RetentionSection />
+						</div>
 
 						{/* v1.7.0 — trash / soft-delete retention */}
-						<TrashSection />
+						<div data-search-id="trash" className={hit("trash")}>
+							<TrashSection />
+						</div>
 
 						{/* v1.8.0 — data health check: daily self-healing job */}
-						<DataHealthSection />
+						<div data-search-id="dataHealth" className={hit("dataHealth")}>
+							<DataHealthSection />
+						</div>
 
 						{/* Data ownership — backup / restore / delete-all */}
 						<DataOwnershipSection />
@@ -415,7 +625,9 @@ export function SettingsPage() {
 						<HistorySection />
 
 						{/* Media — download disclaimer policy (v1.8.0) */}
-						<MediaSettingsSection />
+						<div data-search-id="mediaWarn" className={hit("mediaWarn")}>
+							<MediaSettingsSection />
+						</div>
 
 						{/* v1.8.0 — Storage & Usage: what's on disk + system usage */}
 						<StorageSection />
@@ -431,7 +643,12 @@ export function SettingsPage() {
 						className={matches("settings-sources") ? undefined : "hidden"}
 					>
 						{/* v1.8.0 — source lists: hide 18+ lists from browsing */}
-						<SourceListsSection />
+						<div
+							data-search-id="sourceListsSettings"
+							className={hit("sourceListsSettings")}
+						>
+							<SourceListsSection />
+						</div>
 					</SettingsCategory>
 
 					{/* ── Plugins ─────────────────────────────────────────────── */}
@@ -557,6 +774,15 @@ const PROVIDER_OPTIONS: {
 	label: string;
 	modelHint: string;
 	needsKey: boolean;
+	/**
+	 * Render the Base URL field. v1.8.1: OpenAI (self-hosted /
+	 * OpenAI-compatible endpoints) and Ollama (local/cloud hosts) both let the
+	 * user point at a different server; Gemini/Anthropic keep their official
+	 * endpoint only.
+	 */
+	showBaseUrl: boolean;
+	/** Placeholder for the Base URL field (falls back to `provider.baseUrlPlaceholder`). */
+	baseUrlPlaceholder?: string;
 }[] = [
 	{
 		kind: "gemini",
@@ -564,6 +790,7 @@ const PROVIDER_OPTIONS: {
 		label: "Gemini",
 		modelHint: "gemini-2.0-flash",
 		needsKey: true,
+		showBaseUrl: false,
 	},
 	{
 		kind: "openai",
@@ -571,6 +798,8 @@ const PROVIDER_OPTIONS: {
 		label: "OpenAI",
 		modelHint: "gpt-4o-mini",
 		needsKey: true,
+		showBaseUrl: true,
+		baseUrlPlaceholder: "https://api.openai.com/v1",
 	},
 	{
 		kind: "anthropic",
@@ -578,15 +807,47 @@ const PROVIDER_OPTIONS: {
 		label: "Anthropic",
 		modelHint: "claude-3-5-sonnet-latest",
 		needsKey: true,
+		showBaseUrl: false,
 	},
 	{
+		// v1.8.1 — "Ollama (local)" became a Local/Cloud choice in the form.
 		kind: "ollama",
 		icon: "terminal",
-		label: "Ollama (local)",
+		label: "Ollama",
 		modelHint: "llama3.2",
 		needsKey: false,
+		showBaseUrl: true,
+		baseUrlPlaceholder: "http://localhost:11434",
 	},
 ];
+
+/** v1.9.0 — per-provider model docs: the label prefix comes from i18n, the
+ *  link text is the docs host/path (a URL — kept literal in all languages). */
+const PROVIDER_DOCS: Record<
+	LlmProviderKind,
+	{ href: string; linkText: string; docKey: string }
+> = {
+	gemini: {
+		href: "https://ai.google.dev/gemini-api/docs/models",
+		linkText: "ai.google.dev/gemini-api/docs/models",
+		docKey: "provider.geminiDocs",
+	},
+	openai: {
+		href: "https://developers.openai.com/api/docs/models",
+		linkText: "developers.openai.com/api/docs/models",
+		docKey: "provider.openaiDocs",
+	},
+	anthropic: {
+		href: "https://platform.claude.com/docs/en/home",
+		linkText: "platform.claude.com/docs/en/home",
+		docKey: "provider.anthropicDocs",
+	},
+	ollama: {
+		href: "https://docs.ollama.com/index",
+		linkText: "docs.ollama.com/index",
+		docKey: "provider.ollamaDocs",
+	},
+};
 
 function LlmProviderSection({
 	configured,
@@ -611,6 +872,19 @@ function LlmProviderSection({
 	const [apiKey, setApiKey] = useState("");
 	const [model, setModel] = useState("");
 	const [baseUrl, setBaseUrl] = useState("");
+	// v1.9.0 — the model name is required; an empty-model Save shows this inline.
+	const [modelError, setModelError] = useState<string | null>(null);
+	// v1.8.1 — Ollama runs either locally (no key) or on Ollama Cloud (key).
+	const [ollamaMode, setOllamaMode] = useState<"local" | "cloud">("local");
+
+	// v1.8.1 — switching provider kind clears stale key/URL state so a key
+	// typed for OpenAI never leaks into an Ollama (or vice-versa) row.
+	useEffect(() => {
+		setBaseUrl("");
+		setApiKey("");
+		setOllamaMode("local");
+		setModelError(null);
+	}, [kind]);
 
 	const mode = modeData?.mode ?? "news";
 
@@ -633,17 +907,31 @@ function LlmProviderSection({
 	};
 
 	const save = useMutation({
-		mutationFn: () =>
-			saveProvider({
+		mutationFn: () => {
+			const isOllama = kind === "ollama";
+			const isCloud = isOllama && ollamaMode === "cloud";
+			// v1.8.1 — Ollama: local stores no key and defaults to the local
+			// server; cloud carries a bearer key and defaults to ollama.com.
+			const effectiveApiKey = isOllama
+				? isCloud
+					? apiKey.trim() || undefined
+					: undefined
+				: apiKey.trim() || undefined;
+			const effectiveBaseUrl = isOllama
+				? baseUrl.trim() ||
+					(isCloud ? "https://ollama.com" : "http://localhost:11434")
+				: baseUrl.trim() || undefined;
+			return saveProvider({
 				kind,
 				label:
 					label ||
 					(PROVIDER_OPTIONS.find((p) => p.kind === kind)?.label ?? kind),
-				apiKey: apiKey || undefined,
+				apiKey: effectiveApiKey,
 				defaultModel: model || undefined,
-				baseUrl: baseUrl || undefined,
+				baseUrl: effectiveBaseUrl,
 				enabled: true,
-			}),
+			});
+		},
 		onSuccess: () => {
 			invalidate();
 			setShowForm(false);
@@ -994,13 +1282,83 @@ function LlmProviderSection({
 							</label>
 							<Input
 								value={model}
-								onChange={(e) => setModel(e.target.value)}
-								placeholder={activeOption?.modelHint ?? ""}
+								onChange={(e) => {
+									setModel(e.target.value);
+									setModelError(null);
+								}}
+								// v1.8.1 — an EXAMPLE, not a preselected value: the user
+								// types the model name (required).
+								placeholder={`e.g. ${activeOption?.modelHint ?? ""}`}
+								aria-invalid={modelError !== null}
 							/>
+							{modelError ? (
+								<p className="mt-1 font-body text-body-sm text-error">
+									{modelError}
+								</p>
+							) : null}
 						</div>
 					</div>
 
-					{activeOption?.needsKey ? (
+					{/* v1.8.1 — Ollama has two modes (docs.ollama.com/cloud):
+					    local (no key, your own server) and cloud (bearer key,
+					    ollama.com). The key field appears only for cloud. */}
+					{kind === "ollama" ? (
+						<div>
+							<label className="font-label text-label-sm uppercase text-on-surface-variant">
+								{t("provider.ollamaMode")}
+							</label>
+							<div className="mt-2 grid grid-cols-2 gap-2">
+								<button
+									type="button"
+									aria-pressed={ollamaMode === "local"}
+									onClick={() => setOllamaMode("local")}
+									className={`flex items-center justify-center gap-2 border p-2.5 font-label text-label-sm transition-all ${
+										ollamaMode === "local"
+											? "border-primary bg-surface-container-lowest"
+											: "border-outline-variant hover:border-primary"
+									}`}
+								>
+									<Icon
+										name="memory"
+										className={
+											ollamaMode === "local"
+												? "text-primary"
+												: "text-on-tertiary-container"
+										}
+									/>
+									{t("provider.ollamaLocal")}
+								</button>
+								<button
+									type="button"
+									aria-pressed={ollamaMode === "cloud"}
+									onClick={() => setOllamaMode("cloud")}
+									className={`flex items-center justify-center gap-2 border p-2.5 font-label text-label-sm transition-all ${
+										ollamaMode === "cloud"
+											? "border-primary bg-surface-container-lowest"
+											: "border-outline-variant hover:border-primary"
+									}`}
+								>
+									<Icon
+										name="cloud"
+										className={
+											ollamaMode === "cloud"
+												? "text-primary"
+												: "text-on-tertiary-container"
+										}
+									/>
+									{t("provider.ollamaCloud")}
+								</button>
+							</div>
+							<p className="mt-2 font-body text-body-sm text-on-surface-variant">
+								{ollamaMode === "cloud"
+									? t("provider.ollamaCloudHint")
+									: t("provider.ollamaLocalHint")}
+							</p>
+						</div>
+					) : null}
+
+					{activeOption?.needsKey ||
+					(kind === "ollama" && ollamaMode === "cloud") ? (
 						<div>
 							<label className="font-label text-label-sm uppercase text-on-surface-variant">
 								{t("provider.apiKey")}
@@ -1013,7 +1371,9 @@ function LlmProviderSection({
 								icon="lock"
 							/>
 						</div>
-					) : (
+					) : null}
+
+					{activeOption?.showBaseUrl ? (
 						<div>
 							<label className="font-label text-label-sm uppercase text-on-surface-variant">
 								{t("provider.baseUrl")}
@@ -1021,11 +1381,62 @@ function LlmProviderSection({
 							<Input
 								value={baseUrl}
 								onChange={(e) => setBaseUrl(e.target.value)}
-								placeholder={t("provider.baseUrlPlaceholder")}
+								placeholder={
+									kind === "ollama" && ollamaMode === "cloud"
+										? "https://ollama.com"
+										: (activeOption?.baseUrlPlaceholder ??
+											t("provider.baseUrlPlaceholder"))
+								}
 								icon="link"
 							/>
+							{/* v1.8.1 — official-API default is implicit, say so. */}
+							{kind === "openai" ? (
+								<p className="mt-1 font-body text-body-sm text-on-surface-variant">
+									{t("provider.openaiBaseUrlHint")}
+								</p>
+							) : null}
 						</div>
-					)}
+					) : null}
+
+					{/* v1.9.0 — per-provider model docs + tips so the required model
+						    id can be looked up. */}
+					<div className="space-y-1 border-s-2 border-s-outline-variant ps-3">
+						<p className="flex items-start gap-1.5 font-body text-body-sm text-on-surface-variant">
+							<Icon
+								name="tips_and_updates"
+								className="mt-0.5 shrink-0 text-[14px]"
+							/>
+							<span>
+								{t(PROVIDER_DOCS[kind].docKey)}{" "}
+								<a
+									href={PROVIDER_DOCS[kind].href}
+									target="_blank"
+									rel="noreferrer"
+									className="text-secondary transition-colors hover:text-primary hover:underline"
+								>
+									{PROVIDER_DOCS[kind].linkText}
+								</a>
+							</span>
+						</p>
+						{kind === "gemini" ? (
+							<p className="flex items-start gap-1.5 font-body text-body-sm text-on-surface-variant">
+								<Icon
+									name="tips_and_updates"
+									className="mt-0.5 shrink-0 text-[14px]"
+								/>
+								<span>{t("provider.geminiFreeTip")}</span>
+							</p>
+						) : null}
+						{kind === "ollama" ? (
+							<p className="flex items-start gap-1.5 font-body text-body-sm text-on-surface-variant">
+								<Icon
+									name="tips_and_updates"
+									className="mt-0.5 shrink-0 text-[14px]"
+								/>
+								<span>{t("provider.ollamaHostTip")}</span>
+							</p>
+						) : null}
+					</div>
 
 					{save.error ? (
 						<p className="font-mono text-mono-technical text-error">
@@ -1043,7 +1454,18 @@ function LlmProviderSection({
 						<Button
 							size="sm"
 							icon="check"
-							onClick={() => save.mutate()}
+							onClick={() => {
+								// v1.9.0 — the model name is REQUIRED (the provider
+								// default is no longer inferred). Block the save and
+								// explain inline instead of silently saving a keyless
+								// half-configuration.
+								if (!model.trim()) {
+									setModelError(t("provider.modelRequired"));
+									return;
+								}
+								setModelError(null);
+								save.mutate();
+							}}
 							disabled={save.isPending}
 						>
 							{save.isPending ? t("provider.saving") : t("provider.save")}
@@ -1256,5 +1678,105 @@ function ThemePicker() {
 				</button>
 			))}
 		</div>
+	);
+}
+
+/**
+ * v1.8.1 — "Show icon labels in the header" (History / theme / bell text next
+ * to the top-bar icons). Self-contained: reads + patches its own setting.
+ */
+function HeaderLabelsToggle() {
+	const queryClient = useQueryClient();
+	const { t } = useTranslation();
+	const { data: settings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+	});
+	const patch = useMutation({
+		mutationFn: (on: boolean) => patchSettings({ "ui.showHeaderLabels": on }),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
+	});
+	return (
+		<Toggle
+			icon="label"
+			label={t("settings.showHeaderLabels")}
+			hint={t("settings.showHeaderLabelsHint")}
+			checked={settings?.["ui.showHeaderLabels"] !== false}
+			onChange={(on) => patch.mutate(on)}
+		/>
+	);
+}
+
+/**
+ * v1.8.1 — where the Archive sub-pages live: an expandable sidebar submenu
+ * ("sidebar", default) or the in-page tab row on the Archive page ("inpage").
+ */
+function NavigationSection() {
+	const queryClient = useQueryClient();
+	const { t } = useTranslation();
+	const { data: settings } = useQuery({
+		queryKey: ["app-settings"],
+		queryFn: fetchSettings,
+	});
+	const patch = useMutation({
+		mutationFn: (mode: "sidebar" | "inpage") =>
+			patchSettings({ "ui.archiveNavMode": mode }),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: ["app-settings"] }),
+	});
+	const mode = settings?.["ui.archiveNavMode"] ?? "sidebar";
+	return (
+		<GhostCard>
+			<h3 className="mb-2 flex items-center gap-2 font-label text-label-md uppercase tracking-widest text-on-surface-variant">
+				<Icon name="navigation" className="text-base" />
+				{t("settings.navigationTitle")}
+			</h3>
+			<div className="grid grid-cols-2 gap-2">
+				<button
+					type="button"
+					aria-pressed={mode === "sidebar"}
+					onClick={() => patch.mutate("sidebar")}
+					className={`flex flex-col items-center gap-1 border p-3 transition-all ${
+						mode === "sidebar"
+							? "border-primary bg-surface-container-lowest"
+							: "border-outline-variant hover:border-primary"
+					}`}
+				>
+					<Icon
+						name="menu"
+						className={
+							mode === "sidebar" ? "text-primary" : "text-on-tertiary-container"
+						}
+					/>
+					<span className="font-label text-label-sm">
+						{t("settings.navSidebar")}
+					</span>
+				</button>
+				<button
+					type="button"
+					aria-pressed={mode === "inpage"}
+					onClick={() => patch.mutate("inpage")}
+					className={`flex flex-col items-center gap-1 border p-3 transition-all ${
+						mode === "inpage"
+							? "border-primary bg-surface-container-lowest"
+							: "border-outline-variant hover:border-primary"
+					}`}
+				>
+					<Icon
+						name="view_list"
+						className={
+							mode === "inpage" ? "text-primary" : "text-on-tertiary-container"
+						}
+					/>
+					<span className="font-label text-label-sm">
+						{t("settings.navInpage")}
+					</span>
+				</button>
+			</div>
+			<p className="mt-2 font-body text-body-sm text-on-surface-variant">
+				{t("settings.navigationHint")}
+			</p>
+		</GhostCard>
 	);
 }

@@ -26,6 +26,8 @@ export const zh: TranslationCatalog = {
 		docsTransparency: "透明度",
 		docsExpand: "展开文档部分",
 		docsCollapse: "折叠文档部分",
+		archiveExpand: "展开档案菜单",
+		archiveCollapse: "收起档案菜单",
 		jobsActive_one: "{{count}} 个任务",
 		jobsActive_other: "{{count}} 个任务",
 		items: "项目",
@@ -39,6 +41,13 @@ export const zh: TranslationCatalog = {
 		title: "今日智能简报",
 		timer: "10分钟简报",
 		stories: "{{count}} 篇文章",
+		searchPlaceholder: "搜索档案…",
+		viewSelectorAria: "故事的默认视图",
+		viewSelectorHint:
+			"故事卡片的打开方式：自动在有洞察时显示，文章打开正文，洞察始终打开分析。",
+		viewAuto: "自动",
+		viewArticle: "文章",
+		viewInsights: "洞察",
 		sources: "{{count}} 个源",
 		intelligenceOn: "智能模式 — AI 增强已启用",
 		newsMode: "新闻模式 — 按新鲜度和可靠性排序",
@@ -64,6 +73,17 @@ export const zh: TranslationCatalog = {
 		emptyRangeTitle: "此范围内没有文章",
 		emptyRangeBody:
 			"可能还没有收集到任何文章，或所选时间段内没有文章。点击 <em>Collect</em> 拉取新文章 — 无需 API 密钥。",
+		searchPage: "搜索页面",
+		searchStories: "在这些故事中搜索…",
+		searchCount: "共 {{total}} 条故事，显示 {{shown}} 条",
+		searchNoResults: "没有故事与您的搜索匹配。",
+		updateBrief: "更新我的简报",
+		updateBriefHint: "一键收集新故事并重新生成简报。",
+		generateHint: "为当前时间段重新生成 AI 分析。",
+		generateAnalysis: "生成分析",
+		generatingAnalysis: "正在生成…",
+		sectionFilters: "筛选",
+		sectionStories: "故事",
 	},
 	storyViews: {
 		title: "已查看的故事",
@@ -72,6 +92,8 @@ export const zh: TranslationCatalog = {
 		scopeInsight: "洞察",
 		scopeArticle: "文章",
 		scopeBoth: "洞察 + 文章",
+		markReadAria: "标记为已读",
+		markUnreadAria: "标记为未读",
 	},
 	why: "为何重要",
 	impact: "影响",
@@ -193,9 +215,42 @@ export const zh: TranslationCatalog = {
 		backgroundTip:
 			"关闭窗口后，Vorynth 会在后台继续运行：它完全离开 Dock（没有可点击的无效项），驻留在菜单栏，你的源会继续被收集，因此回来时简报已就绪，从托盘的「退出」可完全退出。",
 		advancedTitle: "高级",
+		showHeaderLabels: "在顶部图标旁显示文字标签",
+		showHeaderLabelsHint:
+			"在顶部栏的历史、主题和通知图标旁显示文字。紧凑头部请关闭。",
+		navigationTitle: "导航",
+		navSidebar: "侧边栏",
+		navInpage: "在页面内",
+		navigationHint:
+			"档案子页面（项目、收藏、书签、搜索、回收站）所在位置——侧边栏子菜单或档案页面内的标签行。",
 		showAdvancedFeatures: "显示高级功能",
 		showAdvancedFeaturesHint:
 			"显示插件页面 — Vorynth 运行的源连接器和 UI 插件。大多数人永远不需要：你的源连接器会自动解析。只有想亲自查看和管理机制时才打开。",
+		showPlugins: "显示插件页面",
+		showPluginsHint:
+			"与开发者设置相互独立——如果只是为了 Developer 区域才开启高级功能，请关闭它。",
+		developerTitle: "开发者",
+		developerHint:
+			"基于本地引擎开发 — API 端点及其提供的应用，以及可通过网络调用它的人。",
+		backendUrl: "后端 URL",
+		frontendUrl: "前端 URL",
+		sameOriginNote: "引擎在同一地址提供应用 — 可在任何浏览器中打开。",
+		networkAccess: "网络访问",
+		accessLocal: "仅本地",
+		accessLocalHint: "127.0.0.1 — 引擎仅在本机响应。默认。",
+		accessAll: "允许所有",
+		accessAllHint:
+			"0.0.0.0 — 网络中的任何设备（后端和前端）均可访问；CORS 对所有来源开放。",
+		accessCustom: "自定义 IP",
+		accessCustomHint: "只有你列出的 IP（以及 127.0.0.1）可以从浏览器调用引擎。",
+		allowedIps: "允许的 IP",
+		allowedIpsHint:
+			"逗号分隔——例如 192.168.9.160,10.0.0.5。与 127.0.0.1 一起被允许。",
+		reachableAt: "可在以下地址访问",
+		networkSecurityNote:
+			"Vorynth 没有登录功能。将其开放到网络后，该网络中的任何人都能读取和控制你的数据。请仅在受信任的网络中启用。",
+		networkRestartNote:
+			"监听地址将在下次启动 Vorynth 时生效；CORS 和 IP 规则会立即生效。",
 		searchPlaceholder: "搜索设置…",
 		searchHint: "输入以过滤 — 不匹配的区块会变暗。",
 		searchButton: "搜索",
@@ -323,6 +378,38 @@ export const zh: TranslationCatalog = {
 		fontImport: "导入自定义字体",
 		fontReset: "重置",
 		fontImportFailed: "无法加载该字体文件。",
+		briefActionsTitle: "故事卡片操作",
+		briefActionsHint:
+			"排列每张故事卡片上的按钮，并选择哪些显示在「更多」菜单中。拖拽可重新排序。",
+		briefAction: {
+			readSource: "阅读来源",
+			viewToggle: "视图",
+			save: "保存",
+			inMore: "显示在「更多」菜单中",
+		},
+		readerActionsTitle: "阅读器操作",
+		readerActionsHint:
+			"通过拖拽调整阅读器底部栏按钮的顺序，并选择哪些放在「⋮ 更多」菜单后面。适用于文章和洞察页面 — 不隐藏任何内容。",
+		readerInBar: "在阅读器栏中",
+		readerInMore: "在「⋮ 更多」后面",
+		briefInBar: "在卡片栏中",
+		briefInMore: "在「⋮ 更多」后面",
+		readerSettings: "阅读器设置",
+		supportReminder: "显示「支持作者」提醒",
+		supportReminderHint: "在打开应用内阅读器之前，引导你前往原网站。",
+		keepMediaLocal: "默认将媒体保存在本地",
+		keepMediaLocalHint:
+			"开启后，你打开的文章中的媒体会下载以供离线阅读。默认关闭 — 媒体从来源流式传输。",
+		cardClick: "卡片点击",
+		cardClickHint: "故事卡片在你按下并拖动时如何反应。",
+		dragSelectsText: "拖动选择文本",
+		dragSelectsTextHint:
+			"开启时（默认），在故事上拖动鼠标会选中文本而不打开它 — 打开需要干净的单击。如果你从不用鼠标选择文本，并希望任何按下-释放都打开故事，请关闭它。",
+		resetAll: "重置全部",
+		resetting: "重置中…",
+		confirmDialogs: "确认对话框",
+		confirmDialogsHint:
+			"重置「不再询问」的选择，让 Vorynth 在破坏性操作前重新请求确认。",
 	},
 	provider: {
 		label: "标签",
@@ -343,8 +430,25 @@ export const zh: TranslationCatalog = {
 			"此密钥无法解密 — 本地加密密钥可能在你的数据被恢复或清理时丢失了。移除该提供商并重新用你的 API 密钥添加。",
 		labelPlaceholder: "我的 Gemini 密钥",
 		apiKeyPlaceholder: "粘贴密钥…",
-		baseUrlPlaceholder: "http://localhost:11434/v1",
+		baseUrlPlaceholder: "http://localhost:11434",
+		openaiBaseUrlHint:
+			"留空将使用官方 OpenAI API（https://api.openai.com/v1）。",
+		ollamaMode: "模式",
+		ollamaLocal: "本地",
+		ollamaCloud: "云端",
+		ollamaLocalHint: "你自己的 Ollama 服务器——在本机运行，无需 API 密钥。",
+		ollamaCloudHint:
+			"Ollama 托管服务——无需本地 GPU 即可运行大模型。需要 ollama.com/settings/keys 的 API 密钥。",
 		removeAria: "移除",
+		modelRequired: "请输入模型名称。",
+		geminiDocs: "Gemini 模型：",
+		geminiFreeTip:
+			"截至 2026 年 8 月 10 日，gemini-3.1-flash-lite 免费，每天 500 次请求。",
+		openaiDocs: "OpenAI 模型：",
+		anthropicDocs: "Claude 文档：",
+		ollamaDocs: "Ollama 文档：",
+		ollamaHostTip:
+			"Ollama 充当 HOST 提供商——其模型在不同时期可能有所不同，请查看其文档以获取当前列表。",
 	},
 	onboarding: {
 		welcome: "欢迎使用 Vorynth",
@@ -356,7 +460,7 @@ export const zh: TranslationCatalog = {
 		begin: "开始",
 		config: "让它更智能（可选）",
 		configBody:
-			"连接 AI 服务，为每篇文章添加「为何重要」「影响」和建议的下一步。跳过也可以 — Vorynth 本身就很好用。",
+			"连接可选的 AI 服务后，Vorynth 会为每篇故事添加简短易懂的备注——为什么重要、发生了什么变化、该怎么做。可以跳过：每日简报仍可正常使用。",
 		selectProvider: "选择 AI 服务",
 		apiKey: "API 密钥",
 		apiKeyHint: "在此设备上加密存储，仅发送给你选择的服务。",
@@ -364,6 +468,7 @@ export const zh: TranslationCatalog = {
 		newsOnlyBody:
 			"新闻模式无需 AI 即可收集和排序文章。你可以随时在设置中添加 AI 服务。",
 		continue: "继续",
+		modelHint: "留空将使用服务商的默认模型。",
 		back: "返回",
 		savingProvider: "保存中…",
 		topics: "什么对你重要？",
@@ -390,13 +495,14 @@ export const zh: TranslationCatalog = {
 		recapNews: "新闻",
 		recapTopics: "主题",
 		recapNoTopics: "无——官方源",
+		recapNoTopicsOff: "无——官方源已关闭",
 		recapUiLanguage: "应用语言",
 		recapAiLanguage: "AI 语言",
 		officialSources: "保持官方源启用",
 		officialSourcesHint:
 			"Vorynth 的官方开发者新闻源默认会填充你的简报。如果只需要自己的主题，请关闭它。",
-		emptyTopicsOffBody:
-			"未选择任何主题且官方源已关闭——你的简报将为空。是否保持官方源启用？",
+		previewOfficialSources: "查看官方源",
+		officialSourcesListName: "Vorynth 官方开发者源列表",
 		modesTitle: "新闻模式与智能模式",
 		newsModeBody:
 			"新闻模式无需 AI 即可收集并对故事进行排序——无需密钥、完全私密、可在任何设备上运行。",
@@ -414,6 +520,7 @@ export const zh: TranslationCatalog = {
 		futureProvidersTip:
 			"提示：未来会向此列表添加更多服务商——请随时查看更新日志。",
 		recapNote: "一切都可以随时在设置和个人资料中更改。",
+		modelRequired: "请输入模型名称以继续。",
 	},
 	analyzing: {
 		title: "提炼智能",
@@ -436,6 +543,10 @@ export const zh: TranslationCatalog = {
 		trend: "趋势",
 		"low-noise": "低噪音",
 	},
+	docs: {
+		searchPlaceholder: "搜索文档…",
+		noResults: "没有匹配「{{q}}」的文档。",
+	},
 	common: {
 		collect: "收集",
 		collecting: "收集中…",
@@ -443,7 +554,9 @@ export const zh: TranslationCatalog = {
 		generating: "生成中…",
 		back: "返回",
 		cancel: "取消",
+		close: "关闭",
 		noResults: "无匹配结果",
+		dontShowAgain: "不再显示",
 	},
 	archive: {
 		deleteTitle: "永久删除？",
@@ -466,6 +579,7 @@ export const zh: TranslationCatalog = {
 		moveTo: "移动到…",
 		archived: "已存档",
 		item_one: "个条目",
+		showMore: "再显示 {{count}} 个（剩余 {{remaining}} 个）",
 		item_other: "个条目",
 		showArchived: "显示已存档",
 		showingArchived: "正在显示已存档",
@@ -550,8 +664,8 @@ export const zh: TranslationCatalog = {
 		article: "文章",
 		openOriginal: "打开原文",
 		readInVorynth: "在 Vorynth 中阅读",
-		dontShowAgain: "不再显示 —",
 		changeInProfile: "稍后在个人资料中更改。",
+		dontShowAgain: "不再显示 —",
 	},
 	profile: {
 		title: "个人资料",
@@ -623,39 +737,17 @@ export const zh: TranslationCatalog = {
 		topCategories: "热门类别",
 		recentSearches: "最近搜索",
 		noActivity: "还没有活动。运行一次搜索或阅读一份简报来填充此区域。",
-		readerSettings: "阅读器设置",
-		supportReminder: "显示「支持作者」提醒",
-		supportReminderHint: "在打开应用内阅读器之前，引导你前往原网站。",
-		keepMediaLocal: "默认将媒体保存在本地",
-		keepMediaLocalHint:
-			"开启后，你打开的文章中的媒体会下载以供离线阅读。默认关闭 — 媒体从来源流式传输。",
 		aiLanguage: "AI 输出语言",
 		aiLanguageHint:
 			"Vorynth 的 AI 在回答你的问题、生成简报和编写摘要时使用的语言。选择你希望获得洞察的语言。",
-		readerActions: "阅读器操作",
-		readerActionsHint:
-			"选择哪些文章操作保留在阅读器的底部栏。其他一切移到「⋮ 更多」菜单后面 — 没有隐藏任何内容。",
-		pinned: "在阅读器栏中",
-		moreMenu: "在「⋮ 更多」后面",
-		readerActionsOverflow: "阅读器栏设计为五个操作 — 固定更多可能会拥挤。",
-		cardClick: "卡片点击",
-		cardClickHint: "故事卡片在你按下并拖动时如何反应。",
-		dragSelectsText: "拖动选择文本",
-		dragSelectsTextHint:
-			"开启时（默认），在故事上拖动鼠标会选中文本而不打开它 — 打开需要干净的单击。如果你从不用鼠标选择文本，并希望任何按下-释放都打开故事，请关闭它。",
 		aiLanguageAria: "AI 输出语言",
-		resetAll: "重置全部",
-		resetting: "重置中…",
 		categoryIdentity: "你是谁",
 		categoryAi: "AI 如何写作",
 		categoryLanguages: "语言",
-		categoryReading: "阅读",
 		searchIdentity: "身份 名字 姓氏 别名 行为摘要 兴趣 主题 identity",
 		searchAi: "自定义指令 ai 输出 语言 写作 custom instruction",
 		searchLanguages:
 			"语言 界面 英语 波斯语 阿拉伯语 韩语 日语 中文 希伯来语 西班牙语 德语 俄语 language",
-		searchReading:
-			"阅读 设置 支持 作者 提醒 媒体 本地 操作 点击 拖动 选择文本 reader",
 	},
 	media: {
 		title: "本地媒体",
@@ -809,6 +901,8 @@ export const zh: TranslationCatalog = {
 		test: "测试",
 		testing: "测试中…",
 		testOk: "可用 — 找到 {{count}} 个项目",
+		testMissingFields: "测试需要以下字段：{{fields}}",
+		fieldName: "名称",
 		testFail: "无法获取 — {{message}}",
 		configLabel: "{{label}}",
 		testHint: "在不保存的情况下获取几个项目，以便你可以检查配置。",
@@ -956,8 +1050,30 @@ export const zh: TranslationCatalog = {
 		listEnableAria: "开启 {{name}}",
 		expandAria: "显示 {{name}} 中的源",
 		collapseAria: "隐藏 {{name}} 中的源",
+		previewAria: "预览 {{name}}",
+		previewTitle: "{{name}} — 源",
+		previewBody: "此列表中有 {{count}} 个网站。",
+		previewLoading: "加载中…",
+		previewEmpty: "此列表还没有源。",
+		previewOn: "开",
+		previewOff: "关",
 		editDisabledNote: "列表中的源不能单独删除 — 改为隐藏整个列表。",
 		sourceCountLabel: "{{count}} 个源",
+		deleteListAria: "删除列表 {{name}}",
+		deleteTitle: "删除此列表？",
+		deleteMessage:
+			"{{name}} 及其全部 {{count}} 个来源将被永久移除，已收集的故事也会一并删除，此操作无法撤销。",
+		deleteConfirm: "删除列表",
+		deleteForceTitle: "已保存的故事将被删除",
+		deleteForceBody:
+			"此列表包含 {{count}} 条已保存的故事，它们也将被删除。仍然删除？",
+		deleteForceConfirm: "仍然删除",
+		// v1.8.1 — per-list Update (downloaded community lists).
+		updateListAria: "更新 {{name}}",
+		updateListHint: "在社区仓库中检查此列表是否有更新的版本。",
+		updating: "正在更新…",
+		updated: "已更新",
+		upToDate: "最新",
 	},
 	reference: {
 		greeting: "你好 — 此插件正在运行并做出贡献。",
@@ -1339,6 +1455,10 @@ export const zh: TranslationCatalog = {
 		fromProfile: "来自个人资料",
 		titleSearch: "搜索历史",
 		tabViews: "已查看的故事",
+		filterPlaceholder: "筛选此历史记录…",
+		recordKeywordTip:
+			"仅当开启「记录关键词搜索」时，关键词搜索才会出现在这里——AI 搜索和简报始终会被记录。",
+		openSettings: "打开设置",
 		fromSearch: "来自搜索",
 		entries: "{{count}} 个条目",
 		select: "选择",
@@ -1494,6 +1614,8 @@ export const zh: TranslationCatalog = {
 	},
 	insight: {
 		sourceLanguage: "源语言",
+		viewInsight: "洞察视图",
+		viewArticle: "文章视图",
 		outputLanguage: "输出语言",
 		generated: "生成于",
 		mixed: "混合",

@@ -34,7 +34,7 @@
 	--color-primary: 5 25 22; /* #051916 */
 	--color-on-primary: 255 255 255;
 	--color-primary-container: 26 46 42; /* #1A2E2A */
-	--color-on-primary-container: 128 150 145; /* #809691 */
+	--color-on-primary-container: 169 192 186; /* #A9C0BA — v1.8.1 contrast fix */
 	--color-primary-fixed: 208 231 225; /* #D0E7E1 */
 	--color-primary-fixed-dim: 181 203 197; /* #B5CBC5 */
 	--color-on-primary-fixed: 10 31 27; /* #0A1F1B */
@@ -54,7 +54,7 @@
 	--color-tertiary: 17 23 22; /* #111716 */
 	--color-on-tertiary: 255 255 255;
 	--color-tertiary-container: 38 43 43; /* #262B2B */
-	--color-on-tertiary-container: 141 146 146; /* #8D9292 */
+	--color-on-tertiary-container: 90 96 94; /* #5A605E — v1.8.1 contrast fix */
 	--color-tertiary-fixed: 222 227 226; /* #DEE3E2 */
 	--color-tertiary-fixed-dim: 194 199 199; /* #C2C7C7 */
 	--color-on-tertiary-fixed: 23 29 28; /* #171D1C */
@@ -101,7 +101,7 @@
 	--color-primary: 181 203 197; /* #B5CBC5 */
 	--color-on-primary: 32 52 48; /* #203430 */
 	--color-primary-container: 26 46 42; /* #1A2E2A */
-	--color-on-primary-container: 128 150 145; /* #809691 */
+	--color-on-primary-container: 169 192 186; /* #A9C0BA — v1.8.1 contrast fix */
 	--color-primary-fixed: 208 231 225; /* #D0E7E1 */
 	--color-primary-fixed-dim: 181 203 197; /* #B5CBC5 */
 	--color-on-primary-fixed: 10 31 27; /* #0A1F1B */
@@ -121,7 +121,7 @@
 	--color-tertiary: 230 193 131; /* #E6C183 */
 	--color-on-tertiary: 66 44 0; /* #422C00 */
 	--color-tertiary-container: 58 39 0; /* #3A2700 */
-	--color-on-tertiary-container: 174 141 84; /* #AE8D54 */
+	--color-on-tertiary-container: 200 167 107; /* #C8A76B — v1.8.1 contrast fix */
 	--color-tertiary-fixed: 255 222 170; /* #FFDEAA */
 	--color-tertiary-fixed-dim: 230 193 131; /* #E6C183 */
 	--color-on-tertiary-fixed: 39 25 0; /* #271900 */

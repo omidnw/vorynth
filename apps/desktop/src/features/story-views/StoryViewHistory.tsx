@@ -1,18 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { StoryViewScope } from "@vorynth/types";
 import { GhostCard } from "@/components/ui/GhostCard";
 import { Icon } from "@/components/ui/Icon";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/cn";
-import { fetchStoryViews } from "./story-views-api.js";
+import { fetchStoryViews, setStoryViewRead } from "./story-views-api.js";
 
 /**
  * Story-view history (v1.8.0) — the Brief page's History tab.
  *
  * Lists which stories the user opened and when, with a badge for what they
- * saw: the AI insight page, the article, or both in one sitting. Raw,
- * user-owned data — a foundation for richer reading surfaces later.
+ * saw: the AI insight page, the article, or both in one sitting. v1.8.1 —
+ * opening a story marks its view read, and each row shows a check icon the
+ * user can toggle (the persisted "Mark read" state).
  */
 export function StoryViewHistory({
 	onOpen,
@@ -22,11 +24,19 @@ export function StoryViewHistory({
 }) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const { data, isLoading } = useQuery({
 		queryKey: ["story-views"],
 		queryFn: () => fetchStoryViews(100),
 	});
 	const views = data?.views ?? [];
+
+	const toggleRead = useMutation({
+		mutationFn: ({ id, read }: { id: number; read: boolean }) =>
+			setStoryViewRead(id, read),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: ["story-views"] }),
+	});
 
 	return (
 		<div className="space-y-4">
@@ -75,6 +85,39 @@ export function StoryViewHistory({
 									</p>
 								</div>
 								<ScopeBadge scope={v.scope} />
+								{/* v1.8.1 — the persisted read state; toggle it here or in
+								    the reader ("Mark read" / "Read"). */}
+								<Tooltip
+									label={
+										v.read
+											? t("storyViews.markUnreadAria")
+											: t("storyViews.markReadAria")
+									}
+									position="bottom"
+								>
+									<button
+										type="button"
+										aria-pressed={v.read}
+										aria-label={
+											v.read
+												? t("storyViews.markUnreadAria")
+												: t("storyViews.markReadAria")
+										}
+										onClick={(e) => {
+											e.stopPropagation();
+											toggleRead.mutate({ id: v.id, read: !v.read });
+										}}
+										className="flex h-7 w-7 flex-none items-center justify-center rounded p-1 text-on-surface-variant transition-colors hover:text-primary"
+									>
+										<Icon
+											name="check_circle"
+											fill={v.read}
+											className={
+												v.read ? "text-secondary" : "text-on-tertiary-container"
+											}
+										/>
+									</button>
+								</Tooltip>
 							</GhostCard>
 						</li>
 					))}

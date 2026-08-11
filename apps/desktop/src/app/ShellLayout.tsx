@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -46,7 +47,21 @@ export function ShellLayout() {
 	});
 	// v1.8.0 — the Plugins page is power-user territory; hidden until the
 	// "Show advanced features" setting in Settings → Advanced is on.
-	const showAdvancedFeatures = settings?.["ui.showAdvancedFeatures"] === true;
+	// v1.8.1 — a separate "Show the Plugins page" toggle lets a user keep
+	// advanced/developer mode WITHOUT the plugin surface.
+	const showPlugins =
+		settings?.["ui.showAdvancedFeatures"] === true &&
+		settings?.["ui.showPlugins"] !== false;
+
+	// v1.8.1 — text labels next to the top-bar icons (Settings → Appearance).
+	const showHeaderLabels = settings?.["ui.showHeaderLabels"] !== false;
+
+	// v1.8.1 — every navigation starts at the top of the new page (the old
+	// scroll position used to carry over, so a deep-scrolled Brief left the
+	// next page scrolled down too).
+	useEffect(() => {
+		window.scrollTo(0, 0);
+	}, [location.pathname]);
 
 	const openHistory = () => {
 		// Context-aware default: briefings on /brief, generated on /profile,
@@ -93,7 +108,7 @@ export function ShellLayout() {
 						icon="storage"
 						label={t("nav.sources")}
 					/>
-					{showAdvancedFeatures ? (
+					{showPlugins ? (
 						<SidebarNavItem
 							to="/plugins"
 							icon="extension"
@@ -110,33 +125,39 @@ export function ShellLayout() {
 				</nav>
 
 				<div className="mt-auto px-6">
-					<div className="mt-8 flex items-center gap-2">
-						<button
-							type="button"
-							onClick={() => navigate("/profile")}
-							className="flex flex-1 items-center gap-3 rounded text-start transition-colors hover:bg-surface-container-high"
-							title={t("nav.openProfile")}
-						>
-							<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container font-headline text-label-md text-on-primary-container">
-								{initials(displayName)}
-							</span>
-							<span className="flex min-w-0 flex-col">
-								<span className="truncate font-label text-label-md text-on-surface">
-									{displayName}
+					{/* v1.8.1 — a divider separates the profile from the settings
+					    icon so the two controls don't read as one block. */}
+					<div className="mt-8 border-t border-outline-variant pt-4">
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => navigate("/profile")}
+								className="flex flex-1 items-center gap-3 rounded text-start transition-colors hover:bg-surface-container-high"
+								title={t("nav.openProfile")}
+							>
+								<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container font-headline text-label-md text-on-primary-container">
+									{initials(displayName)}
 								</span>
-								<span className="font-label text-label-sm text-on-surface-variant">
-									{t("app.localEngine")}
+								<span className="flex min-w-0 flex-col">
+									<span className="truncate font-label text-label-md text-on-surface">
+										{displayName}
+									</span>
+									<span className="font-label text-label-sm text-on-surface-variant">
+										{t("app.localEngine")}
+									</span>
 								</span>
-							</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => navigate("/settings")}
-							className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
-							title={t("nav.openSettings")}
-						>
-							<Icon name="settings" className="text-[20px]" />
-						</button>
+							</button>
+							{/* v1.8.1 — explicit divider between the profile text and
+							    the settings icon (border-s), plus a bigger icon. */}
+							<button
+								type="button"
+								onClick={() => navigate("/settings")}
+								className="ms-1 flex h-9 w-9 shrink-0 items-center justify-center rounded border-s border-outline-variant ps-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+								title={t("nav.openSettings")}
+							>
+								<Icon name="settings" className="text-[24px]" />
+							</button>
+						</div>
 					</div>
 				</div>
 			</aside>
@@ -159,20 +180,27 @@ export function ShellLayout() {
 							{t("nav.jobsActive", { count: activeCount })}
 						</span>
 					) : null}
+					{/* v1.8.1 — bigger header icons with optional text labels
+					    (Settings → Appearance → "Show icon labels in the header"). */}
 					<button
 						type="button"
 						onClick={openHistory}
 						aria-label={t("nav.openHistory")}
 						title={t("nav.history")}
-						className="text-on-surface-variant transition-colors hover:text-primary"
+						className="flex items-center gap-1.5 text-on-surface-variant transition-colors hover:text-primary"
 					>
-						<Icon name="history" />
+						<Icon name="history" className="text-[24px]" />
+						{showHeaderLabels ? (
+							<span className="hidden font-label text-label-sm md:inline">
+								{t("nav.history")}
+							</span>
+						) : null}
 					</button>
 					<div className="border-s border-outline-variant ps-4">
-						<ThemeToggle />
+						<ThemeToggle showLabel={showHeaderLabels} />
 					</div>
 					{/* v1.8.0 — notification center: to the right of the theme changer */}
-					<NotificationCenter />
+					<NotificationCenter showLabel={showHeaderLabels} />
 				</div>
 			</header>
 
