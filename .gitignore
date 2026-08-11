@@ -59,3 +59,8 @@ coverage/
 # Signing keys — never commit. The updater private key (vorynth.key) is the
 # release signing secret; the .pub file is committed via tauri.conf.json.
 apps/desktop/src-tauri/.tauri/
+
+# CI marker — the release workflow touches this after downloading the shared
+# web artifact so `cargo tauri build` skips its redundant vite build. Never
+# committed; local builds must always rebuild the frontend.
+.vorynth-web-built

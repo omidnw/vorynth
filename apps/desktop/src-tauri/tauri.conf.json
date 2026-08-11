@@ -6,7 +6,7 @@
 	"build": {
 		"beforeDevCommand": "cd ../../.. && pnpm --filter @vorynth/desktop dev",
 		"devUrl": "http://localhost:5173",
-		"beforeBuildCommand": "cd ../../.. && pnpm --filter @vorynth/desktop build",
+		"beforeBuildCommand": "cd ../../.. && node scripts/maybe-build-web.mjs || pnpm --filter @vorynth/desktop build",
 		"frontendDist": "../dist"
 	},
 	"app": {

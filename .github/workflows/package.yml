@@ -123,6 +123,30 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # v1.8.1 — CI optimization: the platform-independent artifacts (the web
+      # frontend + the engine's JS bundle) are built ONCE here and shared with
+      # the per-OS packaging jobs via artifacts, so no OS job re-runs vite or
+      # ncc. Only the native bits (better-sqlite3, portable node, Rust) stay
+      # per-OS.
+      - name: Bundle core engine sidecar
+        run: pnpm --filter @vorynth/core-engine bundle
+
+      - name: Upload shared web build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: vorynth-web
+          path: apps/desktop/dist
+          if-no-files-found: error
+
+      - name: Upload shared engine bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: vorynth-engine-bundle
+          path: |
+            apps/core-engine/dist-bundle/index.js
+            apps/core-engine/dist-bundle/launcher.cjs
+          if-no-files-found: error
+
   package:
     # Security scan + tests/lint/build must pass before any installer is built.
     needs: [security, verify]
@@ -300,6 +324,26 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # v1.8.1 — CI optimization: the web + engine JS bundle were built once in
+      # `verify` and are shared here, so this job skips vite + ncc entirely.
+      # The marker tells `cargo tauri build` to skip its redundant vite step.
+      - name: Download shared web build
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b61
+        with:
+          name: vorynth-web
+          path: apps/desktop/dist
+
+      - name: Download shared engine bundle
+        if: matrix.is-harmonyos == false
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b61
+        with:
+          name: vorynth-engine-bundle
+          path: apps/core-engine/dist-bundle
+
+      - name: Mark web as pre-built (skip vite inside cargo tauri build)
+        if: matrix.is-harmonyos == false
+        run: node -e "require('fs').writeFileSync('.vorynth-web-built','')"
+
       - name: Rebuild native (better-sqlite3) for this platform
         if: matrix.is-harmonyos == false
         shell: bash
@@ -342,12 +386,17 @@ jobs:
         run: pnpm lint
 
       # ── Build ───────────────────────────────────────────────────────────────
-      # Stage 2: compile. If this fails, no release is produced.
-      - name: Build frontend
-        run: pnpm --filter @vorynth/desktop build
-
-      - name: Bundle core engine sidecar
-        run: pnpm --filter @vorynth/core-engine bundle
+      # Stage 2: compile. If this fails, no release is produced. v1.8.1 — the
+      # frontend (vite) and the engine JS bundle (ncc) are built once in
+      # `verify` and downloaded above; only the native better-sqlite3 is
+      # rebuilt per-OS (step above) and staged into the bundle next.
+      - name: Stage native better-sqlite3 into the sidecar bundle
+        shell: bash
+        run: |
+          SRC=apps/core-engine/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+          if [ -f "$SRC" ]; then
+            cp "$SRC" apps/core-engine/dist-bundle/better_sqlite3.node
+          fi
 
       # ── Embed portable Node.js ──────────────────────────────────────────────────
       # Copy the Node.js binary from the CI runner into the sidecar bundle so the
@@ -389,6 +438,10 @@ jobs:
           mkdir -p apps/desktop/src-tauri/binaries
           cp -r apps/core-engine/dist-bundle \
             apps/desktop/src-tauri/binaries/vorynth-core-${{ matrix.target }}
+          # v1.8.1 — the engine serves the frontend over HTTP (Developer section
+          # frontend URL); the downloaded web build ships next to the sidecar.
+          cp -r apps/desktop/dist \
+            apps/desktop/src-tauri/binaries/vorynth-core-${{ matrix.target }}/web
           ls -la apps/desktop/src-tauri/binaries/
 
       - name: Build Tauri app
