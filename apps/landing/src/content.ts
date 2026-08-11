@@ -312,7 +312,7 @@ export interface Stat {
 }
 
 export const STATS: Stat[] = [
-	{ icon: "rss_feed", value: "25", label: "Curated Feeds in the Starter List" },
+	{ icon: "rss_feed", value: "24", label: "Curated Feeds in the Starter List" },
 	{ icon: "hub", value: "6", label: "Source Adapters" },
 	{ icon: "smart_toy", value: "4", label: "LLM Providers" },
 	{ icon: "shield", value: "100%", label: "Local & Private" },

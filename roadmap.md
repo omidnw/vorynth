@@ -134,7 +134,7 @@ Analyzer → Localizer` (`intelligence/workflows/intelligence.workflow.ts`).
 - ✅ **Official connectors + registry** — arXiv is the first
   registry-distributed official connector; the GitHub registry lets
   definitions update without an app update.
-- ✅ **Curated source lists** — an official 25-feed Developer & Software
+- ✅ **Curated source lists** — an official 24-feed Developer & Software
   Engineering starter list, community list import, in-place source editing.
 - 🟡 **Community-authored connectors** — the install flow and security
   scanner exist; real off-build connectors are deferred until one exists.
@@ -234,7 +234,7 @@ work from this session is on top:
    Reference Plugin; theme picker; offline Icon Pack; install/remove of
    `.vorynth-plugin` packages.
 2. **v1.8.0 — official connectors & curated lists** — connector health check,
-   GitHub connector registry (arXiv first), 25-feed starter list, community
+   GitHub connector registry (arXiv first), 24-feed starter list, community
    list import, in-place source editing.
 3. **v1.8.0 — i18n & themes** — 10 bundled UI languages with RTL, searchable
    language pickers, plugin themes with custom icons and canvas.
