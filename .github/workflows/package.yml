@@ -744,12 +744,16 @@ jobs:
       - name: Rebuild latest.json from all signed artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # github context is untrusted input — pass it via env, never inline.
+          VORYNTH_REPO: ${{ github.repository }}
+          VORYNTH_REF: ${{ github.ref_name }}
         run: |
           node .github/scripts/regenerate-latest-json.mjs \
-            "${{ github.repository }}" "${{ github.ref_name }}"
+            "$VORYNTH_REPO" "$VORYNTH_REF"
 
       - name: Upload latest.json to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VORYNTH_REF: ${{ github.ref_name }}
         run: |
-          gh release upload "${{ github.ref_name }}" latest.json --clobber
+          gh release upload "$VORYNTH_REF" latest.json --clobber

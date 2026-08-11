@@ -250,17 +250,23 @@ describe("translateStory", () => {
 	it("does not translate a title already in the target script (v1.8.1)", async () => {
 		// An untagged source + a Persian title, intelligence language = Persian.
 		const raw = tdb.service.rawDb;
-		raw.prepare(
-			`INSERT INTO sources (id, name, url, type, category, adapter)
+		raw
+			.prepare(
+				`INSERT INTO sources (id, name, url, type, category, adapter)
 			 VALUES ('src-fa', 'FA', 'https://fa.example', 'rss', 'other', 'rss')`,
-		).run();
-		raw.prepare(
-			`INSERT INTO articles (id, source_id, title, content, url, hash)
+			)
+			.run();
+		raw
+			.prepare(
+				`INSERT INTO articles (id, source_id, title, content, url, hash)
 			 VALUES ('art-fa', 'src-fa', 'آپدیت مهم منتشر شد', 'متن فارسی', 'https://fa.example/1', 'hash-fa')`,
-		).run();
-		raw.prepare(
-			"UPDATE user_profile SET preferred_intelligence_language = 'fa' WHERE id = 'default'",
-		).run();
+			)
+			.run();
+		raw
+			.prepare(
+				"UPDATE user_profile SET preferred_intelligence_language = 'fa' WHERE id = 'default'",
+			)
+			.run();
 
 		const { svc, llm } = makeService(tdb);
 		const detail = await svc.translateStory("art-fa");

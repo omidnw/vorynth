@@ -75,11 +75,11 @@ export function useCategorySearch(
 
 	const matchesItem = (categoryId: string, itemId: string): boolean =>
 		normalized !== "" &&
-		(categories
-			.find((c) => c.id === categoryId)
-			?.items?.find((it) => it.id === itemId)?.search ?? "").includes(
-			normalized,
-		);
+		(
+			categories
+				.find((c) => c.id === categoryId)
+				?.items?.find((it) => it.id === itemId)?.search ?? ""
+		).includes(normalized);
 
 	const visibleCount =
 		normalized === ""
