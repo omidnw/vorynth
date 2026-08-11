@@ -24,7 +24,7 @@ if (!repo || !tag) {
 }
 
 const token = process.env.GH_TOKEN;
-const api = `https://api.github.com/repos/${repo}/releases/tags/${tag}`;
+const api = `https://api.github.com/repos/${repo}/releases`;
 const headers = token ? { Authorization: `token ${token}` } : {};
 const downloadUrl = (name) =>
 	`https://github.com/${repo}/releases/download/${tag}/${encodeURIComponent(name)}`;
@@ -33,6 +33,21 @@ async function apiJson(url) {
 	const res = await fetch(url, { headers });
 	if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
 	return res.json();
+}
+
+/** Find the release for the tag. Uses the LIST endpoint, not
+ *  `releases/tags/:tag` — this job runs while the release is still a DRAFT,
+ *  and the tags endpoint hides drafts (404). The list endpoint returns drafts
+ *  when authenticated (GH_TOKEN). */
+async function findReleaseByTag() {
+	const list = await apiJson(`${api}?per_page=100`);
+	const found = list.find((r) => r.tag_name === tag);
+	if (!found) {
+		throw new Error(
+			`release for tag ${tag} not found (list endpoint returned ${list.length} releases)`,
+		);
+	}
+	return found;
 }
 
 /** Map a signed bundle name to the updater platform keys it serves. Mirrors
@@ -66,7 +81,7 @@ function keysFor(bundle) {
 	return [];
 }
 
-const release = await apiJson(api);
+const release = await findReleaseByTag();
 const sigAssets = release.assets.filter((a) => a.name.endsWith(".sig"));
 
 const platforms = {};
