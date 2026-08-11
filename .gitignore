@@ -64,3 +64,8 @@ apps/desktop/src-tauri/.tauri/
 # web artifact so `cargo tauri build` skips its redundant vite build. Never
 # committed; local builds must always rebuild the frontend.
 .vorynth-web-built
+
+# Generated updater manifest — the CI updater-manifest job rebuilds + uploads
+# this per release; it must never be committed (it fails format:check and is
+# stale the moment a platform job re-uploads).
+latest.json
