@@ -1,0 +1,71 @@
+{
+  "version": "1.8.1",
+  "notes": "",
+  "pub_date": "2026-08-11T18:57:54.467Z",
+  "platforms": {
+    "linux-aarch64-rpm": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGdqa2hQMTlyOUdYZWM2TW4zbjJXaGpZQnBJTytTWVpTVFZLODI5VHVnT3dGenN2akhYNXR3cjFFbnFSUXZYYXMzVm91N2d3Q3JoWDlaTlpYcGNKeEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQxCWZpbGU6Vm9yeW50aC0xLjguMS0xLmFhcmNoNjQucnBtCmt1NUQxaFk5d25FTUkvV0JreXBtc2VHZ3Yybis0anQyV0lWMmpKY09vSzlkVm9hSlFEK3gvbWt3VTVySmRlWFdFQUJFdmNUWmVLS1Z0eUhLYy9UM0N3PT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth-1.8.1-1.aarch64.rpm"
+    },
+    "linux-x86_64-rpm": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGtpb1J6azcxYmk1N201T2RkZnQ1aXF3OElsMEJsODQxUVQyUk40U1ZqNzQzTmYzQ2RubWtvQXRGenY2aDN5NlBENi9XbmdDMy8wcTlVM2Z2ZUJtVWc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQwCWZpbGU6Vm9yeW50aC0xLjguMS0xLng4Nl82NC5ycG0KeExHS1BMTlQ1ZkFCSDhGNjlRYmhWaXBHRFBUSmlxMEhQZm1QNExKRkRpeThKYitPS0Q4VDhnWnZQNzloWFU0TzlyRHBBWjZmRlFLbmdaeU9FNzV4QUE9PQo=",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth-1.8.1-1.x86_64.rpm"
+    },
+    "linux-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RHA5MjBtWmJabHRpU0dVTWJYRHZPREhIdW1Ma1hjNmdESllVZXJBQmVEOFBCUnF4WEYzajdrSEd4dFdoVjUweE4zRmdGRmxPZjNxVVFhUkdhNzErbHdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQxCWZpbGU6Vm9yeW50aF8xLjguMV9hYXJjaDY0LkFwcEltYWdlCjFvdVZEN1M0NFloUnBsMEovclR2d1VDNG1RcmVRT1F1QzJpbDk4c3Zycmh2eCtYdVZXK09WTnAyZTlGZkVFUG91UDFqL2VWVlJHQTF2ckRTQ2FJTENBPT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_aarch64.AppImage"
+    },
+    "linux-aarch64-appimage": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RHA5MjBtWmJabHRpU0dVTWJYRHZPREhIdW1Ma1hjNmdESllVZXJBQmVEOFBCUnF4WEYzajdrSEd4dFdoVjUweE4zRmdGRmxPZjNxVVFhUkdhNzErbHdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQxCWZpbGU6Vm9yeW50aF8xLjguMV9hYXJjaDY0LkFwcEltYWdlCjFvdVZEN1M0NFloUnBsMEovclR2d1VDNG1RcmVRT1F1QzJpbDk4c3Zycmh2eCtYdVZXK09WTnAyZTlGZkVFUG91UDFqL2VWVlJHQTF2ckRTQ2FJTENBPT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_aarch64.AppImage"
+    },
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGg5VTgzdUdZWDhBOWlqQUdTNG1SY1ViTm5kbGw2c2g0YjV4OEYvNGVOSTlWMFdRd0JzTmZnRlhFZkZudDZTSlphTTEyeW90cUZQVjhRclZZVVA4dEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQwCWZpbGU6Vm9yeW50aF8xLjguMV9hbWQ2NC5BcHBJbWFnZQpoby82bFNadnlmcENmK0lXbmJUYmdrM2dZbFNQeWdqZk9aTWIzQUxDTXgvMDdqZ1ZOazc4ZUFLMnRibWRGdDhXbWx6QmVhNzNTWUNGUkZoaTh0MWNEQT09Cg==",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_amd64.AppImage"
+    },
+    "linux-x86_64-appimage": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGg5VTgzdUdZWDhBOWlqQUdTNG1SY1ViTm5kbGw2c2g0YjV4OEYvNGVOSTlWMFdRd0JzTmZnRlhFZkZudDZTSlphTTEyeW90cUZQVjhRclZZVVA4dEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQwCWZpbGU6Vm9yeW50aF8xLjguMV9hbWQ2NC5BcHBJbWFnZQpoby82bFNadnlmcENmK0lXbmJUYmdrM2dZbFNQeWdqZk9aTWIzQUxDTXgvMDdqZ1ZOazc4ZUFLMnRibWRGdDhXbWx6QmVhNzNTWUNGUkZoaTh0MWNEQT09Cg==",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_amd64.AppImage"
+    },
+    "linux-x86_64-deb": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGdBU1RvZStxMVNZemVxTFgxTkRjOFl5b1NmVVlMSklFMFovYStmQkdKUmF0Rmp0R3ZxUXUxN281Z25ZbFZNelRNaUZid0UzdFM0ckpGQ3ZBMUxYZ2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQwCWZpbGU6Vm9yeW50aF8xLjguMV9hbWQ2NC5kZWIKdUtTUHI4WVRxYmo1WlpzTTI2WE04OGh3Q085SmUwZ2FpS01aRktwazNwcFIwMVI2WEpYTEk0MVhydHFLZFBGNm5MMXpBeVZLZjRJK1oxWENheERCQnc9PQo=",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_amd64.deb"
+    },
+    "windows-aarch64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RHZDYzdML00vd3VRelR1ZmN4dWppempHRnBQdStqc0RQVllaYzArMjk0Q0JkS1l4SkxjN1h3dEwxR3BQZ0NPSW45WTd3aDg1MVIzVFg0WUdzWnpYN3dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODIyCWZpbGU6Vm9yeW50aF8xLjguMV9hcm02NC1zZXR1cC5leGUKMDlISXJyRUYrZFpMKzNMQ2ZreiswQlBxMjNHYmdtb2E1cEl5REJ2aXFtOFFTbjVxMWVkUFpDUXdLallzcS9XT1hxVGtVbGlPcndqZGo3Y0ptR3AzQlE9PQo=",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_arm64-setup.exe"
+    },
+    "windows-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RHZDYzdML00vd3VRelR1ZmN4dWppempHRnBQdStqc0RQVllaYzArMjk0Q0JkS1l4SkxjN1h3dEwxR3BQZ0NPSW45WTd3aDg1MVIzVFg0WUdzWnpYN3dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODIyCWZpbGU6Vm9yeW50aF8xLjguMV9hcm02NC1zZXR1cC5leGUKMDlISXJyRUYrZFpMKzNMQ2ZreiswQlBxMjNHYmdtb2E1cEl5REJ2aXFtOFFTbjVxMWVkUFpDUXdLallzcS9XT1hxVGtVbGlPcndqZGo3Y0ptR3AzQlE9PQo=",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_arm64-setup.exe"
+    },
+    "linux-aarch64-deb": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RHRzRzl1MUticDZqbDE0Q3g2TmVqbFZ2cmRhYmh6TUp4WmtjWWUxVnloZ3lpUWZjRkdmYkQ5M0s3VWY2RE1CclI5eUltQ3BuLzcvMzA0b1Y5QW9Ja0FjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODQxCWZpbGU6Vm9yeW50aF8xLjguMV9hcm02NC5kZWIKL0xWcWNVNGllbDFRKzJ6a3ZpMXJ4VllJWkx6T1pZWlgwd05WcHRXWW93aW5vVXprbHU5UE5SSkZ0d3QrZTVsbGk4b2lXNyt1S29paXpuQnRsVEcwQ1E9PQo=",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_arm64.deb"
+    },
+    "windows-aarch64-msi": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGlURzV3YXJZaTVVYVBQOFhCcVdBa1gydWpxWWNKQmdFaGtUU0dJZEYzMldGc1doQmswS3dkSmpudGlyZ0orMWdpYU5ydmU1MjdmUlMxc013Zis4NHdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODIyCWZpbGU6Vm9yeW50aF8xLjguMV9hcm02NF9lbi1VUy5tc2kKTmdTV3NQWEl3YTM0Ylo5RVpPL0tBeHp6SHZVTUUzODBRQ0N2bFUvR0VZbnVqbTc3ZUJxa2VyRTltMG8vSzJ1cUN2SzJ0YjZRSUh1Zis2WHNaRWFXQ1E9PQo=",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_arm64_en-US.msi"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RG5wVmhJNXhXSUpVc0c0WFFYKzMyWmRESEI1Y2dsSmtnYU1nNGU0VzhZemcrMnhreHFaaHdWdi9aQjNLOUhhbTdzQUZpS0dGbVIvMDRVdlptb09aZHdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczNTMyCWZpbGU6Vm9yeW50aF8xLjguMV94NjQtc2V0dXAuZXhlCjdKRUNJeDdyenVleUNLTUxZTER0dWgvLzhKK2xubFRRdlMvTGU3ZzV1WFd1d25neGxyRklySkNBcUpDRENPQUovVWZmZENOT3piQzBWMlFFNnpJMER3PT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RG5wVmhJNXhXSUpVc0c0WFFYKzMyWmRESEI1Y2dsSmtnYU1nNGU0VzhZemcrMnhreHFaaHdWdi9aQjNLOUhhbTdzQUZpS0dGbVIvMDRVdlptb09aZHdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczNTMyCWZpbGU6Vm9yeW50aF8xLjguMV94NjQtc2V0dXAuZXhlCjdKRUNJeDdyenVleUNLTUxZTER0dWgvLzhKK2xubFRRdlMvTGU3ZzV1WFd1d25neGxyRklySkNBcUpDRENPQUovVWZmZENOT3piQzBWMlFFNnpJMER3PT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_x64-setup.exe"
+    },
+    "windows-x86_64-msi": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGdTUEM0N0svNTlDMG1HSmlBVlgwZHU4Wm1mWmxqaDJpM0xYbFBYMVNCdytyY0lBVUpKd2I5cHFBQTBFRDFOMUY2OGVIdXRWN2pJRVQyTTQzdVhJSndNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczNTMyCWZpbGU6Vm9yeW50aF8xLjguMV94NjRfZW4tVVMubXNpCmtMSGpicXJxajBLSUFlTlM2UEUvOSsvVzdDWW9Fc0VZNUVhK2hTcGU2MC9VM0RhVm84RFl3NVJkTHhuU1QvTjN4Y2xFZy91Qml5aUNrWmZOKzA3YkNnPT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_1.8.1_x64_en-US.msi"
+    },
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RG5TaENMTlpyVWJwVGFrakR1UTBYTXJPVThFSCtsU205S0V2aXIwbDcwTVc5QktldDJVWUNST2FZS003eWtYdHdlNEdvdTZoVzEwWGhqOG5EYndrUlFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczMzQ1CWZpbGU6Vm9yeW50aC5hcHAudGFyLmd6Cld0RlcwbHBiZVF2M1ExWk5nOEN5MHZwMUVNS3ZUUW5nUDRWNkw0djMwZ0J0L2ZtK2t4c2ZnWmF6U2hKbzNyeTl1UWs5VE9lTWxURThIVmFIMjV2WUJnPT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_aarch64.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSS1FxSGl1aDZ6RGo5bFkzVE9EZjF5elVXcHh4WHh5WFpDYUVpWE4wamhRV0ZvZWtHeHlVVjZVWFVrSXNScUlGUzl0YWt3ODA1R0kzMWF0Z211R2YxeUdmbXBKUm1Tdnd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDczODMxCWZpbGU6Vm9yeW50aC5hcHAudGFyLmd6CkJsOGUxblkwTjZ1UTlpaWNVRExtOHdQV3RuWmZldllvU0V2dWgxbGw0VzU0VjQvYjQ5bnVMbGx4L05pd3BJOXFKK0lwNDcxOTZ0MHBla29ib1ZtL0RBPT0K",
+      "url": "https://github.com/omidnw/vorynth/releases/download/v1.8.1/Vorynth_x64.app.tar.gz"
+    }
+  }
+}

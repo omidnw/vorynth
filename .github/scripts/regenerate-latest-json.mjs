@@ -92,7 +92,14 @@ for (const sig of sigAssets) {
 		console.log(`• skipped (no updater mapping): ${sig.name}`);
 		continue;
 	}
-	const sigRes = await fetch(sig.browser_download_url, { headers });
+	const sigRes = token
+		? // Draft assets aren't public: browser_download_url 404s until the
+		  // release is published, so fetch via the API (needs the asset id).
+		  await fetch(
+				`https://api.github.com/repos/${repo}/releases/assets/${sig.id}`,
+				{ headers: { ...headers, Accept: "application/octet-stream" } },
+			)
+		: await fetch(sig.browser_download_url, { headers });
 	if (!sigRes.ok) throw new Error(`GET sig ${sig.name} -> ${sigRes.status}`);
 	// The .sig file content IS the manifest signature (tauri signs with a
 	// base64-encoded minisign payload) — pass it through verbatim, never
