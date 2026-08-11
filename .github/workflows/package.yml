@@ -390,13 +390,29 @@ jobs:
       # frontend (vite) and the engine JS bundle (ncc) are built once in
       # `verify` and downloaded above; only the native better-sqlite3 is
       # rebuilt per-OS (step above) and staged into the bundle next.
+      # (HarmonyOS never downloads the bundle — it packages only the frontend
+      # rawfile + the Rust .so — so nothing to stage there.)
       - name: Stage native better-sqlite3 into the sidecar bundle
+        if: matrix.is-harmonyos == false
         shell: bash
         run: |
+          set -euo pipefail
           SRC=apps/core-engine/node_modules/better-sqlite3/build/Release/better_sqlite3.node
-          if [ -f "$SRC" ]; then
-            cp "$SRC" apps/core-engine/dist-bundle/better_sqlite3.node
+          if [ ! -f "$SRC" ]; then
+            # Fall back to the real .pnpm path (the workspace symlink can hide it).
+            SRC="$(find apps/core-engine/node_modules/.pnpm -name 'better_sqlite3.node' -path '*/build/Release/*' 2>/dev/null | head -1 || true)"
           fi
+          if [ -z "${SRC:-}" ] || [ ! -f "$SRC" ]; then
+            echo "ERROR: better_sqlite3.node not found" >&2
+            exit 1
+          fi
+          echo "staging better_sqlite3.node from: $SRC"
+          mkdir -p apps/core-engine/dist-bundle/build/Release
+          # The launcher redirects via BETTER_SQLITE3_BINARY to the bundle root…
+          cp "$SRC" apps/core-engine/dist-bundle/better_sqlite3.node
+          # …and the ncc wrapper's default resolution looks in build/Release —
+          # ship both so the engine finds the addon either way.
+          cp "$SRC" apps/core-engine/dist-bundle/build/Release/better_sqlite3.node
 
       # ── Embed portable Node.js ──────────────────────────────────────────────────
       # Copy the Node.js binary from the CI runner into the sidecar bundle so the

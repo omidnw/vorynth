@@ -6,7 +6,7 @@
 	"build": {
 		"beforeDevCommand": "cd ../../.. && pnpm --filter @vorynth/desktop dev",
 		"devUrl": "http://localhost:5173",
-		"beforeBuildCommand": "cd ../../.. && node scripts/maybe-build-web.mjs || pnpm --filter @vorynth/desktop build",
+		"beforeBuildCommand": "node -e \"const fs=require('fs'),p=require('path');let d=process.cwd();while(true){if(fs.existsSync(p.join(d,'pnpm-workspace.yaml'))){process.exit(fs.existsSync(p.join(d,'.vorynth-web-built'))?0:1)}const n=p.dirname(d);if(n===d){process.exit(1)}d=n}\" || pnpm --filter @vorynth/desktop build",
 		"frontendDist": "../dist"
 	},
 	"app": {
