@@ -16,6 +16,7 @@ import {
 	RELEASES_URL,
 	STATS,
 	STEPS,
+	VERSION,
 	WHY,
 	type Platform,
 } from "../content";
@@ -302,19 +303,33 @@ export function Modes() {
 }
 
 export function StatsSection() {
+	const base = import.meta.env.BASE_URL;
 	return (
 		<section className="section">
 			<div className="container">
 				<div className="stats-grid">
 					{STATS.map((stat, i) => (
 						<Reveal key={stat.label} delay={delayFor(i)}>
-							<div className="stat-card">
-								<div className="icon-wrap">
-									<Icon name={stat.icon} size={20} />
+							{stat.href ? (
+								<a
+									className="stat-card stat-card--link"
+									href={`${base}${stat.href}`}
+								>
+									<div className="icon-wrap">
+										<Icon name={stat.icon} size={20} />
+									</div>
+									<div className="stat-value">{stat.value}</div>
+									<div className="stat-label">{stat.label}</div>
+								</a>
+							) : (
+								<div className="stat-card">
+									<div className="icon-wrap">
+										<Icon name={stat.icon} size={20} />
+									</div>
+									<div className="stat-value">{stat.value}</div>
+									<div className="stat-label">{stat.label}</div>
 								</div>
-								<div className="stat-value">{stat.value}</div>
-								<div className="stat-label">{stat.label}</div>
-							</div>
+							)}
 						</Reveal>
 					))}
 				</div>
@@ -497,35 +512,80 @@ export function FaqSection() {
 	);
 }
 
-const FOOTER_LINKS = [
-	{ href: "https://github.com/omidnw/vorynth", icon: "code", label: "Source" },
-	{ href: RELEASES_URL, icon: "download", label: "Releases" },
-	{
-		href: "https://github.com/omidnw/vorynth/issues",
-		icon: "bug_report",
-		label: "Issues",
-	},
-	{ href: GUIDE_URL, icon: "menu_book", label: "Guide" },
-	{ href: "#/changelog", icon: "new_releases", label: "Changelog" },
-	{ href: "#/roadmap", icon: "map", label: "Roadmap" },
-];
+interface FooterGroup {
+	title: string;
+	links: Array<{ href: string; icon: string; label: string }>;
+}
 
 export function Footer() {
+	const base = import.meta.env.BASE_URL;
+	// Landing-internal pages use real paths (directory index files) — the
+	// landing is a multi-page site now, not a hash-routed SPA. Grouped into
+	// three cards so the link list stays scannable instead of one long row.
+	const groups: FooterGroup[] = [
+		{
+			title: "Product",
+			links: [
+				{
+					href: `${base}personal-intelligence/`,
+					icon: "psychology",
+					label: "Personal Intelligence",
+				},
+				{ href: `${base}open-source/`, icon: "code", label: "Open Source" },
+				{ href: `${base}local-first/`, icon: "shield", label: "Local-First" },
+			],
+		},
+		{
+			title: "Resources",
+			links: [
+				{ href: GUIDE_URL, icon: "menu_book", label: "Setup Guide" },
+				{ href: `${base}changelog/`, icon: "new_releases", label: "Changelog" },
+				{ href: `${base}roadmap/`, icon: "map", label: "Roadmap" },
+			],
+		},
+		{
+			title: "Project",
+			links: [
+				{
+					href: "https://github.com/omidnw/vorynth",
+					icon: "code",
+					label: "GitHub Repository",
+				},
+				{ href: RELEASES_URL, icon: "download", label: "Releases" },
+				{
+					href: "https://github.com/omidnw/vorynth/issues",
+					icon: "bug_report",
+					label: "Issues",
+				},
+			],
+		},
+	];
+
 	return (
 		<footer className="footer">
 			<div className="container">
-				<div className="footer-links">
-					{FOOTER_LINKS.map((link) => (
-						<a key={link.label} href={link.href}>
-							<Icon name={link.icon} size={16} />
-							{link.label}
-						</a>
+				<div className="footer-groups">
+					{groups.map((group) => (
+						<div className="footer-group" key={group.title}>
+							<h3 className="footer-group-title">{group.title}</h3>
+							<ul className="footer-group-links">
+								{group.links.map((link) => (
+									<li key={link.label}>
+										<a href={link.href}>
+											<Icon name={link.icon} size={16} />
+											{link.label}
+										</a>
+									</li>
+								))}
+							</ul>
+						</div>
 					))}
 				</div>
 				<p className="copyright">
 					Built with <span style={{ color: "var(--accent)" }}>♥</span> by{" "}
-					<a href="https://github.com/omidnw">Omid Reza Keshtkar</a> · MIT
-					Licensed · <a href="mailto:omidrezakeshtkar@icloud.com">Contact</a>
+					<a href="https://github.com/omidnw">Omid Reza Keshtkar</a> · v
+					{VERSION} · MIT License ·{" "}
+					<a href="mailto:omidrezakeshtkar@icloud.com">Contact</a>
 				</p>
 			</div>
 		</footer>

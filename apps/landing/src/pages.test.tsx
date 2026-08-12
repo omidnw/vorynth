@@ -16,11 +16,12 @@ describe("hash routing", () => {
 		).toBeInTheDocument();
 	});
 
-	it("renders the changelog page at #/changelog", () => {
+	it("renders the changelog page at #/changelog", async () => {
 		window.location.hash = "#/changelog";
 		render(<Root />);
+		// The pages are lazy (legacy hash fallback), so wait for the chunk.
 		expect(
-			screen.getByRole("heading", { name: /^changelog$/i }),
+			await screen.findByRole("heading", { name: /^changelog$/i }),
 		).toBeInTheDocument();
 		// The app's own release data is rendered (newest first).
 		expect(
@@ -33,17 +34,17 @@ describe("hash routing", () => {
 		expect(screen.getAllByText(/^New$/i).length).toBeGreaterThan(0);
 	});
 
-	it("renders the roadmap page at #/roadmap", () => {
+	it("renders the roadmap page at #/roadmap", async () => {
 		window.location.hash = "#/roadmap";
 		render(<Root />);
 		expect(
-			screen.getByRole("heading", { name: /roadmap & status/i }),
+			await screen.findByRole("heading", { name: /roadmap & status/i }),
 		).toBeInTheDocument();
 		// Markdown tables render as tables.
 		expect(screen.getAllByRole("table").length).toBeGreaterThan(0);
 	});
 
-	it("switches pages when the hash changes", () => {
+	it("switches pages when the hash changes", async () => {
 		render(<Root />);
 		expect(
 			screen.getByRole("heading", { name: /frequently asked questions/i }),
@@ -52,13 +53,13 @@ describe("hash routing", () => {
 		window.location.hash = "#/roadmap";
 		fireEvent(window, new Event("hashchange"));
 		expect(
-			screen.getByRole("heading", { name: /roadmap & status/i }),
+			await screen.findByRole("heading", { name: /roadmap & status/i }),
 		).toBeInTheDocument();
 
 		window.location.hash = "#/changelog";
 		fireEvent(window, new Event("hashchange"));
 		expect(
-			screen.getByRole("heading", { name: /^changelog$/i }),
+			await screen.findByRole("heading", { name: /^changelog$/i }),
 		).toBeInTheDocument();
 	});
 });

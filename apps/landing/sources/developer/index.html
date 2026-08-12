@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Developer RSS Feeds & News Sources — Curated by Vorynth</title>
+		<meta
+			name="description"
+			content="24 stable developer RSS feeds and news sources for engineers — AI, programming languages, web development, backend, devops, cloud, security, and open source. Curated by Vorynth."
+		/>
+		<meta name="robots" content="index, follow" />
+		<meta name="author" content="Omid Reza Keshtkar" />
+		<meta name="theme-color" id="theme-color" content="#0E1513" />
+		<meta name="color-scheme" content="dark light" />
+
+		<link
+			rel="canonical"
+			href="https://omidnw.github.io/vorynth/sources/developer/"
+		/>
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Vorynth" />
+		<meta
+			property="og:title"
+			content="Developer RSS Feeds & News Sources — Curated by Vorynth"
+		/>
+		<meta
+			property="og:description"
+			content="24 stable developer RSS feeds and news sources for engineers — AI, programming languages, web development, backend, devops, cloud, security, and open source."
+		/>
+		<meta
+			property="og:url"
+			content="https://omidnw.github.io/vorynth/sources/developer/"
+		/>
+		<meta
+			property="og:image"
+			content="https://omidnw.github.io/vorynth/og-image.png"
+		/>
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:locale" content="en_US" />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta
+			name="twitter:title"
+			content="Developer RSS Feeds & News Sources — Curated by Vorynth"
+		/>
+		<meta
+			name="twitter:description"
+			content="24 stable developer RSS feeds and news sources for engineers — AI, programming languages, web development, backend, devops, cloud, security, and open source."
+		/>
+		<meta
+			name="twitter:image"
+			content="https://omidnw.github.io/vorynth/og-image.png"
+		/>
+
+		<link rel="icon" href="%BASE_URL%favicon.ico" sizes="16x16 32x32 48x48" />
+		<link
+			rel="apple-touch-icon"
+			href="%BASE_URL%logo-192.png"
+			sizes="192x192"
+		/>
+		<link
+			rel="icon"
+			href="%BASE_URL%logo-192.png"
+			sizes="192x192"
+			type="image/png"
+		/>
+		<link
+			rel="icon"
+			href="%BASE_URL%logo-512.png"
+			sizes="512x512"
+			type="image/png"
+		/>
+		<link rel="manifest" href="%BASE_URL%site.webmanifest" />
+
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "WebSite",
+				"url": "https://omidnw.github.io/vorynth/sources/developer/",
+				"name": "Developer RSS Feeds & News Sources — Curated by Vorynth",
+				"inLanguage": "en"
+			}
+		</script>
+
+		<!-- Google Fonts: Newsreader (headlines), Geist (body/labels), Inter (fallback).
+         Loaded non-blocking so the stylesheet never delays first paint. -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="preload"
+			as="style"
+			href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Newsreader:opsz,wght@6..72,500..800&family=Geist:wght@100..900&display=swap"
+			onload="
+				this.onload = null;
+				this.rel = 'stylesheet';
+			"
+		/>
+		<noscript>
+			<link
+				rel="stylesheet"
+				href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Newsreader:opsz,wght@6..72,500..800&family=Geist:wght@100..900&display=swap"
+			/>
+		</noscript>
+
+		<!-- Apply the saved/system theme before first paint (no flash). -->
+		<script>
+			(function () {
+				var key = "vorynth-theme";
+				var saved;
+				try {
+					saved = localStorage.getItem(key);
+				} catch (_) {}
+				var prefersDark = window.matchMedia(
+					"(prefers-color-scheme: dark)",
+				).matches;
+				var theme = saved || (prefersDark ? "dark" : "light");
+				var html = document.documentElement;
+				html.classList.toggle("dark", theme === "dark");
+				var meta = document.getElementById("theme-color");
+				if (meta) meta.content = theme === "dark" ? "#0E1513" : "#F8FAFA";
+			})();
+		</script>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/entries/sources.tsx"></script>
+	</body>
+</html>

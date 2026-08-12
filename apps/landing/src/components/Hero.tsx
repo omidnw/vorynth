@@ -58,7 +58,10 @@ export function Hero() {
 					<Icon name="new_releases" size={16} />v{VERSION} · {CODENAME}
 				</div>
 
-				<h1>Vorynth</h1>
+				<h1>
+					Vorynth
+					<span className="hero-h1-sub">Personal Intelligence Engine</span>
+				</h1>
 				<p className="name-origin">
 					{NAME_ORIGIN.map((o, i) => (
 						<span key={o.part}>
@@ -116,6 +119,19 @@ export function Hero() {
 				</div>
 
 				<AppMockup />
+
+				<div className="hero-screenshots">
+					<p className="hero-screenshots-note">
+						See the app in action — real screenshots of Vorynth
+					</p>
+					<a
+						href={`${import.meta.env.BASE_URL}screenshots/`}
+						className="btn btn-outline btn-sm"
+					>
+						<Icon name="photo_library" size={18} />
+						Browse screenshots
+					</a>
+				</div>
 			</div>
 		</header>
 	);

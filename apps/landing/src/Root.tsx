@@ -1,21 +1,27 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { App } from "./App";
-import { ChangelogPage } from "./pages/ChangelogPage";
-import { RoadmapPage } from "./pages/RoadmapPage";
 
 /**
- * Minimal hash router for the static site. Two extra pages live alongside the
- * landing home page:
+ * Router for the HOME document only. Changelog, roadmap, and the curated
+ * source-list pages are now REAL pages — each has its own index.html served at
+ * a directory path (changelog/, roadmap/, sources/…), so index.html never
+ * renders them directly.
  *
- *   #/changelog → ChangelogPage  (release notes, from the app's own data)
- *   #/roadmap   → RoadmapPage    (renders the repo's roadmap.md)
- *   anything else → the home page (its #why / #faq anchors still scroll natively)
- *
- * GitHub Pages has no server rewrites, so hash routes (`#/…`) keep every URL
- * working without a fallback, and home-page anchors never collide because they
- * don't start with `#/`.
+ * The hash switch below is kept as a LEGACY fallback for old `#/changelog` /
+ * `#/roadmap` links that predate the multi-page build — those still render
+ * inline instead of breaking. The pages are lazy so the home bundle never pays
+ * for the markdown/release-notes chunks it doesn't need. Home anchors (#why,
+ * #faq, …) keep scrolling natively, and they never collide because they don't
+ * start with `#/`.
  */
 type Route = "home" | "changelog" | "roadmap";
+
+const ChangelogPage = lazy(() =>
+	import("./pages/ChangelogPage").then((m) => ({ default: m.ChangelogPage })),
+);
+const RoadmapPage = lazy(() =>
+	import("./pages/RoadmapPage").then((m) => ({ default: m.RoadmapPage })),
+);
 
 function routeFromHash(hash: string): Route {
 	if (hash.startsWith("#/changelog")) return "changelog";
@@ -34,7 +40,17 @@ export function Root() {
 		return () => window.removeEventListener("hashchange", onHashChange);
 	}, []);
 
-	if (route === "changelog") return <ChangelogPage />;
-	if (route === "roadmap") return <RoadmapPage />;
+	if (route === "changelog")
+		return (
+			<Suspense fallback={null}>
+				<ChangelogPage />
+			</Suspense>
+		);
+	if (route === "roadmap")
+		return (
+			<Suspense fallback={null}>
+				<RoadmapPage />
+			</Suspense>
+		);
 	return <App />;
 }

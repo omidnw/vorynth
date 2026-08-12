@@ -28,6 +28,21 @@ your API keys, history, and insights stay under your control.
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="apps/landing/public/screenshots/todays-brief.png" alt="Today's Intelligence Brief — the ranked feed with AI explanations" width="46%" />
+  <img src="apps/landing/public/screenshots/sources.png" alt="Sources page — add and manage your feeds and curated lists" width="46%" />
+</p>
+<p align="center">
+  <img src="apps/landing/public/screenshots/story-article-view.png" alt="Article reading view" width="46%" />
+  <img src="apps/landing/public/screenshots/archive-items.png" alt="Archive — collections, folders, tags and notes" width="46%" />
+</p>
+
+> See every screen — [browse the Vorynth screenshot gallery](https://omidnw.github.io/vorynth/screenshots/).
+
+---
+
 ## Why Vorynth?
 
 Vorynth is a **constructed name** built from three parts:

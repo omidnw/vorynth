@@ -1,49 +1,187 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Vorynth — a local-first personal intelligence engine. Collect, rank, and understand the stories that matter from the sources you trust — all on your machine."
-    />
-    <meta name="theme-color" id="theme-color" content="#0E1513" />
-    <meta name="color-scheme" content="dark light" />
-    <title>Vorynth — Personal Intelligence Engine</title>
-    <link rel="icon" href="%BASE_URL%favicon.ico" sizes="16x16 32x32 48x48" />
-    <link rel="apple-touch-icon" href="%BASE_URL%logo-192.png" sizes="192x192" />
-    <link rel="icon" href="%BASE_URL%logo-192.png" sizes="192x192" type="image/png" />
-    <link rel="icon" href="%BASE_URL%logo-512.png" sizes="512x512" type="image/png" />
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Vorynth — Personal Intelligence Engine</title>
+		<meta
+			name="description"
+			content="Vorynth is a local-first personal intelligence engine: it collects the news and research that matter, ranks them, and explains why — on your device, no cloud, no account."
+		/>
+		<meta name="robots" content="index, follow, max-image-preview:large" />
+		<meta name="author" content="Omid Reza Keshtkar" />
+		<meta name="theme-color" id="theme-color" content="#0E1513" />
+		<meta name="color-scheme" content="dark light" />
 
-    <!-- Google Fonts: Newsreader (headlines), Geist (body/labels), Inter (fallback).
+		<link rel="canonical" href="https://omidnw.github.io/vorynth/" />
+
+		<!-- Open Graph -->
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Vorynth" />
+		<meta
+			property="og:title"
+			content="Vorynth — Personal Intelligence Engine"
+		/>
+		<meta
+			property="og:description"
+			content="Vorynth is a local-first personal intelligence engine: it collects the news and research that matter, ranks them, and explains why — on your device, no cloud, no account."
+		/>
+		<meta property="og:url" content="https://omidnw.github.io/vorynth/" />
+		<meta
+			property="og:image"
+			content="https://omidnw.github.io/vorynth/og-image.png"
+		/>
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta
+			property="og:image:alt"
+			content="Vorynth — Personal Intelligence Engine"
+		/>
+		<meta property="og:locale" content="en_US" />
+
+		<!-- Twitter Card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta
+			name="twitter:title"
+			content="Vorynth — Personal Intelligence Engine"
+		/>
+		<meta
+			name="twitter:description"
+			content="Vorynth is a local-first personal intelligence engine: it collects the news and research that matter, ranks them, and explains why — on your device, no cloud, no account."
+		/>
+		<meta
+			name="twitter:image"
+			content="https://omidnw.github.io/vorynth/og-image.png"
+		/>
+		<meta
+			name="twitter:image:alt"
+			content="Vorynth — Local-First AI News Reader"
+		/>
+
+		<link rel="icon" href="%BASE_URL%favicon.ico" sizes="16x16 32x32 48x48" />
+		<link
+			rel="apple-touch-icon"
+			href="%BASE_URL%logo-192.png"
+			sizes="192x192"
+		/>
+		<link
+			rel="icon"
+			href="%BASE_URL%logo-192.png"
+			sizes="192x192"
+			type="image/png"
+		/>
+		<link
+			rel="icon"
+			href="%BASE_URL%logo-512.png"
+			sizes="512x512"
+			type="image/png"
+		/>
+		<link rel="manifest" href="%BASE_URL%site.webmanifest" />
+
+		<!-- Structured data: WebSite + SoftwareApplication + Organization.
+         __VORYNTH_VERSION__ is replaced at build time by the seoPlugin in
+         vite.config.ts (single source of truth: packages/types). -->
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@graph": [
+					{
+						"@type": "WebSite",
+						"@id": "https://omidnw.github.io/vorynth/#website",
+						"url": "https://omidnw.github.io/vorynth/",
+						"name": "Vorynth — Personal Intelligence Engine",
+						"inLanguage": "en",
+						"publisher": {
+							"@id": "https://omidnw.github.io/vorynth/#organization"
+						}
+					},
+					{
+						"@type": "SoftwareApplication",
+						"@id": "https://omidnw.github.io/vorynth/#software",
+						"name": "Vorynth",
+						"alternateName": "Vorynth — Local-First Personal Intelligence Engine",
+						"description": "Vorynth is a personal intelligence engine: it collects from RSS, GitHub releases, arXiv, and more, ranks what matters, and uses AI to explain each story — all on your device, with no cloud account.",
+						"url": "https://omidnw.github.io/vorynth/",
+						"applicationCategory": "UtilitiesApplication",
+						"operatingSystem": "macOS, Windows, Linux, FreeBSD",
+						"softwareVersion": "__VORYNTH_VERSION__",
+						"offers": {
+							"@type": "Offer",
+							"price": "0",
+							"priceCurrency": "USD"
+						},
+						"author": {
+							"@id": "https://omidnw.github.io/vorynth/#organization"
+						},
+						"publisher": {
+							"@id": "https://omidnw.github.io/vorynth/#organization"
+						},
+						"sameAs": ["https://github.com/omidnw/vorynth"]
+					},
+					{
+						"@type": "Organization",
+						"@id": "https://omidnw.github.io/vorynth/#organization",
+						"name": "Vorynth",
+						"url": "https://omidnw.github.io/vorynth/",
+						"logo": {
+							"@type": "ImageObject",
+							"url": "https://omidnw.github.io/vorynth/logo-512.png"
+						},
+						"founder": {
+							"@type": "Person",
+							"name": "Omid Reza Keshtkar",
+							"url": "https://github.com/omidnw"
+						},
+						"sameAs": ["https://github.com/omidnw/vorynth"]
+					}
+				]
+			}
+		</script>
+
+		<!-- Google Fonts: Newsreader (headlines), Geist (body/labels), Inter (fallback).
+         Loaded non-blocking (preload + onload swap) so the stylesheet never
+         delays first paint; <noscript> keeps the fonts for non-JS crawlers.
          Material Symbols (icons) is self-hosted via @fontsource so icons render
          where Google is unreachable. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Newsreader:opsz,wght@6..72,500..800&family=Geist:wght@100..900&display=swap"
-      rel="stylesheet"
-    />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="preload"
+			as="style"
+			href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Newsreader:opsz,wght@6..72,500..800&family=Geist:wght@100..900&display=swap"
+			onload="
+				this.onload = null;
+				this.rel = 'stylesheet';
+			"
+		/>
+		<noscript>
+			<link
+				rel="stylesheet"
+				href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Newsreader:opsz,wght@6..72,500..800&family=Geist:wght@100..900&display=swap"
+			/>
+		</noscript>
 
-    <!-- Apply the saved/system theme before first paint (no flash). -->
-    <script>
-      (function () {
-        var key = "vorynth-theme";
-        var saved;
-        try {
-          saved = localStorage.getItem(key);
-        } catch (_) {}
-        var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        var theme = saved || (prefersDark ? "dark" : "light");
-        var html = document.documentElement;
-        html.classList.toggle("dark", theme === "dark");
-        var meta = document.getElementById("theme-color");
-        if (meta) meta.content = theme === "dark" ? "#0E1513" : "#F8FAFA";
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+		<!-- Apply the saved/system theme before first paint (no flash). -->
+		<script>
+			(function () {
+				var key = "vorynth-theme";
+				var saved;
+				try {
+					saved = localStorage.getItem(key);
+				} catch (_) {}
+				var prefersDark = window.matchMedia(
+					"(prefers-color-scheme: dark)",
+				).matches;
+				var theme = saved || (prefersDark ? "dark" : "light");
+				var html = document.documentElement;
+				html.classList.toggle("dark", theme === "dark");
+				var meta = document.getElementById("theme-color");
+				if (meta) meta.content = theme === "dark" ? "#0E1513" : "#F8FAFA";
+			})();
+		</script>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/main.tsx"></script>
+	</body>
 </html>

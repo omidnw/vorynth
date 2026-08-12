@@ -2,24 +2,25 @@ import { useState } from "react";
 import { Icon } from "../components/Icon";
 import { ThemeToggle } from "../components/ThemeToggle";
 
-/** Top bar for the standalone changelog/roadmap pages — they don't use the
- *  landing home nav (whose links are home-section anchors). */
-const LINKS = [
-	{ href: "#/", label: "Home" },
-	{ href: "#/changelog", label: "Changelog" },
-	{ href: "#/roadmap", label: "Roadmap" },
-	{ href: "https://github.com/omidnw/vorynth", label: "GitHub" },
-];
-
+/** Top bar for the standalone changelog/roadmap/sources pages — they don't use
+ *  the landing home nav (whose links are home-section anchors). The pages live
+ *  at real paths (directory index files), so links are base-aware. */
 export function DocsHeader() {
 	const base = import.meta.env.BASE_URL;
 	const [open, setOpen] = useState(false);
 	const close = () => setOpen(false);
 
+	const links = [
+		{ href: base, label: "Home" },
+		{ href: `${base}changelog/`, label: "Changelog" },
+		{ href: `${base}roadmap/`, label: "Roadmap" },
+		{ href: "https://github.com/omidnw/vorynth", label: "GitHub" },
+	];
+
 	return (
 		<header className="docs-header">
 			<div className="container docs-header-inner">
-				<a href="#/" className="docs-logo" onClick={close}>
+				<a href={base} className="docs-logo" onClick={close}>
 					<img
 						src={`${base}logo-nav.png`}
 						alt="Vorynth"
@@ -31,7 +32,7 @@ export function DocsHeader() {
 				<div
 					className={`docs-header-links${open ? " docs-header-links--open" : ""}`}
 				>
-					{LINKS.map((link) => (
+					{links.map((link) => (
 						<a key={link.label} href={link.href} onClick={close}>
 							{link.label}
 						</a>

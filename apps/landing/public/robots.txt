@@ -1,0 +1,8 @@
+# Vorynth landing — omidnw.github.io/vorynth/
+User-agent: *
+Allow: /
+
+# The repo README is deployed as a raw markdown file — not worth indexing.
+Disallow: /vorynth/README.md
+
+Sitemap: https://omidnw.github.io/vorynth/sitemap.xml
