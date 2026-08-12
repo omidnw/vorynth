@@ -218,6 +218,7 @@ export class ConnectorRegistryService {
 			const existing = existingById.get(def.id);
 			if (existing) {
 				const same =
+					existing.sourceType === def.sourceType &&
 					existing.name === def.name &&
 					existing.description === (def.description ?? "") &&
 					existing.version === def.version &&
@@ -231,6 +232,7 @@ export class ConnectorRegistryService {
 					await this.db.db
 						.update(connectorManifests)
 						.set({
+							sourceType: def.sourceType,
 							name: def.name,
 							description: def.description ?? "",
 							version: def.version,

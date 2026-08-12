@@ -47,7 +47,7 @@ rules:
           - pattern: setInterval($CODE, ...)
       - metavariable-regex:
           metavariable: $CODE
-          regex: '^["'']'
+          regex: '^[`"'']'
     paths:
       include:
         - "**/apps/desktop/plugins/**"
@@ -109,8 +109,8 @@ rules:
       - metavariable-pattern:
           metavariable: $URL
           patterns:
-            - pattern-regex: '^["'']https?://'
-            - pattern-not-regex: '^["'']https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?[/'']'
+            - pattern-regex: '^["''](?:https?://|//)'
+            - pattern-not-regex: '^["''](?:(?:https?://)|//)(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?[/'']'
     paths:
       include:
         - "**/apps/desktop/plugins/**"
@@ -156,6 +156,7 @@ rules:
           - pattern: process.versions
           - pattern: process.argv
           - pattern: child_process
+          - pattern: "node:fs"
     paths:
       include:
         - "**/apps/desktop/plugins/**"
@@ -165,7 +166,7 @@ rules:
     severity: INFO
     message: >-
       Crypto-mining fingerprint. Never ship mining code in a plugin.
-    pattern-regex: "cryptonight|coinhive"
+    pattern-regex: "cryptonight|coinhive|SHA-256"
     paths:
       include:
         - "**/apps/desktop/plugins/**"

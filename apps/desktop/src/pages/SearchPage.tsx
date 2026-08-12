@@ -34,6 +34,14 @@ import type {
 /** How many keyword hits to show inline before offering "View all". */
 const KEYWORD_PREVIEW_HITS = 5;
 
+/**
+ * Whether an Ask-AI search has run in this app session. Module-level on
+ * purpose: it survives SearchPage unmounts (navigate away + back), so a
+ * finished job surfaces on return, while a brand-new session never
+ * resurrects answers from a previous one.
+ */
+let askedInSession = false;
+
 type Mode = SearchMode;
 
 /**
@@ -60,6 +68,7 @@ export function SearchPage() {
 	const [mode, setMode] = useState<Mode>("keyword");
 	const [keywordResult, setKeywordResult] = useState<SearchResult | null>(null);
 	const [aiResult, setAiResult] = useState<AskResult | null>(null);
+	const [askError, setAskError] = useState<string | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [advancedResult, setAdvancedResult] = useState<SearchResult | null>(
 		null,
@@ -90,15 +99,29 @@ export function SearchPage() {
 		}
 	}, [searchParams, setSearchParams]);
 
-	// Watch for completed ask jobs and surface their result.
+	// Watch the newest "Asking AI" job and surface its result exactly once.
+	// The store re-fetches jobs every few seconds (a new `jobs.recent` array per
+	// poll), so a job-id guard stops a finished job from re-applying, and a
+	// FAILED ask shows its error instead of silently resurrecting an older
+	// answer. Results only surface after the user has asked something this
+	// session — a fresh visit never shows a stale answer from a previous session.
+	const surfacedAskJobIdRef = useRef<string | null>(null);
 	useEffect(() => {
-		const done = jobs.recent.find(
-			(j) => j.label.startsWith("Asking AI") && j.status === "done",
-		);
-		if (!done) return;
-		const result = done.result as AskResult | null;
-		if (result && "answer" in result) {
-			setAiResult(result);
+		const newest = jobs.recent.find((j) => j.label.startsWith("Asking AI"));
+		if (!newest || newest.status === "queued" || newest.status === "running")
+			return;
+		if (!askedInSession) return;
+		if (surfacedAskJobIdRef.current === newest.id) return;
+		surfacedAskJobIdRef.current = newest.id;
+		if (newest.status === "done") {
+			const result = newest.result as AskResult | null;
+			if (result && "answer" in result) {
+				setAiResult(result);
+				setAskError(null);
+			}
+		} else if (newest.status === "error") {
+			setAiResult(null);
+			setAskError(newest.error ?? t("llmError.error"));
 		}
 	}, [jobs.recent]);
 
@@ -109,8 +132,19 @@ export function SearchPage() {
 
 	const submit = () => {
 		if (!q.trim()) return;
-		if (mode === "keyword") keyword.mutate();
-		else void startAsk(q, { budget: 24_000 });
+		if (mode === "keyword") {
+			keyword.mutate();
+		} else {
+			askedInSession = true;
+			// Drop the previous answer while the new ask runs — an answer for an
+			// old query must never sit next to the current one.
+			setAiResult(null);
+			setAskError(null);
+			void startAsk(q, { budget: 24_000 }).then((job) => {
+				if (!job)
+					setAskError(useJobsStore.getState().lastError ?? t("llmError.error"));
+			});
+		}
 	};
 
 	const hasResult = Boolean(
@@ -119,16 +153,18 @@ export function SearchPage() {
 
 	// Resolve the history entry id so the "View full result" button can
 	// deep-link. The row exists by the time the result is shown; we just need
-	// to fetch the list to learn its id.
+	// to fetch the list to learn its id. In AI mode the lookup follows the
+	// ANSWER's query, not the current input — they can differ (background ask).
+	const lookupQuery = mode === "ai" ? (aiResult?.query ?? q) : q;
 	const { data: searchHistory, isFetching: historyFetching } = useQuery({
-		queryKey: ["history", "search", "lookup", mode, q],
+		queryKey: ["history", "search", "lookup", mode, lookupQuery],
 		queryFn: () => fetchSearchHistory(false),
 		enabled: hasResult,
 		staleTime: 5_000,
 	});
 	const entryId =
-		hasResult && q.trim()
-			? findSearchEntryId(searchHistory?.items ?? [], q, mode)
+		hasResult && lookupQuery.trim()
+			? findSearchEntryId(searchHistory?.items ?? [], lookupQuery, mode)
 			: null;
 
 	const openFull = () => {
@@ -215,6 +251,14 @@ export function SearchPage() {
 				</GhostCard>
 			) : null}
 
+			{/* v1.8.1 — a failed Ask-AI job is surfaced here, never silently
+			    replaced with an older answer. */}
+			{askError ? (
+				<GhostCard className="mt-6 border-s-2 border-s-error">
+					<p className="font-mono text-mono-technical text-error">{askError}</p>
+				</GhostCard>
+			) : null}
+
 			{/* Results */}
 			<div className="mt-8">
 				{advancedResult ? (
@@ -246,7 +290,11 @@ export function SearchPage() {
 					/>
 				) : null}
 
-				{!hasResult && !keyword.isPending && !askActive && !advancedResult ? (
+				{!hasResult &&
+				!keyword.isPending &&
+				!askActive &&
+				!askError &&
+				!advancedResult ? (
 					<SearchEmptyState
 						mode={mode}
 						intelligenceEnabled={intelligenceEnabled}

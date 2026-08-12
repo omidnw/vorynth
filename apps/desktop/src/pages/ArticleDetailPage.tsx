@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { locationHasHistory } from "@/lib/router/has-history.js";
@@ -66,12 +66,30 @@ export function ArticleDetailPage() {
 	// lets the "Mark read" button toggle the persisted flag.
 	const [viewId, setViewId] = useState<number | null>(null);
 	const [read, setRead] = useState(false);
+	// A "Mark read" toggle clicked before the view id has landed — persisted
+	// once the record resolves (the engine's view row doesn't exist yet).
+	const pendingReadRef = useRef<boolean | null>(null);
 	useEffect(() => {
 		if (!id) return;
+		// Navigating article→article keeps the component mounted — clear the
+		// previous story's view state BEFORE the new record resolves, so the
+		// old row can't be mutated and stale flags don't flash on the new story.
+		setViewId(null);
+		setRead(false);
+		pendingReadRef.current = null;
 		void recordStoryView({ articleId: id, scope: "article" })
 			.then((res) => {
 				setViewId(res.id);
-				setRead(true);
+				const pending = pendingReadRef.current;
+				pendingReadRef.current = null;
+				setRead(pending ?? true);
+				if (pending != null) {
+					void setStoryViewRead(res.id, pending)
+						.then(() =>
+							queryClient.invalidateQueries({ queryKey: ["story-views"] }),
+						)
+						.catch(() => undefined);
+				}
 			})
 			.catch(() => undefined);
 	}, [id]);
@@ -84,6 +102,18 @@ export function ArticleDetailPage() {
 	const [showOriginalBody, setShowOriginalBody] = useState(false);
 	const [zoomed, setZoomed] = useState<ArticleMedia | null>(null);
 	const [showExport, setShowExport] = useState(false);
+
+	// v1.9.0 — reset the remaining per-article UI state on id change; without
+	// this, zoom, reminder dismissal, and the original/translated toggles leak
+	// from the previous story when navigating article→article without unmount.
+	useEffect(() => {
+		setReminderDismissed(false);
+		setShowOriginal(false);
+		setShowOriginalBody(false);
+		setZoomed(null);
+		setShowExport(false);
+		pendingReadRef.current = null;
+	}, [id]);
 
 	const { data: detail, isLoading } = useQuery({
 		queryKey: ["article", id],
@@ -473,6 +503,9 @@ export function ArticleDetailPage() {
 						onClick: () => {
 							const next = !read;
 							setRead(next);
+							// The view row may not exist yet (record in flight) —
+							// queue the toggle so it's persisted once it lands,
+							// instead of silently reverting on the next open.
 							if (viewId != null) {
 								void setStoryViewRead(viewId, next)
 									.then(() =>
@@ -481,6 +514,8 @@ export function ArticleDetailPage() {
 										}),
 									)
 									.catch(() => undefined);
+							} else {
+								pendingReadRef.current = next;
 							}
 						},
 					},
@@ -527,12 +562,18 @@ export function ArticleDetailPage() {
 						label: t("article.share"),
 						onClick: () => {
 							if (navigator.share) {
-								void navigator.share({
-									title: article.title,
-									url: article.url,
-								});
+								// The OS share sheet can be canceled — never let a
+								// rejection land as an unhandled promise rejection.
+								void navigator
+									.share({
+										title: article.title,
+										url: article.url,
+									})
+									.catch(() => undefined);
 							} else {
-								void navigator.clipboard.writeText(article.url);
+								void navigator.clipboard
+									.writeText(article.url)
+									.catch(() => undefined);
 							}
 						},
 					},

@@ -47,6 +47,7 @@ import {
 	CategoryChips,
 } from "@/components/settings/CategoryRail.js";
 import { SettingsSearch } from "@/components/settings/SettingsSearch.js";
+import { cn } from "@/lib/cn";
 import { useCategorySearch } from "@/components/settings/useCategorySearch.js";
 import {
 	fetchSettings,
@@ -241,8 +242,14 @@ export function SettingsPage() {
 	/** v1.8.0 — deep-linked `?section=` from the cross-page search hint. */
 	const highlightFromLink = useSectionHighlight();
 	const crossTopic = findCrossPageTopic(query, "/settings", t);
+	// A category ring fires only when the CATEGORY blob matched AND no card
+	// inside it matched — a card match highlights the card, not the whole
+	// section (v1.9.0; the General blob shares words with its cards, so
+	// without this the whole General section rings alongside the card).
 	const isHighlighted = (id: string) =>
-		highlightedIds.includes(id) || highlightFromLink === id;
+		(highlightedIds.includes(id) &&
+			!highlightedItemIds.some((h) => h.categoryId === id)) ||
+		highlightFromLink === id;
 	// v1.8.1 — per-card search ring (a matched card, not the whole category).
 	// v1.9.0 — matches items in ANY category (General cards + the Data /
 	// Intelligence / Sources cards), so "auto-delete" rings the Retention card
@@ -258,14 +265,75 @@ export function SettingsPage() {
 	// page, the cross-page hint takes focus priority (the thing isn't here).
 	const hintRef = useRef<HTMLDivElement>(null);
 	const [hintFocused, setHintFocused] = useState(false);
+
+	// v1.9.0 — Enter cycles through every matching card/section in DOM order
+	// (not just the first match every time). Only a category whose own blob
+	// matched with no matching card inside is a scroll target; a card match
+	// scrolls to the card.
+	const normalizedQuery = query.trim().toLowerCase();
+	const matchTargets = useMemo(() => {
+		const targets: string[] = [];
+		for (const c of categories) {
+			const catMatches = c.search.includes(normalizedQuery);
+			const matchedItems = (c.items ?? []).filter((it) =>
+				it.search.includes(normalizedQuery),
+			);
+			if (catMatches && matchedItems.length === 0) targets.push(c.id);
+			for (const it of matchedItems) targets.push(it.id);
+		}
+		return targets;
+	}, [categories, normalizedQuery]);
+	const [cycleIndex, setCycleIndex] = useState(0);
+	// v1.9.0 — while navigating results the search box is sticky so it follows
+	// the scroll; clicking anywhere on the page returns it to its place.
+	const [followMode, setFollowMode] = useState(false);
+	const searchBoxRef = useRef<HTMLDivElement>(null);
+
 	const focusSearch = () => {
 		if (crossTopic) {
 			setHintFocused(true);
 			hintRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
 			return;
 		}
-		focusFirstMatch();
+		if (matchTargets.length === 0) {
+			focusFirstMatch();
+			return;
+		}
+		setFollowMode(true);
+		const target = matchTargets[cycleIndex % matchTargets.length];
+		if (!target) return;
+		// Cards carry `data-search-id` (not an `id`), categories carry an `id`.
+		const el =
+			document.querySelector(`[data-search-id="${target}"]`) ??
+			document.getElementById(target);
+		if (el) {
+			// Clear the floating search panel (~114px) when scrolling to a target.
+			const top = Math.max(
+				0,
+				el.getBoundingClientRect().top + window.scrollY - 120,
+			);
+			window.scrollTo({ top, behavior: "smooth" });
+		}
+		setCycleIndex((i) => (i + 1) % matchTargets.length);
 	};
+
+	// v1.9.0 — a click anywhere outside the search box ends follow mode: the
+	// box un-sticks and smooth-scrolls back to its place.
+	useEffect(() => {
+		if (!followMode) return;
+		const onDocClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (searchBoxRef.current?.contains(target)) return;
+			setFollowMode(false);
+			setCycleIndex(0);
+			searchBoxRef.current?.scrollIntoView({
+				behavior: "smooth",
+				block: "start",
+			});
+		};
+		document.addEventListener("click", onDocClick);
+		return () => document.removeEventListener("click", onDocClick);
+	}, [followMode]);
 
 	const navItems = useMemo(
 		() => categories.map(({ id, label, icon }) => ({ id, label, icon })),
@@ -312,14 +380,27 @@ export function SettingsPage() {
 				/>
 
 				<div className="min-w-0 flex-1 space-y-8">
-					<SettingsSearch
-						value={query}
-						onChange={(v) => {
-							setQuery(v);
-							setHintFocused(false);
-						}}
-						onSearch={focusSearch}
-					/>
+					{/* v1.9.0 — while navigating results the search box floats as a
+					    sticky panel so Enter-cycling keeps it at hand; a click on
+					    the page returns it to its place (see followMode). */}
+					<div
+						ref={searchBoxRef}
+						className={cn(
+							followMode &&
+								"sticky top-4 z-20 rounded-2xl border border-outline-variant bg-surface/95 p-3 shadow-lg backdrop-blur-sm",
+						)}
+					>
+						<SettingsSearch
+							value={query}
+							onChange={(v) => {
+								setQuery(v);
+								setHintFocused(false);
+								setCycleIndex(0);
+								if (!v.trim()) setFollowMode(false);
+							}}
+							onSearch={focusSearch}
+						/>
+					</div>
 
 					{/* v1.8.0 — "this setting lives on the Profile page" hint */}
 					{crossTopic ? (
@@ -1503,6 +1584,7 @@ function ReCollectButton() {
 	const isActive = useJobsStore((s) => s.isActive("collect"));
 	const startForceCollect = useJobsStore((s) => s.startForceCollect);
 	const [showConfirm, setShowConfirm] = useState(false);
+	const jobError = useFinishedJobError();
 
 	if (isActive) {
 		return (
@@ -1530,12 +1612,21 @@ function ReCollectButton() {
 				cancelLabel={t("common.cancel")}
 				onConfirm={() => {
 					setShowConfirm(false);
-					void startForceCollect();
+					// A null job = the start failed (engine down) — track(null)
+					// surfaces the store's lastError instead of swallowing it.
+					void startForceCollect().then((job) =>
+						jobError.track(job?.id ?? null),
+					);
 				}}
 				onCancel={() => setShowConfirm(false)}
 				icon="sync_problem"
 				danger={false}
 			/>
+			{jobError.error ? (
+				<p className="mt-2 font-body text-body-sm text-error">
+					{aiErrorMessage(t, jobError.error, "article.recollectFailed")}
+				</p>
+			) : null}
 		</>
 	);
 }

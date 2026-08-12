@@ -111,12 +111,25 @@ export class CrawlerService implements OnModuleInit {
 			);
 
 		const rawItems = await adapter.fetch(config);
-		const parsed: Article[] = rawItems.map((it) =>
-			adapter.parse(it, {
-				sourceId: src.id,
-				hash: "",
-			}),
-		);
+		// Parse each record in isolation — one malformed record (a bad date, an
+		// unexpected shape) must never take down the whole source's run.
+		const parsed: Article[] = [];
+		for (const it of rawItems) {
+			try {
+				parsed.push(
+					adapter.parse(it, {
+						sourceId: src.id,
+						hash: "",
+					}),
+				);
+			} catch (err) {
+				this.logger.warn(
+					`${src.name}: skipped a record that failed to parse: ${
+						err instanceof Error ? err.message : String(err)
+					}`,
+				);
+			}
+		}
 
 		// Recompute hashes after parsing (adapter sets ctx.hash="" placeholder).
 		for (const a of parsed) {

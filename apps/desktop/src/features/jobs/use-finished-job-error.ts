@@ -29,7 +29,13 @@ export function useFinishedJobError() {
 		track: (id: string | null) => {
 			jobIdRef.current = null;
 			if (!id) {
-				setError(null);
+				// A null id means the start itself failed (no job was created —
+				// engine unreachable / request rejected). Surface the store's
+				// failure message instead of silently clearing; the polling loop
+				// resets lastError on the next successful fetch, so a healthy
+				// engine never shows a stale message here.
+				const state = useJobsStore.getState?.();
+				setError(state ? (state.lastError ?? null) : null);
 				return;
 			}
 			// The job may already be finished by the time the store's promise

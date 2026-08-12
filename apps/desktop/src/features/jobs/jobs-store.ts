@@ -40,6 +40,12 @@ interface StartSummarizeOpts {
 interface JobsState {
 	jobs: JobList;
 	polling: boolean;
+	/**
+	 * True once the engine's job list has been fetched at least once. Pages
+	 * like /analyzing gate destructive auto-starts on it: until the first
+	 * fetch lands, `jobs` is the empty sentinel, not the engine's truth.
+	 */
+	hydrated: boolean;
 	lastError: string | null;
 
 	startPolling: () => void;
@@ -76,21 +82,28 @@ interface JobsState {
 }
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+/** Set by stopPolling so an in-flight tick can't re-arm the interval after stop. */
+let stopRequested = false;
 
 const empty: JobList = { active: [], recent: [] };
 
 export const useJobsStore = create<JobsState>((set, get) => ({
 	jobs: empty,
 	polling: false,
+	hydrated: false,
 	lastError: null,
 
 	startPolling: () => {
 		if (pollTimer) return;
+		stopRequested = false;
 		set({ polling: true });
 		void get().refresh();
 		// Adapt the poll interval: 2s while any job is active, 30s otherwise.
 		const tick = async () => {
 			await get().refresh();
+			// A stop that happened while this fetch was in flight must not be
+			// overridden by a re-armed interval (leaked poll loop).
+			if (stopRequested) return;
 			const hasActive = get().jobs.active.length > 0;
 			if (pollTimer) clearInterval(pollTimer);
 			pollTimer = setInterval(tick, hasActive ? 2_000 : 30_000);
@@ -99,6 +112,7 @@ export const useJobsStore = create<JobsState>((set, get) => ({
 	},
 
 	stopPolling: () => {
+		stopRequested = true;
 		if (pollTimer) clearInterval(pollTimer);
 		pollTimer = null;
 		set({ polling: false });
@@ -107,9 +121,11 @@ export const useJobsStore = create<JobsState>((set, get) => ({
 	refresh: async () => {
 		try {
 			const jobs = await fetchJobs();
-			set({ jobs, lastError: null });
+			set({ jobs, lastError: null, hydrated: true });
 		} catch (err) {
-			set({ lastError: (err as Error).message });
+			// The engine state is known to be unreachable — components may now
+			// show a failure instead of waiting forever.
+			set({ lastError: (err as Error).message, hydrated: true });
 		}
 	},
 

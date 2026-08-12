@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { copyFile, rm, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { DatabaseService } from "../../db/database.service.js";
 import { resolveBackupDir, resolveDbPath } from "../../db/paths.js";
 
@@ -16,6 +16,27 @@ import { resolveBackupDir, resolveDbPath } from "../../db/paths.js";
  * Backups live under the data dir's `backups/` folder. The user owns them and
  * can copy them off-device, share them, or import them on another machine.
  */
+/**
+ * A backup name is a FLAT filename (`/` and `\` never appear) with a known
+ * extension, and its resolved path must stay exactly inside the backups dir
+ * (a naive `startsWith(dir)` prefix check would let a sibling like
+ * `backups2/x.sqlite` through). Backups are created flat, so any separator
+ * or unknown extension is always invalid.
+ */
+function assertSafeBackupName(name: string, dir: string): string {
+	if (!name || name.includes("/") || name.includes("\\")) {
+		throw new Error(`invalid backup name: ${name}`);
+	}
+	if (!name.endsWith(".vorynth-backup") && !name.endsWith(".sqlite")) {
+		throw new Error(`not a backup file: ${name}`);
+	}
+	const fullPath = join(dir, name);
+	if (!fullPath.startsWith(resolve(dir) + sep)) {
+		throw new Error(`invalid backup name: ${name}`);
+	}
+	return fullPath;
+}
+
 @Injectable()
 export class BackupService {
 	private readonly logger = new Logger("Backup");
@@ -142,13 +163,7 @@ export class BackupService {
 	 * and names that are not backup files. Throws when the file is missing. */
 	async resolve(name: string): Promise<string> {
 		const dir = resolveBackupDir();
-		const fullPath = join(dir, name);
-		if (!fullPath.startsWith(dir)) {
-			throw new Error(`invalid backup name: ${name}`);
-		}
-		if (!name.endsWith(".vorynth-backup") && !name.endsWith(".sqlite")) {
-			throw new Error(`not a backup file: ${name}`);
-		}
+		const fullPath = assertSafeBackupName(name, dir);
 		if (!existsSync(fullPath)) {
 			throw new Error(`backup file not found: ${name}`);
 		}
@@ -158,10 +173,12 @@ export class BackupService {
 	/** Delete a specific backup file. */
 	async remove(name: string): Promise<{ ok: boolean }> {
 		const dir = resolveBackupDir();
-		const path = join(dir, name);
-		if (!path.startsWith(dir)) return { ok: false }; // path-traversal guard
-		await rm(path, { force: true });
-		return { ok: true };
+		try {
+			await rm(assertSafeBackupName(name, dir), { force: true });
+			return { ok: true };
+		} catch {
+			return { ok: false }; // path-traversal guard / not a backup file
+		}
 	}
 
 	/**

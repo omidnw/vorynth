@@ -99,5 +99,31 @@ describe("ApiAdapter", () => {
 			const call = (globalThis.fetch as jest.Mock).mock.calls[0];
 			expect(call[1].headers.Authorization).toBe("Bearer abc");
 		});
+
+		it("drops records whose date can't be parsed instead of crashing the run", async () => {
+			mockFetch([
+				{ title: "Good", published_at: "2026-08-01T00:00:00Z" },
+				{ title: "Bad date", published_at: "yesterday" },
+				{ title: "No date" },
+			]);
+			const items = await adapter.fetch({
+				api: {
+					apiUrl: "https://api.x.com",
+					titleField: "title",
+					dateField: "published_at",
+				},
+			});
+			expect(items).toHaveLength(3);
+			const good = items.find((i) => i.title === "Good");
+			// survived with a real date
+			expect(good?.publishedAt?.toISOString()).toBe("2026-08-01T00:00:00.000Z");
+			// the unparseable date degrades to undefined, never an Invalid Date
+			expect(items.find((i) => i.title === "Bad date")?.publishedAt).toBe(
+				undefined,
+			);
+			expect(items.find((i) => i.title === "No date")?.publishedAt).toBe(
+				undefined,
+			);
+		});
 	});
 });

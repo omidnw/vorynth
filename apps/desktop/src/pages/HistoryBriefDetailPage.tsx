@@ -347,7 +347,9 @@ export function HistoryBriefDetailPage() {
 					icon="content_copy"
 					label={t("historyBrief.copyHeadline")}
 					onClick={() => {
-						void navigator.clipboard.writeText(summary.headline);
+						void navigator.clipboard
+							.writeText(summary.headline)
+							.catch(() => undefined);
 					}}
 				/>
 				{storyExports.length > 0 ? (

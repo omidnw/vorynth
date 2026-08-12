@@ -54,6 +54,7 @@ Update this list when you add a codename to `RELEASES`. One codename per release
 
 | Version | Codename                        | Principle       |
 | ------- | ------------------------------- | --------------- |
+| 1.8.2   | Privacy First                   | §9 principle #4 |
 | 1.8.0   | Extend The Signal               | verb form       |
 | 1.8.1   | Open The Engine                 | verb form       |
 | 1.7.0   | Organize The Signal             | composition     |
@@ -70,7 +71,6 @@ Update this list when you add a codename to `RELEASES`. One codename per release
 
 These are good defaults when nothing more specific fits. Mark one as used (move it to the table above) the first time you assign it:
 
-- **Privacy First** — backup/restore, data ownership, key handling, delete-all
 - **Minutes Not Hours** — performance, speed, automation, scheduling
 - **Local Engine** — engine lifecycle, sidecar, ports, health checks
 - **Intelligent Filtering** — ranking, fetch windows, sort modes, importance scoring

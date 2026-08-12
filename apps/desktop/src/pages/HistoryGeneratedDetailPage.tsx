@@ -189,7 +189,9 @@ export function HistoryGeneratedDetailPage() {
 					icon="content_copy"
 					label={t("historyGenerated.copyText")}
 					onClick={() => {
-						void navigator.clipboard.writeText(entry.result);
+						void navigator.clipboard
+							.writeText(entry.result)
+							.catch(() => undefined);
 					}}
 				/>
 				{storyExports.length > 0 ? (

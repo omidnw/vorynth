@@ -1,9 +1,8 @@
 import { SOURCE_IMPACT_AREAS } from "@vorynth/types";
-// TEMP: import stubbed to isolate a test hang
-const techCatalog: { names: string[]; types: string[] } = {
-	names: [],
-	types: [],
-};
+// Build-time vocabulary from `@sparring/tech-catalog` (built into
+// src/vocab/tech-catalog.json). A vocabulary provider, never the source of
+// truth — tags stay free-form (R-A06).
+import techCatalog from "../../vocab/tech-catalog.json";
 
 /**
  * Tag/category suggestion vocabulary (v1.9.0).

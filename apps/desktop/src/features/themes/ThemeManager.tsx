@@ -255,10 +255,13 @@ export function ThemeManager() {
 							size="sm"
 							icon={copied ? "check" : "content_copy"}
 							onClick={() => {
-								void navigator.clipboard.writeText(aiPrompt).then(() => {
-									setCopied(true);
-									setTimeout(() => setCopied(false), 2000);
-								});
+								void navigator.clipboard
+									.writeText(aiPrompt)
+									.then(() => {
+										setCopied(true);
+										setTimeout(() => setCopied(false), 2000);
+									})
+									.catch(() => undefined);
 							}}
 						>
 							{copied ? t("settings.themeAiCopied") : t("settings.themeAiCopy")}

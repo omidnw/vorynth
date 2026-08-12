@@ -276,7 +276,9 @@ export function HistorySearchDetailPage() {
 					icon="content_copy"
 					label={t("historySearch.copyQuery")}
 					onClick={() => {
-						void navigator.clipboard.writeText(entry.query);
+						void navigator.clipboard
+							.writeText(entry.query)
+							.catch(() => undefined);
 					}}
 				/>
 				{storyExports.length > 0 ? (

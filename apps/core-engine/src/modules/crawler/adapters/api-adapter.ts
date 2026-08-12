@@ -70,12 +70,20 @@ export class ApiAdapter implements SourceAdapter {
 			const dateStr = dateField ? pickString(rec, dateField) : undefined;
 			const contentField = str(api?.contentField);
 			const authorField = str(api?.authorField);
+			// An unparseable date (e.g. "yesterday") would poison articleHash's
+			// toISOString() and take down the whole source — keep only valid dates
+			// (same guard as the HTML extractor).
+			let publishedAt: Date | undefined;
+			if (dateStr) {
+				const d = new Date(dateStr);
+				if (!Number.isNaN(d.getTime())) publishedAt = d;
+			}
 			items.push({
 				title,
 				content: contentField ? (pickString(rec, contentField) ?? "") : "",
 				url: itemUrl,
 				author: authorField ? pickString(rec, authorField) : undefined,
-				publishedAt: dateStr ? new Date(dateStr) : undefined,
+				publishedAt,
 			});
 		}
 

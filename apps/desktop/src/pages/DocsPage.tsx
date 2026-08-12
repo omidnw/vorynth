@@ -34,12 +34,16 @@ export function DocsPage() {
 
 	// Scroll to the `#<id>` section on load and on hash change.
 	useEffect(() => {
+		let timer: ReturnType<typeof setTimeout> | null = null;
 		const scrollToHash = () => {
 			const id = window.location.hash.replace(/^#/, "");
 			if (id) {
 				setActiveId(id);
 				// Slight delay so the section is mounted before scrolling.
-				setTimeout(() => {
+				// Track + clear so a rapid hash change (or unmount) never leaves
+				// a stray scroll behind.
+				if (timer) clearTimeout(timer);
+				timer = setTimeout(() => {
 					document
 						.getElementById(id)
 						?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -48,7 +52,10 @@ export function DocsPage() {
 		};
 		scrollToHash();
 		window.addEventListener("hashchange", scrollToHash);
-		return () => window.removeEventListener("hashchange", scrollToHash);
+		return () => {
+			window.removeEventListener("hashchange", scrollToHash);
+			if (timer) clearTimeout(timer);
+		};
 	}, []);
 
 	const allSections = [...DOCS_SECTIONS, ...pluginSections];

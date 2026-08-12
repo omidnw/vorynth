@@ -48,6 +48,15 @@ function usePerStoryJob(onFinished: () => void) {
 		busy,
 		error,
 		track: (id: string | null) => {
+			if (!id) {
+				// Start failed (no job created — engine unreachable / rejected):
+				// surface the store's failure message instead of swallowing it.
+				// The polling loop resets lastError on the next successful fetch.
+				const state = useJobsStore.getState?.();
+				setError(state ? (state.lastError ?? null) : null);
+				setJobId(null);
+				return;
+			}
 			setError(null);
 			setJobId(id);
 		},

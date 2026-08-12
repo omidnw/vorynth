@@ -29,7 +29,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 				// pick the per-value direction so LTR content stays LTR inside RTL UIs.
 				dir="auto"
 				className={cn(
-					"w-full border border-outline-variant bg-transparent px-4 py-3 font-mono text-mono-technical text-on-surface outline-none transition-colors",
+					// `block` collapses the wrapper to the input's real height — an
+					// inline-level input sits on the text baseline and makes the
+					// relative div taller than the field, so `top-1/2` on the icon
+					// lands above the field's visual center.
+					"block w-full border border-outline-variant bg-transparent px-4 py-3 font-mono text-mono-technical text-on-surface outline-none transition-colors",
 					"placeholder:text-on-tertiary-container focus:border-secondary",
 					icon && "ps-10",
 					className,

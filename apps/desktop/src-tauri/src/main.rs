@@ -577,6 +577,11 @@ fn run_tauri(port: u16, mut child: Option<Child>, start_hidden: bool) {
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        // process (v1.8.1): relaunch() after an update install. Without it the
+        // ACL rejects the command on Linux (the app survives the install there,
+        // so the frontend's relaunch is what actually restarts it — see
+        // updater-api.ts). Pure std::process — not boxed, compiles on FreeBSD.
+        .plugin(tauri_plugin_process::init())
         // Launch-at-login hook. macOS uses a LaunchAgent plist (reliable for
         // ad-hoc-signed builds; SMAppService would be hidden/blocked by
         // Ventura+ for non-notarized apps). Boxed like the updater so the

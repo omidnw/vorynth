@@ -4,7 +4,7 @@ import type { PlatformKey } from "./download";
 /** Numeric version is single-sourced from `@vorynth/types` — no drift.
  *  The codename is a hand-maintained brand string (same as the README). */
 export const VERSION = VORYNTH_VERSION;
-export const CODENAME = "Open The Engine";
+export const CODENAME = "Privacy First";
 export const RELEASES_URL = "https://github.com/omidnw/vorynth/releases";
 
 export interface Feature {

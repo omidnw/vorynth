@@ -29,23 +29,34 @@ const STAGES: { node: WorkflowNodeName; labelKey: string; icon: string }[] = [
 export function AnalyzingPage() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const { startGenerate, jobs } = useJobsStore();
+	const { startGenerate, jobs, hydrated } = useJobsStore();
 	const [started, setStarted] = useState(false);
+	const [startError, setStartError] = useState<string | null>(null);
 
 	// Find the active generate job (may have been started on another page).
 	const genJob =
 		jobs.active.find((j) => j.kind === "generate") ??
 		jobs.recent.find((j) => j.kind === "generate");
 
-	// Start a generate job on mount if none is running.
+	// Start a generate job once the engine's real state is known. Before the
+	// first fetch lands, `jobs` is the empty sentinel — auto-starting then
+	// would double-start a job that may already be running on the engine.
 	useEffect(() => {
 		if (started) return;
+		if (!hydrated) return;
 		const active = jobs.active.some((j) => j.kind === "generate");
-		if (!active) {
-			void startGenerate({ cap: 10 });
+		const recent = jobs.recent.some((j) => j.kind === "generate");
+		if (!active && !recent) {
+			void startGenerate({ cap: 10 }).then((job) => {
+				if (!job)
+					setStartError(
+						useJobsStore.getState().lastError ??
+							t("analyzing.generationFailed"),
+					);
+			});
 		}
 		setStarted(true);
-	}, [started, jobs.active, startGenerate]);
+	}, [started, hydrated, jobs.active, jobs.recent, startGenerate]);
 
 	// Navigate to Brief when the job completes.
 	useEffect(() => {
@@ -68,6 +79,7 @@ export function AnalyzingPage() {
 	);
 
 	const statusOf = (idx: number): WorkflowNodeStatus => {
+		if (startError) return "pending";
 		if (!genJob || genJob.status === "error")
 			return idx === 0 ? "running" : "pending";
 		if (genJob.status === "done") return "done";
@@ -87,7 +99,7 @@ export function AnalyzingPage() {
 					{t("analyzing.title")}
 				</h2>
 				<p className="mt-2 font-body text-body-md text-on-surface-variant">
-					{genJob?.progress.message ?? t("analyzing.starting")}
+					{startError ?? genJob?.progress.message ?? t("analyzing.starting")}
 				</p>
 			</header>
 
@@ -138,11 +150,18 @@ export function AnalyzingPage() {
 					})}
 				</ol>
 
-				{genJob?.status === "error" ? (
+				{genJob?.status === "error" || startError ? (
 					<p className="mt-4 font-mono text-mono-technical text-error">
-						{aiErrorCode(genJob.error)
-							? aiErrorMessage(t, genJob.error, "analyzing.generationFailed")
-							: (genJob.error ?? t("analyzing.generationFailed"))}
+						{startError ??
+							(genJob?.error
+								? aiErrorCode(genJob.error)
+									? aiErrorMessage(
+											t,
+											genJob.error,
+											"analyzing.generationFailed",
+										)
+									: genJob.error
+								: t("analyzing.generationFailed"))}
 					</p>
 				) : null}
 			</GhostCard>

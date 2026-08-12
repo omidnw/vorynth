@@ -54,10 +54,17 @@ export const useUpdaterStore = create<UpdaterStore>((set, get) => ({
 	available: null,
 
 	init: async () => {
-		const packaged = await isPackagedBuild();
-		set({ packaged });
-		if (packaged) {
-			await get().check();
+		try {
+			const packaged = await isPackagedBuild();
+			set({ packaged });
+			if (packaged) {
+				await get().check();
+			}
+		} catch {
+			// The probe failed (unexpected shell environment, invoke error) —
+			// stay silent: a background check must never throw an unhandled
+			// rejection on boot. `check` carries its own error handling.
+			set({ packaged: false });
 		}
 	},
 

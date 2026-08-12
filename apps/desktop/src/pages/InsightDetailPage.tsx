@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { locationHasHistory } from "@/lib/router/has-history.js";
@@ -46,11 +46,15 @@ export function InsightDetailPage() {
 	// the record call lets the "Mark read" button toggle the persisted flag.
 	const [viewId, setViewId] = useState<number | null>(null);
 	const [read, setRead] = useState(false);
+	// A "Mark read" toggle clicked before the view id has landed — persisted
+	// once the record resolves (the engine's view row doesn't exist yet).
+	const pendingReadRef = useRef<boolean | null>(null);
 	const [showExport, setShowExport] = useState(false);
 	/** v1.8.0 — show the insight as first written instead of the translation. */
 	const [showOriginal, setShowOriginal] = useState(false);
 	const textDir = useTextDirection();
 	const { t } = useTranslation();
+	const queryClient = useQueryClient();
 
 	// Smart back: return to the page that opened this insight (Brief, Archive,
 	// Bookmarks) when there's history to go back to; otherwise fall back to the
@@ -73,16 +77,40 @@ export function InsightDetailPage() {
 	// lets the "Mark read" button toggle the persisted flag.
 	useEffect(() => {
 		if (!insight?.articleId) return;
+		// Navigating insight→insight keeps the component mounted — clear the
+		// previous insight's view state before the new record resolves, so the
+		// old row can't be mutated and stale flags don't flash on the new story.
+		setViewId(null);
+		setRead(false);
+		pendingReadRef.current = null;
 		void recordStoryView({
 			articleId: insight.articleId,
 			scope: "insight",
 		})
 			.then((res) => {
 				setViewId(res.id);
-				setRead(true);
+				const pending = pendingReadRef.current;
+				pendingReadRef.current = null;
+				setRead(pending ?? true);
+				if (pending != null) {
+					void setStoryViewRead(res.id, pending)
+						.then(() =>
+							queryClient.invalidateQueries({ queryKey: ["story-views"] }),
+						)
+						.catch(() => undefined);
+				}
 			})
 			.catch(() => undefined);
 	}, [insight?.articleId]);
+
+	// v1.9.0 — reset the remaining per-insight UI state on id change; the
+	// original/translated toggle and export dialog must not leak from the
+	// previous insight when navigating insight→insight without unmount.
+	useEffect(() => {
+		setShowExport(false);
+		setShowOriginal(false);
+		pendingReadRef.current = null;
+	}, [id]);
 
 	// Resolve the underlying article so we can link out to the original source.
 	// Only insights tied to a single article have an articleId; cluster-level
@@ -97,7 +125,6 @@ export function InsightDetailPage() {
 	// Re-translate (v1.8.0) — from the insight's More menu, forces a fresh
 	// translation of the underlying story's title + body (no re-fetch). Only
 	// for article-linked insights whose story was translated at least once.
-	const queryClient = useQueryClient();
 	const retranslateMutation = useMutation({
 		mutationFn: () => translateArticle(insight!.articleId!, { force: true }),
 		onSuccess: () => {
@@ -360,6 +387,9 @@ export function InsightDetailPage() {
 						onClick: () => {
 							const next = !read;
 							setRead(next);
+							// The view row may not exist yet (record in flight) —
+							// queue the toggle so it's persisted once it lands,
+							// instead of silently reverting on the next open.
 							if (viewId != null) {
 								void setStoryViewRead(viewId, next)
 									.then(() =>
@@ -368,6 +398,8 @@ export function InsightDetailPage() {
 										}),
 									)
 									.catch(() => undefined);
+							} else {
+								pendingReadRef.current = next;
 							}
 						},
 					},
@@ -386,13 +418,19 @@ export function InsightDetailPage() {
 								? `${insight.summary}\n\n${insight.significance}\n\n${articleUrl}`
 								: `${insight.summary}\n\n${insight.significance}`;
 							if (navigator.share) {
-								void navigator.share({
-									title: insight.summary,
-									text: shareText,
-									url: articleUrl ?? undefined,
-								});
+								// The OS share sheet can be canceled — never let a
+								// rejection land as an unhandled promise rejection.
+								void navigator
+									.share({
+										title: insight.summary,
+										text: shareText,
+										url: articleUrl ?? undefined,
+									})
+									.catch(() => undefined);
 							} else {
-								void navigator.clipboard.writeText(shareText);
+								void navigator.clipboard
+									.writeText(shareText)
+									.catch(() => undefined);
 							}
 						},
 					},

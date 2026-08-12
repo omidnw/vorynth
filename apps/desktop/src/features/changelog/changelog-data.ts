@@ -38,6 +38,89 @@ export interface Release {
 
 export const RELEASES: Release[] = [
 	{
+		version: "1.8.2",
+		codename: "Privacy First",
+		date: "2026-08-12",
+		summary:
+			"A hardening release: your data stays yours, and the small things stop misbehaving. A plugin package can no longer write outside its own folder — uninstalling a bad plugin used to be able to delete your whole library, settings, and backups, and that path is closed. The plugin scanner catches two more ways risky code hides (string-based timers and protocol-relative network calls). Around that: the period brief stops popping back open after you close it, Ask AI never resurrects an old answer and shows its failures, the Analyzing screen can't get stuck or double-start, Mark-as-read is never lost, background actions tell you when they can't start, and JSON-API sources survive one bad record instead of going silent forever.",
+		changes: [
+			{
+				type: "security",
+				text: "Plugin safety — installing a plugin can no longer reach outside its own folder. A crafted package could previously make uninstall delete your entire data folder (library, settings, backups); such packages are now rejected at install, and uninstall/read paths refuse unsafe folders even from older installs.",
+			},
+			{
+				type: "security",
+				text: "Hardened the plugin scanner: setTimeout/setInterval with a string payload (including template literals) and protocol-relative network calls (fetch('//host')) are now flagged, so risky bundles are caught before you enable them.",
+			},
+			{
+				type: "fixed",
+				text: "The period brief (Today / This week / This month) stays closed when you close it — routine background refreshes no longer pop it back open on its own.",
+			},
+			{
+				type: "fixed",
+				text: "Ask AI search no longer brings back a stale answer from an earlier session, and a failed question shows its error instead of silently swapping in an old result.",
+			},
+			{
+				type: "fixed",
+				text: "The Analyzing screen can't get stuck on 'Starting…' anymore and won't double-start analysis that's already running — it waits for the engine's real state before kicking off a job, and tells you when it can't.",
+			},
+			{
+				type: "fixed",
+				text: "Mark-as-read is never lost: toggling it right after opening a story (before its view record lands) still persists, so the Viewed history shows exactly the state you chose.",
+			},
+			{
+				type: "fixed",
+				text: "Background actions — Re-collect, Regenerate insights, Translate, the data-health check, and per-story translate/re-collect — now tell you when they can't start (e.g. the engine is unreachable) instead of silently doing nothing.",
+			},
+			{
+				type: "fixed",
+				text: "Source-tag suggestions are back to their full vocabulary — typing a tech term now suggests real technologies from the catalog again.",
+			},
+			{
+				type: "fixed",
+				text: "JSON-API sources no longer stop collecting forever because one record had an unparseable date — the bad record is skipped and the rest is collected.",
+			},
+			{
+				type: "improved",
+				text: "Moving straight from one article or insight to the next no longer leaks the previous story's zoom, read flag, or original/translated toggles onto the new one.",
+			},
+			{
+				type: "improved",
+				text: "Settings search: pressing Enter cycles through every matching card (not just the first), and the search box pins itself to the top and follows you between results — clicking anywhere on the page returns it to its place.",
+			},
+			{
+				type: "fixed",
+				text: "Settings search no longer rings the whole General section when a specific card matches — the highlight lands on the matching card (searching 'appearance' rings the Appearance card only).",
+			},
+		],
+		technical: [
+			{
+				type: "security",
+				text: "Plugin install validates ids against the same strict format as the connector registry (^[a-z0-9][a-z0-9-]*$); uninstall/bundle/asset reads refuse stored paths that aren't flat folder names, closing an rmSync data-dir wipe vector.",
+			},
+			{
+				type: "fixed",
+				text: "Runtime plugin scanner and the Semgrep CI ruleset are back in sync: template-literal string timers, protocol-relative URLs, node:fs, and SHA-256 now flag identically in both.",
+			},
+			{
+				type: "fixed",
+				text: "The generic JSON API adapter drops records whose date can't be parsed instead of poisoning article hashing (Invalid Date → toISOString crash); the crawler additionally parses each record in isolation, so one malformed record is skipped, not a whole-source failure.",
+			},
+			{
+				type: "fixed",
+				text: "Backup delete/restore only accept flat .vorynth-backup/.sqlite names resolving inside the backups folder — a crafted name could previously delete sibling files.",
+			},
+			{
+				type: "fixed",
+				text: "Connector registry updates now refresh a connector's source type, not just its name/version/config.",
+			},
+			{
+				type: "fixed",
+				text: "Desktop jobs store marks itself hydrated after the first engine fetch so auto-start screens act on real state; the poll loop can no longer re-arm itself after teardown.",
+			},
+		],
+	},
+	{
 		version: "1.8.1",
 		codename: "Open The Engine",
 		date: "2026-08-10",

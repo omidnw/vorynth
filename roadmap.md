@@ -211,8 +211,9 @@ Truthful list — some of these are known and deferred, others are silent gaps.
 - ✅ Windows package build fixed (v1.7.0-era `package.yml` fixes landed);
   FreeBSD x86_64 CI still historically flaky (webkit2-gtk package naming);
   HarmonyOS NDK/SDK URL must stay verified.
-- 🟡 Intel (x86_64) macOS DMG is not published → landing page shows "support
-  coming soon" for Intel Macs.
+- ✅ Intel (x86_64) macOS DMG published since v1.8.1 — cross-compiled on an
+  Apple Silicon runner (`x86_64-apple-darwin`, `x64` DMG suffix); the landing's
+  macOS box offers both Apple Silicon and Intel downloads.
 
 ### Dark theme
 
@@ -258,7 +259,7 @@ work from this session is on top:
 - FTS5 keyword search can't do cross-script synonyms (delegated to Ask AI).
 - Automated tests exist and grow (engine Jest ~306, desktop Vitest ~324);
   Playwright e2e journeys still planned.
-- Intel macOS DMG not published; FreeBSD/HarmonyOS CI historically flaky.
+- Intel macOS DMG published since v1.8.1 (cross-compiled); FreeBSD/HarmonyOS CI historically flaky.
 - Several early-session fixes (verify-button real request, SearchService DI,
   time-scoped summaries) were listed as pending; most were later confirmed
   done, but a **fresh pass/fail audit against this list is recommended**

@@ -100,7 +100,7 @@ const RULES: SecurityRule[] = [
 		id: "string-timer",
 		severity: "high",
 		label: "setTimeout / setInterval with a string payload",
-		pattern: /\b(?:setTimeout|setInterval)\s*\(\s*["']/g,
+		pattern: /\b(?:setTimeout|setInterval)\s*\(\s*[`"']/g,
 	}),
 	regexRule({
 		id: "script-injection",
@@ -154,6 +154,11 @@ const RULES: SecurityRule[] = [
 					hits.push(url);
 				} else if (/^[a-z][a-z0-9+.-]*:\/\//.test(url)) {
 					// ws:, wss:, file:, … anything but the local app protocol.
+					hits.push(url);
+				} else if (/^\/\//.test(url)) {
+					// Protocol-relative ("//host/x") resolves to http(s) — the
+					// same egress as an explicit scheme, so check its host too.
+					if (isBenignHost(hostOf(`https:${url}`))) continue;
 					hits.push(url);
 				}
 				// Relative paths (fetch("/plugins/…")) are engine assets.

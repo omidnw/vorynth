@@ -1,6 +1,6 @@
 [package]
 name = "vorynth-desktop"
-version = "1.8.1"
+version = "1.8.2"
 description = "Vorynth — local-first personal intelligence engine"
 authors = ["Omid Reza Keshtkar <omidrezakeshtkar@icloud.com>"]
 license = "MIT"
@@ -25,6 +25,13 @@ log = "0.4"
 [target.'cfg(not(target_env = "ohos"))'.dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
+# relaunch() after an update install (v1.8.1): the updater plugin replaces the
+# install but does NOT restart the app — the frontend calls
+# plugin-process's relaunch, so this plugin must be registered or the ACL
+# rejects the command ("plugin:process|restart not allowed by ACL") on Linux,
+# where the app survives the install. Pure std::process — compiles everywhere,
+# including FreeBSD (unlike updater/autostart/notification).
+tauri-plugin-process = "2"
 # Engine health probe + settings fetch, the async runtime, and logging — pure
 # Rust, used unconditionally by main.rs on EVERY non-OHOS target (FreeBSD too).
 reqwest = { version = "0.12", default-features = false, features = ["json"] }

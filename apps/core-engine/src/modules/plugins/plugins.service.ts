@@ -42,6 +42,19 @@ import { scanPluginBundle } from "./security-scan.js";
 import { ConnectorRegistryService } from "../connector-registry/connector-registry.service.js";
 
 /**
+ * A plugin id doubles as its on-disk folder name under `data/plugins/`, so it
+ * must be a safe path segment. Same contract the connector registry and
+ * source lists enforce — anything else (e.g. `..`, `/`, whitespace) could
+ * resolve `join()` outside the plugins dir and let uninstall `rmSync` user data.
+ */
+const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+/** Reject ids that aren't safe folder names. */
+function isValidPluginId(id: string): boolean {
+	return ID_RE.test(id);
+}
+
+/**
  * Plugin registry (v1.8.0 — "adapter-as-plugin" + runtime UI plugins +
  * user-installed plugins).
  *
@@ -127,6 +140,12 @@ export class PluginsService implements OnModuleInit {
 		for (const entry of readdirSync(dir, { withFileTypes: true })) {
 			if (!entry.isDirectory()) continue;
 			const id = entry.name;
+			// Unsafe folder names (e.g. hidden dirs, names with spaces) never
+			// become installable plugins — an id doubles as the folder path.
+			if (!isValidPluginId(id)) {
+				this.logger.warn(`plugin folder "${id}" has an unsafe id, skipping`);
+				continue;
+			}
 			if (this.manifest(id)) continue; // built-in id — never collide
 			const manifestFile = join(dir, id, "plugin.json");
 			const bundleFile = join(dir, id, "bundle.js");
@@ -175,6 +194,25 @@ export class PluginsService implements OnModuleInit {
 			);
 		}
 		return result;
+	}
+
+	/**
+	 * Throw when a stored bundlePath could resolve outside `data/plugins/`
+	 * (only possible for rows registered before id validation existed). New
+	 * installs are validated against ID_RE; this layer only rejects actual
+	 * path-traversal / absolute / nested values, so pre-existing plugins with
+	 * merely relaxed ids keep working.
+	 */
+	private assertSafeBundlePath(bundlePath: string): void {
+		if (
+			!bundlePath ||
+			bundlePath.includes("/") ||
+			bundlePath.includes("\\") ||
+			bundlePath === "." ||
+			bundlePath.startsWith(".")
+		) {
+			throw new BadRequestException("plugin has an unsafe bundle path");
+		}
 	}
 
 	/** INSERT OR IGNORE an installed row for a validated folder. */
@@ -498,6 +536,9 @@ export class PluginsService implements OnModuleInit {
 			.delete(installedPlugins)
 			.where(eq(installedPlugins.id, id))
 			.run();
+		// Defense-in-depth: rows registered before id validation existed may hold
+		// an unsafe bundlePath — never let rmSync resolve outside the plugins dir.
+		this.assertSafeBundlePath(installed.bundlePath);
 		const dir = join(resolvePluginsDir(), installed.bundlePath);
 		rmSync(dir, { recursive: true, force: true });
 		this.logger.log(`plugin ${id} uninstalled`);
@@ -507,6 +548,7 @@ export class PluginsService implements OnModuleInit {
 	readBundle(id: string): Buffer {
 		const installed = this.installedRow(id);
 		if (!installed) throw new NotFoundException(`plugin ${id} not found`);
+		this.assertSafeBundlePath(installed.bundlePath);
 		const file = join(resolvePluginsDir(), installed.bundlePath, "bundle.js");
 		if (!existsSync(file))
 			throw new NotFoundException(`plugin ${id} bundle not found`);
@@ -525,6 +567,7 @@ export class PluginsService implements OnModuleInit {
 		}
 		const installed = this.installedRow(id);
 		if (!installed) throw new NotFoundException(`plugin ${id} not found`);
+		this.assertSafeBundlePath(installed.bundlePath);
 		const base = resolve(resolvePluginsDir(), installed.bundlePath);
 		const target = resolve(base, file);
 		if (target !== base && !target.startsWith(base + sep)) {
@@ -596,7 +639,7 @@ export class PluginsService implements OnModuleInit {
 			) as InstalledPluginManifest;
 			if (
 				typeof parsed?.id !== "string" ||
-				parsed.id.length === 0 ||
+				!isValidPluginId(parsed.id) ||
 				typeof parsed.name !== "string" ||
 				typeof parsed.version !== "string"
 			) {
@@ -607,7 +650,7 @@ export class PluginsService implements OnModuleInit {
 			throw new BadRequestException({
 				code: "PLUGIN_INVALID_MANIFEST",
 				message:
-					"plugin.json is missing or malformed — it needs id, name, and version.",
+					"plugin.json is missing or malformed — it needs a safe id (lowercase letters, numbers, dashes), name, and version.",
 			});
 		}
 

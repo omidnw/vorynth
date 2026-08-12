@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -50,17 +50,25 @@ export function PeriodSummaryPanel({
 	const [summary, setSummary] = useState<PeriodSummary | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [showExport, setShowExport] = useState(false);
-	// v1.8.1 — a CLOSE button hides the panel; a fresh summary brings it back.
+	// v1.8.1 — a CLOSE button hides the panel (per page view); a fresh summary
+	// brings it back. The surfaced-job guard below keeps a routine poll from
+	// re-showing a panel the user just closed on this page.
 	const [dismissed, setDismissed] = useState(false);
 	// v1.8.0 — a bilingual summary carries its original-language version; this
 	// toggles between the user's language and the majority-story language.
 	const [showOriginal, setShowOriginal] = useState(false);
 	const storyExports = usePluginStoryExports();
 
-	// Watch the most recent summarize job and surface its result.
+	// Watch the most recent summarize job and surface its result. The store
+	// re-fetches jobs every few seconds (new `jobs.recent` array every poll), so
+	// only a job we haven't surfaced yet may re-show the panel — otherwise a
+	// routine poll would reopen a panel the user just closed.
+	const surfacedJobIdRef = useRef<string | null>(null);
 	useEffect(() => {
 		const list = jobs.recent.find((j) => j.kind === "summarize");
 		if (!list || list.status !== "done") return;
+		if (surfacedJobIdRef.current === list.id) return;
+		surfacedJobIdRef.current = list.id;
 		const result = list.result as
 			PeriodSummary | { ok: false; reason: string } | null;
 		if (!result) return;
